@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,11 +32,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   protected ResponseEntity<ErrorResponse> handleValidationException(
       MethodArgumentNotValidException e) {
-    String validationMessage = e.getBindingResult()
-        .getFieldErrors()
-        .stream()
-        .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-        .collect(Collectors.joining(", "));
+    String validationMessage = formatFieldErrors(e.getBindingResult());
 
     log.warn("Request body validation failed. errors={}", validationMessage);
 
@@ -54,15 +51,13 @@ public class GlobalExceptionHandler {
       HttpMessageNotReadableException.class,
       MethodArgumentTypeMismatchException.class,
       MissingRequestHeaderException.class,
-      IllegalArgumentException.class
   })
   protected ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
     String message = resolveBadRequestMessage(e);
     log.warn(
-        "Bad request exception occurred. type={}, clientMessage={}, detail={}",
+        "Bad request exception occurred. type={}, clientMessage={}",
         e.getClass().getSimpleName(),
-        message,
-        e.getMessage()
+        message
     );
 
     return ResponseEntity
@@ -93,11 +88,7 @@ public class GlobalExceptionHandler {
     }
 
     if (e instanceof BindException bindException) {
-      String message = bindException.getBindingResult()
-          .getFieldErrors()
-          .stream()
-          .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-          .collect(Collectors.joining(", "));
+      String message = formatFieldErrors(bindException.getBindingResult());
       if (!message.isBlank()) {
         return message;
       }
@@ -113,5 +104,12 @@ public class GlobalExceptionHandler {
     }
 
     return ErrorCode.INVALID_INPUT.getMessage();
+  }
+
+  private String formatFieldErrors(BindingResult bindingResult) {
+    return bindingResult.getFieldErrors()
+        .stream()
+        .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+        .collect(Collectors.joining(", "));
   }
 }
