@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +26,11 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @SQLRestriction("is_deleted = false")
-public class Article extends BaseEntity {
+public class Article {
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
   @Enumerated(EnumType.STRING)
   @Column(length = 50)
   private ArticleSource source;

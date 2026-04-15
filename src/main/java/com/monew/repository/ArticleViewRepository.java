@@ -8,7 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ArticleViewRepository extends JpaRepository<ArticleView, UUID> {
 
-  ArticleView findByIdAndArticle(UUID id, Article article);
-
   ArticleView findByArticleAndUser(Article article, User user);
 }
