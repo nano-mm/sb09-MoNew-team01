@@ -33,6 +33,5 @@ public class InterestController {
     InterestDto response = InterestMapper.toDto(interest,false);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
   }
 }
