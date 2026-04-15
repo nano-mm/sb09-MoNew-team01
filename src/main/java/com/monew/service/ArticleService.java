@@ -1,5 +1,12 @@
 package com.monew.service;
 
-public class ArticleService {
+import com.monew.dto.response.ArticleDto;
+import java.util.UUID;
+
+public interface ArticleService {
+
+  ArticleDto find(UUID articleId);
+
+  void delete(UUID articleId);
 
 }
