@@ -20,6 +20,9 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserDto create(UserRegisterRequest request){
+    if(userRepository.existsByEmail(request.email())) {
+      throw new RuntimeException("Email already exists"); // 별도 예외처리 필요
+    }
     User user = User.to(request.email(), request.nickname(), request.password());
     User savedUser = userRepository.save(user);
     return userMapper.toDto(savedUser);
