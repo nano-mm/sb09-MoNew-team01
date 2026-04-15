@@ -6,9 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -32,16 +29,16 @@ public class Article {
   private UUID id;
 
   @Enumerated(EnumType.STRING)
-  @Column(length = 50)
+  @Column(nullable = false, length = 50)
   private ArticleSource source;
 
-  @Column(name = "source_url", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "source_url", nullable = false, length = 500)
   private String sourceUrl;
 
-  @Column(nullable = false, length = 500)
+  @Column(nullable = false, length = 255)
   private String title;
 
-  @Column(name = "publish_date")
+  @Column(name = "publish_date", nullable = false)
   private Instant publishDate;
 
   @Column(columnDefinition = "TEXT")
