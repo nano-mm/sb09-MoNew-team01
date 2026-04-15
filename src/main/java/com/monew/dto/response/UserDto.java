@@ -1,7 +1,6 @@
 package com.monew.dto.response;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record UserDto(
