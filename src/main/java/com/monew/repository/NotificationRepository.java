@@ -34,4 +34,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
         .map(cursor -> findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursor, pageable))
         .orElse(List.of());
   }
+
+  long countByUserId(UUID userId);
 }
