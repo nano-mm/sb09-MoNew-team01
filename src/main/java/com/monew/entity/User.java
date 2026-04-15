@@ -9,29 +9,28 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SoftDelete;
 
 @Entity
 @Getter
 @Table(name = "users")
+@SoftDelete(columnName = "is_deleted")
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class User extends BaseUpdatableEntity {
-  @Column(name = "email")
+  @Column(name = "email", unique = true, nullable = false)
   private String email;
-  @Column(name = "nickname")
+  @Column(name = "nickname", nullable = false)
   private String nickname;
-  @Column(name = "password")
+  @Column(name = "password", nullable = false)
   private String password;
-  @Column(name = "is_deleted")
-  private Boolean isDeleted;
 
   public static User to(String email, String nickname, String password) {
     return User.builder()
         .email(email)
         .nickname(nickname)
         .password(password)
-        .isDeleted(false)
         .build();
   }
 
