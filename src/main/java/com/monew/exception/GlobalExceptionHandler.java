@@ -58,7 +58,12 @@ public class GlobalExceptionHandler {
   })
   protected ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
     String message = resolveBadRequestMessage(e);
-    log.warn("Bad request exception occurred. type={}, message={}", e.getClass().getSimpleName(), message);
+    log.warn(
+        "Bad request exception occurred. type={}, clientMessage={}, detail={}",
+        e.getClass().getSimpleName(),
+        message,
+        e.getMessage()
+    );
 
     return ResponseEntity
         .status(HttpStatus.BAD_REQUEST)
@@ -75,6 +80,29 @@ public class GlobalExceptionHandler {
   }
 
   private String resolveBadRequestMessage(Exception e) {
+    if (e instanceof HttpMessageNotReadableException) {
+      return "요청 본문 형식이 올바르지 않습니다";
+    }
+
+    if (e instanceof MethodArgumentTypeMismatchException) {
+      return "요청 파라미터 타입이 올바르지 않습니다";
+    }
+
+    if (e instanceof MissingRequestHeaderException) {
+      return "필수 요청 헤더가 누락되었습니다";
+    }
+
+    if (e instanceof BindException bindException) {
+      String message = bindException.getBindingResult()
+          .getFieldErrors()
+          .stream()
+          .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+          .collect(Collectors.joining(", "));
+      if (!message.isBlank()) {
+        return message;
+      }
+    }
+
     if (e instanceof ConstraintViolationException constraintViolationException) {
       String message = constraintViolationException.getConstraintViolations().stream()
           .map(ConstraintViolation::getMessage)
@@ -84,10 +112,6 @@ public class GlobalExceptionHandler {
       }
     }
 
-    if (e.getMessage() == null || e.getMessage().isBlank()) {
-      return ErrorCode.INVALID_INPUT.getMessage();
-    }
-
-    return e.getMessage();
+    return ErrorCode.INVALID_INPUT.getMessage();
   }
 }
