@@ -23,7 +23,7 @@ public class User extends BaseUpdatableEntity {
   private String nickname;
   @Column(name = "password")
   private String password;
-  @Column(name = "isDeleted")
+  @Column(name = "is_deleted")
   private Boolean isDeleted;
 
   public static User to(String email, String nickname, String password) {
