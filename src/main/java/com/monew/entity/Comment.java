@@ -15,8 +15,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "comments",
     indexes = {
-        @Index(name = "idx_news_created", columnList = "newsId, createdAt DESC"),
-        @Index(name = "idx_news_like", columnList = "newsId, likeCount DESC, id DESC")
+        @Index(name = "idx_news_created", columnList = "articleId, createdAt DESC"),
+        @Index(name = "idx_news_like", columnList = "articleId, likeCount DESC, id DESC")
     })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -27,7 +27,7 @@ public class Comment {
 
   private Long userId;
 
-  private Long newsId;
+  private Long articleId;
 
   @Column(nullable = false, length = 500)
   private String content;
@@ -40,9 +40,9 @@ public class Comment {
   private LocalDateTime updatedAt;
 
   // 생성자
-  public Comment(Long userId, Long newsId, String content) {
+  public Comment(Long userId, Long articleId, String content) {
     this.userId = userId;
-    this.newsId = newsId;
+    this.articleId = articleId;
     this.content = content;
     this.likeCount = 0;
     this.deleted = false;

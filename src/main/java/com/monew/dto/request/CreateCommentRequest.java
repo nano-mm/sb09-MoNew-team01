@@ -9,7 +9,7 @@ import lombok.Getter;
 public class CreateCommentRequest {
 
   @NotNull
-  private Long newsId;
+  private Long articleId;
 
   @NotBlank
   @Size(max = 500)

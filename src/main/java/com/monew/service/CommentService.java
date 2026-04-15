@@ -2,6 +2,9 @@ package com.monew.service;
 
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
+import com.monew.exception.CommentNotFoundException;
+import com.monew.exception.DuplicateLikeException;
+import com.monew.exception.ForbiddenException;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
 import java.util.List;
@@ -76,12 +79,12 @@ public class CommentService {
   }
 
   public List<Comment> getComments(
-      Long newsId,
+      Long articleId,
       String sortType,
       Object cursor,
       int size
   ) {
-    return commentRepository.findByNewsIdWithCursor(newsId, sortType, cursor, size);
+    return commentRepository.findByNewsIdWithCursor(articleId, sortType, cursor, size);
   }
 
   private Comment getActiveComment(Long commentId) {

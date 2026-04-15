@@ -40,7 +40,7 @@ public class CommentController {
 
     Long commentId = commentService.createComment(
         userId,
-        request.getNewsId(),
+        request.getArticleId(),
         request.getContent()
     );
 
