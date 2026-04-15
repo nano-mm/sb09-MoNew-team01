@@ -1,4 +1,4 @@
-package com.monew.exception;
+package com.monew.exception.global;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

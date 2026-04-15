@@ -1,4 +1,4 @@
-package com.monew.exception;
+package com.monew.exception.global;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
