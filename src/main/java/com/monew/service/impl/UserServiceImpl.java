@@ -40,8 +40,9 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserDto update(UUID userId, UserUpdateRequest request) {
-    User user = userRepository.findById(userId).orElseThrow();
-    userRepository.save(user.update(request.nickname()));
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new  UserNotFoundException("User not found with id: " + userId));
+    user.update(request.nickname());
     return userMapper.toDto(user);
   }
 
