@@ -23,6 +23,6 @@ public abstract class BaseEntity {
 
   @JsonIgnore
   @CreatedDate
-  @Column(updatable = false)
+  @Column(name = "created_at", updatable = false)
   protected Instant createdAt;
 }
