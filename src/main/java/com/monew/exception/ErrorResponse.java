@@ -1,4 +1,4 @@
-package com.monew.exception.global;
+package com.monew.exception;
 
 public record ErrorResponse(
     String code,
