@@ -1,0 +1,21 @@
+package com.monew.entity.base;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.MappedSuperclass;
+import java.time.Instant;
+import lombok.Getter;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+@Getter
+@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+public abstract class BaseUpdatableEntity extends BaseEntity {
+
+  @JsonIgnore
+  @LastModifiedDate
+  protected Instant updatedAt;
+}
