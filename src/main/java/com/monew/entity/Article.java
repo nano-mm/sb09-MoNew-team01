@@ -1,5 +1,6 @@
 package com.monew.entity;
 
+import com.monew.entity.base.BaseEntity;
 import com.monew.entity.enums.ArticleSource;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,15 +22,10 @@ import org.hibernate.annotations.SQLRestriction;
 @Table(name = "articles")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@SQLRestriction("is_deleted = false") // 전역 필터: 조회 시 삭제된 데이터 자동 제외
-public class Article {
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
-
+@SQLRestriction("is_deleted = false")
+public class Article extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(length = 50)
   private ArticleSource source;
