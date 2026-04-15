@@ -10,19 +10,22 @@ import com.monew.repository.UserRepository;
 import com.monew.service.UserService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+  private final JdbcTemplate jdbcTemplate;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
   @Override
   public UserDto create(UserRegisterRequest request){
-    if(userRepository.existsByEmail(request.email())) {
-      throw new RuntimeException("Email already exists"); // 별도 예외처리 필요
-    }
+    if(existsInAllUsers(request.email()))
+      throw new RuntimeException("Email already exists");
     User user = User.to(request.email(), request.nickname(), request.password());
     User savedUser = userRepository.save(user);
     return userMapper.toDto(savedUser);
@@ -42,6 +45,18 @@ public class UserServiceImpl implements UserService {
     return userMapper.toDto(user);
   }
 
+  @Override
+  public void softDelete(UUID userId) {
+    User user = userRepository.findById(userId).orElseThrow();
+    userRepository.delete(user);
+  }
+
+  @Override
+  public void hardDelete(UUID userId) {
+    String sql = "DELETE FROM users WHERE id = ?";
+    jdbcTemplate.update(sql, userId);
+  }
+
   private User validate(String email, String password) {
     User user =  userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException(
         "Wrong email or password"));
@@ -50,5 +65,11 @@ public class UserServiceImpl implements UserService {
     } else {
       throw new IllegalArgumentException("Wrong email or password");
     }
+  }
+
+  private boolean existsInAllUsers(String email) {
+    String sql = "SELECT count(*) FROM users WHERE email = ?";
+    Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+    return count != null && count > 0;
   }
 }
