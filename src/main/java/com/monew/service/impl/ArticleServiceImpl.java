@@ -100,13 +100,12 @@ public class ArticleServiceImpl implements ArticleService {
   public CursorPageResponseDto<ArticleDto> findArticles(ArticleSearchCondition condition
       , CursorRequest cursorRequest, UUID userId) {
 
+    // 관심사 기능 추가 시 추가 구현 필요
     List<String> interestKeywords = null;
-
 
     CursorPageResponseDto<Article> entityPage =
         articleQueryRepository.searchArticlesByCursor(condition, interestKeywords, cursorRequest);
 
-    // 3. Entity -> DTO 변환 (viewedByMe 로직 포함 가능)
     List<ArticleDto> dtoList = entityPage.content().stream()
         .map(article -> {
           ArticleDto dto = articleMapper.toDto(article);

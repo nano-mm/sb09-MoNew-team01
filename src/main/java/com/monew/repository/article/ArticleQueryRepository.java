@@ -35,7 +35,6 @@ public class ArticleQueryRepository {
     String orderBy = cursorRequest.orderBy() != null ? cursorRequest.orderBy() : "publishDate";
     String direction = cursorRequest.direction() != null ? cursorRequest.direction() : "DESC";
 
-    // 1. 커서 엔티티 조회
     Article cursorArticle = null;
     if (cursorRequest.cursor() != null && !cursorRequest.cursor().isBlank()) {
       cursorArticle = queryFactory
@@ -44,7 +43,6 @@ public class ArticleQueryRepository {
           .fetchOne();
     }
 
-    // 2. 메인 쿼리 실행
     List<Article> content = queryFactory
         .selectFrom(article)
         .where(
