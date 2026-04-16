@@ -27,11 +27,12 @@ public class NotificationServiceImpl implements NotificationService {
       int size
   ) {
     int pageSize = Math.max(1, size);
-    Instant cursorPoint = resolveCursorPoint(userId, cursor, after);
+    CursorPoint cursorPoint = resolveCursorPoint(userId, cursor, after);
 
     List<Notification> notifications = notificationRepository.findByUserIdWithCursor(
         userId,
-        cursorPoint,
+        cursorPoint.after(),
+        cursorPoint.cursorId(),
         pageSize + 1
     );
 
@@ -63,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
     );
   }
 
-  private Instant resolveCursorPoint(UUID userId, String cursor, Instant after) {
+  private CursorPoint resolveCursorPoint(UUID userId, String cursor, Instant after) {
     if (cursor != null && !cursor.isBlank()) {
       UUID cursorId;
       try {
@@ -72,12 +73,17 @@ public class NotificationServiceImpl implements NotificationService {
         throw new BaseException(ErrorCode.INVALID_INPUT);
       }
 
-      return notificationRepository.findByIdAndUserIdAndConfirmedFalse(cursorId, userId)
+      Instant cursorAfter = notificationRepository.findByIdAndUserIdAndConfirmedFalse(cursorId, userId)
           .map(Notification::getCreatedAt)
           .orElseThrow(() -> new BaseException(ErrorCode.INVALID_INPUT));
+
+      return new CursorPoint(cursorAfter, cursorId);
     }
 
-    return after;
+    return new CursorPoint(after, null);
+  }
+
+  private record CursorPoint(Instant after, UUID cursorId) {
   }
 
   private NotificationDto toDto(Notification notification) {

@@ -7,29 +7,34 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-  List<Notification> findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(
+  @Query("""
+      select n
+      from Notification n
+      where n.userId = :userId
+        and n.confirmed = false
+        and (
+          :cursorAfter is null
+          or n.createdAt < :cursorAfter
+          or (n.createdAt = :cursorAfter and (:cursorId is null or n.id < :cursorId))
+        )
+      order by n.createdAt desc, n.id desc
+      """)
+  List<Notification> findByUserIdWithCursor(
       UUID userId,
-      Instant cursor,
+      Instant cursorAfter,
+      UUID cursorId,
       Pageable pageable
   );
 
-  List<Notification> findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(
-      UUID userId,
-      Pageable pageable
-  );
-
-  default List<Notification> findByUserIdWithCursor(UUID userId, Instant cursorPoint, int size) {
+  default List<Notification> findByUserIdWithCursor(UUID userId, Instant cursorAfter, UUID cursorId, int size) {
     int pageSize = Math.max(1, size);
     Pageable pageable = PageRequest.of(0, pageSize);
 
-    if (cursorPoint == null) {
-      return findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(userId, pageable);
-    }
-
-    return findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
+    return findByUserIdWithCursor(userId, cursorAfter, cursorId, pageable);
   }
 
   java.util.Optional<Notification> findByIdAndUserIdAndConfirmedFalse(UUID id, UUID userId);
