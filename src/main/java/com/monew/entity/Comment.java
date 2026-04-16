@@ -1,70 +1,101 @@
 package com.monew.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
+import com.monew.entity.base.BaseEntity;
+import jakarta.persistence.*;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
-@Table(name = "comments",
+@Table(
+    name = "comments",
     indexes = {
-        @Index(name = "idx_news_created", columnList = "articleId, createdAt DESC"),
-        @Index(name = "idx_news_like", columnList = "articleId, likeCount DESC, id DESC")
-    })
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Comment {
+        @Index(name = "idx_comment_article_id", columnList = "article_id"),
+        @Index(name = "idx_comment_created_at", columnList = "created_at"),
+        @Index(name = "idx_comment_like_count", columnList = "like_count")
+    }
+)
+@SQLRestriction("deleted_at IS NULL")  // 논리 삭제된 댓글 자동 필터링 (Hibernate 6+)
+public class Comment extends BaseEntity {
 
-  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(name = "id", updatable = false, nullable = false)
+  private UUID id;
 
-  private Long userId;
+  // 외부 뉴스 API 기사 ID (문자열로 관리)
+  @Column(name = "article_id", nullable = false)
+  private String articleId;
 
-  private Long articleId;
+  // 작성자 ID (User 도메인 참조 - 직접 FK 대신 ID만 보유)
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
-  @Column(nullable = false, length = 500)
+  @Column(name = "content", nullable = false, length = 1000)
   private String content;
 
-  private int likeCount;
+  // 좋아요 수 캐시 (CommentLike 테이블의 카운트를 여기서 관리)
+  @Column(name = "like_count", nullable = false)
+  private int likeCount = 0;
 
-  private boolean deleted;
+  // 논리 삭제 필드 - null이면 활성, 값이 있으면 삭제됨
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CommentLike> likes = new ArrayList<>();
 
-  // 생성자
-  public Comment(Long userId, Long articleId, String content) {
-    this.userId = userId;
+  protected Comment() {}
+
+  private Comment(String articleId, UUID userId, String content) {
     this.articleId = articleId;
+    this.userId = userId;
     this.content = content;
-    this.likeCount = 0;
-    this.deleted = false;
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = LocalDateTime.now();
   }
 
-  // 비즈니스 로직
-  public void updateContent(String content) {
-    this.content = content;
-    this.updatedAt = LocalDateTime.now();
+  public static Comment create(String articleId, UUID userId, String content) {
+    return new Comment(articleId, userId, content);
   }
 
-  public void delete() {
-    this.deleted = true;
+  // 본인 댓글 여부 확인
+  public boolean isOwnedBy(UUID requestUserId) {
+    return this.userId.equals(requestUserId);
   }
 
+  // 논리 삭제 여부 확인
+  public boolean isDeleted() {
+    return this.deletedAt != null;
+  }
+
+  // 내용 수정
+  public void updateContent(String newContent) {
+    this.content = newContent;
+  }
+
+  // 논리 삭제
+  public void softDelete() {
+    this.deletedAt = LocalDateTime.now();
+  }
+
+  // 좋아요 수 증가
   public void increaseLikeCount() {
     this.likeCount++;
   }
 
+  // 좋아요 수 감소
   public void decreaseLikeCount() {
-    this.likeCount--;
+    if (this.likeCount > 0) {
+      this.likeCount--;
+    }
   }
+
+  public UUID getId() { return id; }
+  public String getArticleId() { return articleId; }
+  public UUID getUserId() { return userId; }
+  public String getContent() { return content; }
+  public int getLikeCount() { return likeCount; }
+  public LocalDateTime getDeletedAt() { return deletedAt; }
 }

@@ -1,5 +1,7 @@
 package com.monew.service;
 
+import com.monew.dto.comment.CommentCursor;
+import com.monew.dto.comment.CommentSortType;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
 import com.monew.exception.CommentNotFoundException;
@@ -8,6 +10,7 @@ import com.monew.exception.ForbiddenException;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +24,9 @@ public class CommentService {
   private final CommentLikeRepository commentLikeRepository;
 
   @Transactional
-  public Long createComment(Long userId, Long newsId, String content) {
+  public UUID createComment(UUID userId, UUID articleId, String content) {
 
-    Comment comment = new Comment(userId, newsId, content);
+    Comment comment = Comment.create(articleId.toString(), userId, content);
 
     commentRepository.save(comment);
 
@@ -31,7 +34,7 @@ public class CommentService {
   }
 
   @Transactional
-  public void updateComment(Long userId, Long commentId, String content) {
+  public void updateComment(UUID userId, UUID commentId, String content) {
 
     Comment comment = getActiveComment(commentId);
 
@@ -43,7 +46,7 @@ public class CommentService {
   }
 
   @Transactional
-  public void deleteComment(Long userId, Long commentId) {
+  public void deleteComment(UUID userId, UUID commentId) {
 
     Comment comment = getActiveComment(commentId);
 
@@ -51,43 +54,38 @@ public class CommentService {
       throw new ForbiddenException();
     }
 
-    comment.delete();
+    comment.softDelete();
   }
 
   @Transactional
-  public void likeComment(Long userId, Long commentId) {
-
+  public void likeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-
-    if (commentLikeRepository.existsByUserIdAndCommentId(userId, commentId)) {
+    if (commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
       throw new DuplicateLikeException();
     }
-
-    commentLikeRepository.save(new CommentLike(userId, commentId));
-
+    commentLikeRepository.save(new CommentLike(comment, userId));
     comment.increaseLikeCount();
   }
 
   @Transactional
-  public void unlikeComment(Long userId, Long commentId) {
-
+  public void unlikeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-
-    commentLikeRepository.deleteByUserIdAndCommentId(userId, commentId);
-
+    commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
     comment.decreaseLikeCount();
   }
 
   public List<Comment> getComments(
-      Long articleId,
-      String sortType,
-      Object cursor,
+      UUID articleId,
+      CommentSortType sortType,  // String → CommentSortType으로 변경
+      CommentCursor cursor,      // Object → CommentCursor로 변경
       int size
   ) {
-    return commentRepository.findByNewsIdWithCursor(articleId, sortType, cursor, size);
+    return commentRepository.findByArticleIdWithCursor(
+        articleId.toString(), sortType, cursor, size
+    );
   }
 
-  private Comment getActiveComment(Long commentId) {
+  private Comment getActiveComment(UUID commentId) {
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(CommentNotFoundException::new);
 

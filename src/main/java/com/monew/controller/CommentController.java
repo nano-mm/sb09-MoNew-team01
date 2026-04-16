@@ -1,5 +1,7 @@
 package com.monew.controller;
 
+import com.monew.dto.comment.CommentCursor;
+import com.monew.dto.comment.CommentSortType;
 import com.monew.dto.request.CreateCommentRequest;
 import com.monew.dto.request.UpdateCommentRequest;
 import com.monew.dto.response.CommentResponse;
@@ -8,6 +10,7 @@ import com.monew.service.CommentService;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,17 +31,17 @@ public class CommentController {
   private final CommentService commentService;
 
   // TODO: 임시 (인증 없을 때)
-  private Long getUserId() {
-    return 1L;
+  private UUID getUserId() {
+    return UUID.fromString("00000000-0000-0000-0000-000000000001");
   }
 
   @PostMapping
-  public ResponseEntity<Long> createComment(
+  public ResponseEntity<UUID> createComment(
       @RequestBody @Valid CreateCommentRequest request
   ) {
-    Long userId = getUserId();
+    UUID userId = getUserId();
 
-    Long commentId = commentService.createComment(
+    UUID commentId = commentService.createComment(
         userId,
         request.getArticleId(),
         request.getContent()
@@ -49,10 +52,10 @@ public class CommentController {
 
   @PatchMapping("/{commentId}")
   public ResponseEntity<Void> updateComment(
-      @PathVariable Long commentId,
+      @PathVariable UUID commentId,
       @RequestBody @Valid UpdateCommentRequest request
   ) {
-    Long userId = getUserId();
+    UUID userId = getUserId();
 
     commentService.updateComment(userId, commentId, request.getContent());
 
@@ -61,9 +64,9 @@ public class CommentController {
 
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
-      @PathVariable Long commentId
+      @PathVariable UUID commentId
   ) {
-    Long userId = getUserId();
+    UUID userId = getUserId();
 
     commentService.deleteComment(userId, commentId);
 
@@ -71,8 +74,8 @@ public class CommentController {
   }
 
   @PostMapping("/{commentId}/like")
-  public ResponseEntity<Void> like(@PathVariable Long commentId) {
-    Long userId = getUserId();
+  public ResponseEntity<Void> like(@PathVariable UUID commentId) {
+    UUID userId = getUserId();
 
     commentService.likeComment(userId, commentId);
 
@@ -80,8 +83,8 @@ public class CommentController {
   }
 
   @DeleteMapping("/{commentId}/like")
-  public ResponseEntity<Void> unlike(@PathVariable Long commentId) {
-    Long userId = getUserId();
+  public ResponseEntity<Void> unlike(@PathVariable UUID commentId) {
+    UUID userId = getUserId();
 
     commentService.unlikeComment(userId, commentId);
 
@@ -90,17 +93,17 @@ public class CommentController {
 
   @GetMapping
   public ResponseEntity<List<CommentResponse>> getComments(
-      @RequestParam Long newsId,
+      @RequestParam UUID articleId,
       @RequestParam String sortType,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "10") int size
   ) {
-
-    Object parsedCursor = parseCursor(sortType, cursor);
+    CommentSortType parsedSortType = CommentSortType.valueOf(sortType);
+    CommentCursor parsedCursor = parseCursor(sortType, cursor);
 
     List<Comment> comments = commentService.getComments(
-        newsId,
-        sortType,
+        articleId,
+        parsedSortType,
         parsedCursor,
         size
     );
@@ -111,28 +114,27 @@ public class CommentController {
             .userId(c.getUserId())
             .content(c.getContent())
             .likeCount(c.getLikeCount())
-            .createdAt(c.getCreatedAt())
+            .createdAt(LocalDateTime.from(c.getCreatedAt()))
             .build())
         .toList();
 
     return ResponseEntity.ok(response);
   }
 
-  private Object parseCursor(String sortType, String cursor) {
-    if (cursor == null) return null;
+  private CommentCursor parseCursor(String sortType, String cursor) {
+    if (cursor == null)
+      return null;
 
-    if ("LATEST".equals(sortType)) {
-      return LocalDateTime.parse(cursor);
+    String[] parts = cursor.split(",");
+    UUID lastId = UUID.fromString(parts[0]);
+
+    if ("CREATED_AT".equals(sortType)) {
+      return new CommentCursor(lastId, LocalDateTime.parse(parts[1]), 0);
+    }
+    if ("LIKE_COUNT".equals(sortType)) {
+      return new CommentCursor(lastId, null, Integer.parseInt(parts[1]));
     }
 
-    if ("LIKE".equals(sortType)) {
-      String[] parts = cursor.split(",");
-      return new Long[]{
-          Long.parseLong(parts[0]),
-          Long.parseLong(parts[1])
-      };
-    }
-
-    throw new IllegalArgumentException("잘못된 정렬 조건");
+    throw new IllegalArgumentException("잘못된 정렬 조건: " + sortType);
   }
 }

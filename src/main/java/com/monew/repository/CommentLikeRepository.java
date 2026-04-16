@@ -1,13 +1,25 @@
 package com.monew.repository;
 
 import com.monew.entity.CommentLike;
+import com.monew.entity.CommentLikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> {
+import java.util.UUID;
 
-  boolean existsByUserIdAndCommentId(Long userId, Long commentId);
+public interface CommentLikeRepository extends JpaRepository<CommentLike, CommentLikeId> {
 
-  void deleteByUserIdAndCommentId(Long userId, Long commentId);
+  boolean existsByCommentIdAndUserId(UUID commentId, UUID userId);
 
-  long countByCommentId(Long commentId);
+  // 물리 삭제 시 댓글에 달린 좋아요 전체 삭제 (cascade 대비 명시적 처리)
+  @Modifying
+  @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId")
+  void deleteAllByCommentId(@Param("commentId") UUID commentId);
+
+  // 특정 사용자의 좋아요 삭제 (좋아요 취소)
+  @Modifying
+  @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.userId = :userId")
+  void deleteByCommentIdAndUserId(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
 }

@@ -1,34 +1,39 @@
 package com.monew.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Table(name = "comment_likes",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_user_comment", columnNames = {"userId", "commentId"})
-    })
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "comment_likes")
+@IdClass(CommentLikeId.class)
+@EntityListeners(AuditingEntityListener.class)
 public class CommentLike {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "comment_id", nullable = false)
+  private Comment comment;
 
-  private Long userId;
+  @Id
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
-  private Long commentId;
+  @CreatedDate
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private LocalDateTime createdAt;
 
-  public CommentLike(Long userId, Long commentId) {
+  protected CommentLike() {}
+
+  public CommentLike(Comment comment, UUID userId) {
+    this.comment = comment;
     this.userId = userId;
-    this.commentId = commentId;
   }
+
+  public Comment getComment() { return comment; }
+  public UUID getUserId() { return userId; }
+  public LocalDateTime getCreatedAt() { return createdAt; }
 }

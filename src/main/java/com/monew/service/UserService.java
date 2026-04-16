@@ -1,0 +1,17 @@
+package com.monew.service;
+
+import com.monew.dto.request.UserLoginRequest;
+import com.monew.dto.request.UserRegisterRequest;
+import com.monew.dto.request.UserUpdateRequest;
+import com.monew.dto.response.UserDto;
+import jakarta.validation.Valid;
+import java.util.UUID;
+
+public interface UserService {
+
+  UserDto create(UserRegisterRequest request);
+
+  UserDto login(@Valid UserLoginRequest request);
+
+  UserDto update(UUID userId, UserUpdateRequest request);
+}
