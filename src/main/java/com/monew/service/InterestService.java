@@ -1,13 +1,18 @@
 package com.monew.service;
 
 import com.monew.dto.request.InterestRegisterRequest;
+import com.monew.dto.request.InterestUpdateRequest;
+import com.monew.dto.response.InterestDto;
 import com.monew.entity.Interest;
+import com.monew.exception.BaseException;
+import com.monew.exception.ErrorCode;
+import com.monew.mapper.InterestMapper;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.util.SimilarityUtils;
-import jakarta.persistence.criteria.CriteriaBuilder.In;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

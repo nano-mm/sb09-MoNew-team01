@@ -5,6 +5,10 @@ public class SimilarityUtils {
     int distance = levenshtein(s1, s2);
     int maxLength = Math.max(s1.length(), s2.length());
 
+    if (maxLength == 0) {
+      return 1.0;
+    }
+
     return (1.0 - (double) distance / maxLength);
   }
 
