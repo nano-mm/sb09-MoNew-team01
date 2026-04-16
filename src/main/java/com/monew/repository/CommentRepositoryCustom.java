@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface CommentRepositoryCustom {
 
-  List<Comment> findByNewsIdWithCursor(
+  List<Comment> findByArticleIdWithCursor(
       Long articleId,
       String sortType, // "LATEST" or "LIKE"
       Object cursor,
