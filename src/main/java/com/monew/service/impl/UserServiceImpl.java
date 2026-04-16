@@ -5,14 +5,13 @@ import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
-import com.monew.exception.user.DuplicateEmailException;
-import com.monew.exception.user.InvalidPasswordException;
+import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
-import com.monew.exception.user.UserNotFoundException;
 import com.monew.mapper.UserMapper;
 import com.monew.repository.UserRepository;
 import com.monew.service.UserService;
 import jakarta.persistence.EntityManager;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +35,7 @@ public class UserServiceImpl implements UserService {
   public UserDto create(UserRegisterRequest request){
     if(existsInAllUsers(request.email())) {
       log.warn("중복된 이메일 오류: {}", request.email());
-      throw new DuplicateEmailException("Email already exists");
+      throw new AlreadyExistEmailException("Email already exists");
     }
 
     String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{6,20}$";
@@ -67,7 +66,7 @@ public class UserServiceImpl implements UserService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.warn("사용자 업데이트 실패. 존재하지 않는 사용자 id: {}", userId);
-          return new UserNotFoundException("User not found with id: " + userId);
+          return new NoSuchElementException("User not found with id: " + userId);
         });
     user.update(request.nickname());
     log.info("사용자 닉네임 변경 성공. 사용자 id: {}", user.getId());
@@ -79,7 +78,7 @@ public class UserServiceImpl implements UserService {
     User user = userRepository.findById(userId).orElseThrow(
         () -> {
           log.warn("softDelete 실패. 존재하지 않는 사용자 id: {}", userId);
-          return new UserNotFoundException("User not found with id: " + userId);
+          return new NoSuchElementException("User not found with id: " + userId);
         }
     );
 
@@ -93,7 +92,7 @@ public class UserServiceImpl implements UserService {
 
     if (count == null || count == 0) {
       log.warn("hardDelete 실패. DB에 존재하지 않는 사용자 id: {}", userId);
-      throw new UserNotFoundException("User not found with id: " + userId);
+      throw new NoSuchElementException("User not found with id: " + userId);
     }
 
     entityManager.flush();
@@ -107,11 +106,11 @@ public class UserServiceImpl implements UserService {
     User user =  userRepository.findByEmail(email)
         .orElseThrow(() -> {
           log.warn("로그인 실패. 존재하지 않는 사용자 email: {}", email);
-          return new UserNotFoundException("Wrong email or password");
+          return new IllegalArgumentException("Wrong email or password");
         });
     if (!passwordEncoder.matches(password, user.getPassword())) {
       log.warn("사용자 비밀번호 검증 실패. 사용자 id: {}", user.getId());
-      throw new InvalidPasswordException("Wrong email or password");
+      throw new IllegalArgumentException("Wrong email or password");
     }
 
     return user;
