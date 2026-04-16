@@ -5,6 +5,7 @@ import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
+import com.monew.exception.user.UnauthorizedException;
 import com.monew.service.UserService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -47,15 +48,21 @@ public class UserController {
   }
 
   @DeleteMapping("{userId}")
-  public void logicalDelete(@LoginUser UUID loginUserId, @PathVariable UUID userId) {
+  public ResponseEntity<Void> logicalDelete(@LoginUser UUID loginUserId, @PathVariable UUID userId) {
     log.debug("사용자 논리적 삭제 시도. 요청 id: {}", loginUserId);
+    if (!loginUserId.equals(userId)) {
+      log.warn("사용자 논리적 삭제 권한 없음. 요청 id: {}, 대상 id: {}", loginUserId, userId);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     userService.softDelete(userId);
     log.info("사용자 논리적 삭제 완료. userId: {}", userId);
+    return ResponseEntity.noContent().build();
   }
 
   @DeleteMapping("{userId}/hard")
-  public void hardDelete(@PathVariable UUID userId) {
+  public ResponseEntity<Void> hardDelete(@PathVariable UUID userId) {
     log.warn("사용자 물리적 삭제 시도. 요청 id: {}", userId);
     userService.hardDelete(userId);
+    return ResponseEntity.noContent().build();
   }
 }
