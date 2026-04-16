@@ -1,6 +1,6 @@
 package com.monew.dto.request;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -8,11 +8,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 public record CursorRequest(
     String cursor,
     Instant after,
-    @NotNull
+    @Min(1)
     Integer limit,
-    @NotNull
     String orderBy,
-    @NotNull
     String direction
 ) {
 }
