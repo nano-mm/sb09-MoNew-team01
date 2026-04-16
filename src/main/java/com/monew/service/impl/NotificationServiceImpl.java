@@ -5,6 +5,7 @@ import com.monew.dto.response.NotificationDto;
 import com.monew.entity.Notification;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
+import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.service.NotificationService;
 import java.time.Instant;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class NotificationServiceImpl implements NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final NotificationMapper notificationMapper;
 
   @Override
   public CursorPageResponseDto<NotificationDto> getNotifications(
@@ -42,7 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
         : notifications;
 
     List<NotificationDto> content = pageItems.stream()
-        .map(this::toDto)
+        .map(notificationMapper::toDto)
         .toList();
 
     String nextCursor = null;
@@ -84,18 +86,5 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   private record CursorPoint(Instant after, UUID cursorId) {
-  }
-
-  private NotificationDto toDto(Notification notification) {
-    return new NotificationDto(
-        notification.getId(),
-        notification.getCreatedAt(),
-        notification.getUpdatedAt(),
-        Boolean.TRUE.equals(notification.getConfirmed()),
-        notification.getUserId(),
-        notification.getContent(),
-        notification.getResourceType().name().toLowerCase(),
-        notification.getResourceId()
-    );
   }
 }
