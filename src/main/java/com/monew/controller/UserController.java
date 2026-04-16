@@ -44,6 +44,10 @@ public class UserController {
   @PatchMapping("{userId}")
   public ResponseEntity<UserDto> update(@LoginUser UUID loginUserId, @PathVariable UUID userId, @RequestBody @Valid UserUpdateRequest request) {
     log.debug("사용자 업데이트 시도. 요청 id: {}", loginUserId);
+    if (!loginUserId.equals(userId)) {
+      log.warn("사용자 업데이트 권한 없음. 요청 id: {}, 대상 id: {}", loginUserId, userId);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     return ResponseEntity.ok().body(userService.update(userId, request));
   }
 
