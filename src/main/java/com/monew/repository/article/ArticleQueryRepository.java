@@ -31,17 +31,9 @@ public class ArticleQueryRepository {
       List<String> interestKeywords,
       CursorRequest cursorRequest) {
 
-    int limit = cursorRequest.limit() != null ? cursorRequest.limit() : 20;
-    String orderBy = cursorRequest.orderBy() != null ? cursorRequest.orderBy() : "publishDate";
-    String direction = cursorRequest.direction() != null ? cursorRequest.direction() : "DESC";
-
-    Article cursorArticle = null;
-    if (cursorRequest.cursor() != null && !cursorRequest.cursor().isBlank()) {
-      cursorArticle = queryFactory
-          .selectFrom(article)
-          .where(article.id.eq(UUID.fromString(cursorRequest.cursor())))
-          .fetchOne();
-    }
+    int limit = cursorRequest.limit();
+    String orderBy = cursorRequest.orderBy();
+    String direction = cursorRequest.direction();
 
     List<Article> content = queryFactory
         .selectFrom(article)
@@ -50,7 +42,7 @@ public class ArticleQueryRepository {
             interestKeywordsContains(interestKeywords),     // 관심사 키워드 검색
             sourceIn(condition.sourceIn()),                  // 출처 필터
             publishDateBetween(condition.publishDateFrom(), condition.publishDateTo()), // 날짜 범위
-            cursorCondition(cursorArticle, orderBy, direction) // 동적 커서 로직
+            cursorCondition(cursorRequest.after(), cursorRequest.cursor(), orderBy, direction) // 동적 커서 로직
         )
         .orderBy(getOrderSpecifiers(orderBy, direction))
         .limit(limit + 1)
@@ -109,8 +101,9 @@ public class ArticleQueryRepository {
   }
 
   private BooleanExpression publishDateBetween(LocalDateTime from, LocalDateTime to) {
-    Instant fromInstant = from != null ? from.atZone(ZoneId.systemDefault()).toInstant() : null;
-    Instant toInstant = to != null ? to.atZone(ZoneId.systemDefault()).toInstant() : null;
+    ZoneId seoulZone = ZoneId.of("Asia/Seoul");
+    Instant fromInstant = from != null ? from.atZone(seoulZone).toInstant() : null;
+    Instant toInstant = to != null ? to.atZone(seoulZone).toInstant() : null;
 
     if (fromInstant != null && toInstant != null) return article.publishDate.between(fromInstant, toInstant);
     if (fromInstant != null) return article.publishDate.goe(fromInstant);
@@ -118,28 +111,25 @@ public class ArticleQueryRepository {
     return null;
   }
 
-  private BooleanExpression cursorCondition(Article cursor, String orderBy, String dir) {
-    if (cursor == null) return null;
+  private BooleanExpression cursorCondition(LocalDateTime after, String cursorId, String orderBy, String dir) {
+    if (after == null || cursorId == null || cursorId.isBlank()) return null;
+
     boolean asc = "ASC".equalsIgnoreCase(dir);
+    UUID uuid = UUID.fromString(cursorId);
+    Instant afterInstant = after.atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
     return switch (orderBy) {
-      case "commentCount" -> asc ?
-          article.commentCount.gt(cursor.getCommentCount())
-              .or(article.commentCount.eq(cursor.getCommentCount()).and(article.id.gt(cursor.getId()))) :
-          article.commentCount.lt(cursor.getCommentCount())
-              .or(article.commentCount.eq(cursor.getCommentCount()).and(article.id.lt(cursor.getId())));
-
+      case "commentCount" -> {
+        yield asc ?
+            article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
+            article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
+      }
       case "viewCount" -> asc ?
-          article.viewCount.gt(cursor.getViewCount())
-              .or(article.viewCount.eq(cursor.getViewCount()).and(article.id.gt(cursor.getId()))) :
-          article.viewCount.lt(cursor.getViewCount())
-              .or(article.viewCount.eq(cursor.getViewCount()).and(article.id.lt(cursor.getId())));
-
-      default -> asc ?
-          article.publishDate.gt(cursor.getPublishDate())
-              .or(article.publishDate.eq(cursor.getPublishDate()).and(article.id.gt(cursor.getId()))) :
-          article.publishDate.lt(cursor.getPublishDate())
-              .or(article.publishDate.eq(cursor.getPublishDate()).and(article.id.lt(cursor.getId())));
+          article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
+          article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
+      default -> asc ? // publishDate 기준 정렬
+          article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
+          article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
     };
   }
 
