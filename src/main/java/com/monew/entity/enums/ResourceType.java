@@ -1,4 +1,4 @@
-package com.monew.entity;
+package com.monew.entity.enums;
 
 public enum ResourceType {
   INTEREST,

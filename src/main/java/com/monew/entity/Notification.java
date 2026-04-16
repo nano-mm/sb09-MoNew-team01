@@ -1,6 +1,7 @@
 package com.monew.entity;
 
 import com.monew.entity.base.BaseUpdatableEntity;
+import com.monew.entity.enums.ResourceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,7 +22,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Notification extends BaseUpdatableEntity {
 
-  @Column(name = "userId")
+  @Column(name = "user_id")
   private UUID userId;
 
   @Column(name = "content")
@@ -31,7 +32,7 @@ public class Notification extends BaseUpdatableEntity {
   @Column(name = "resourceType")
   private ResourceType resourceType;
 
-  @Column(name = "resourceId")
+  @Column(name = "resource_id")
   private UUID resourceId;
 
   @Column(name = "confirmed")

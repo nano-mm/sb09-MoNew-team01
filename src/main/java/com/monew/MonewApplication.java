@@ -2,15 +2,11 @@ package com.monew;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-<<<<<<< HEAD
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-
-@EnableJpaAuditing
-=======
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableJpaAuditing
 @EnableScheduling
->>>>>>> origin/develop
 @SpringBootApplication
 public class MonewApplication {
 

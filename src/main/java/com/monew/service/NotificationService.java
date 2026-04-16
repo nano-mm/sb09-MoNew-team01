@@ -1,10 +1,11 @@
 package com.monew.service;
 
-import com.monew.dto.response.CursorPageResponse;
+import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import java.time.Instant;
 import java.util.UUID;
 
 public interface NotificationService {
 
-  CursorPageResponse<NotificationDto> getNotifications(UUID userId, UUID cursorId, int size);
+  CursorPageResponseDto<NotificationDto> getNotifications(UUID userId, String cursor, Instant after, int size);
 }
