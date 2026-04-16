@@ -1,6 +1,5 @@
 package com.monew.entity;
 
-import com.monew.entity.base.BaseEntity;
 import com.monew.entity.enums.ArticleSource;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
