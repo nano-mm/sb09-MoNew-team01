@@ -76,10 +76,11 @@ public class CommentService {
 
   public List<Comment> getComments(
       UUID articleId,
-      CommentSortType sortType,  // String → CommentSortType으로 변경
-      CommentCursor cursor,      // Object → CommentCursor로 변경
+      CommentSortType sortType,
+      CommentCursor cursor,
       int size
   ) {
+
     return commentRepository.findByArticleIdWithCursor(
         articleId.toString(), sortType, cursor, size
     );

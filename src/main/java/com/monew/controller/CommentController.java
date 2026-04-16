@@ -8,6 +8,7 @@ import com.monew.dto.response.CommentResponse;
 import com.monew.entity.Comment;
 import com.monew.service.CommentService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -94,12 +95,17 @@ public class CommentController {
   @GetMapping
   public ResponseEntity<List<CommentResponse>> getComments(
       @RequestParam UUID articleId,
-      @RequestParam String sortType,
+      @RequestParam CommentSortType sortType,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "10") int size
   ) {
-    CommentSortType parsedSortType = CommentSortType.valueOf(sortType);
-    CommentCursor parsedCursor = parseCursor(sortType, cursor);
+    CommentSortType parsedSortType;
+    try {
+      parsedSortType = CommentSortType.valueOf(String.valueOf(sortType));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("지원하지 않는 정렬 타입입니다: " + sortType);
+    }
+    CommentCursor parsedCursor = parseCursor(String.valueOf(sortType), cursor);
 
     List<Comment> comments = commentService.getComments(
         articleId,
@@ -125,16 +131,26 @@ public class CommentController {
     if (cursor == null)
       return null;
 
-    String[] parts = cursor.split(",");
-    UUID lastId = UUID.fromString(parts[0]);
-
+    String[] parts = cursor.split(",", -1);
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("잘못된 cursor 형식: " + cursor);
+    }
     if ("CREATED_AT".equals(sortType)) {
-      return new CommentCursor(lastId, LocalDateTime.parse(parts[1]), 0);
+      try {
+        UUID lastId = UUID.fromString(parts[0]);
+        return new CommentCursor(lastId, Instant.parse(parts[1]), 0);
+      } catch (RuntimeException e) {
+        throw new IllegalArgumentException("잘못된 cursor 형식: " + cursor, e);
+      }
     }
     if ("LIKE_COUNT".equals(sortType)) {
-      return new CommentCursor(lastId, null, Integer.parseInt(parts[1]));
+      try {
+        UUID lastId = UUID.fromString(parts[0]);
+        return new CommentCursor(lastId, null, Integer.parseInt(parts[1]));
+      } catch (RuntimeException e) {
+        throw new IllegalArgumentException("잘못된 cursor 형식: " + cursor, e);
+      }
     }
-
-    throw new IllegalArgumentException("잘못된 정렬 조건: " + sortType);
+    return null;
   }
 }
