@@ -76,25 +76,30 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void softDelete(UUID userId) {
-    userRepository.delete(userRepository.findById(userId).orElseThrow(
+    User user = userRepository.findById(userId).orElseThrow(
         () -> {
           log.warn("softDelete 실패. 존재하지 않는 사용자 id: {}", userId);
           return new UserNotFoundException("User not found with id: " + userId);
         }
-    ));
+    );
+
+    user.markAsDeleted(true);
   }
 
   @Override
   public void hardDelete(UUID userId) {
-    if(userRepository.findById(userId).isEmpty()) {
-      log.warn("hardDelete 실패. 존재하지 않는 사용자 id: {}", userId);
+    String checkSql = "SELECT COUNT(*) FROM users WHERE id = CAST(? AS UUID)";
+    Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId);
+
+    if (count == null || count == 0) {
+      log.warn("hardDelete 실패. DB에 존재하지 않는 사용자 id: {}", userId);
       throw new UserNotFoundException("User not found with id: " + userId);
     }
 
     entityManager.flush();
     entityManager.clear();
-    String sql = "DELETE FROM users WHERE id = ?";
-    jdbcTemplate.update(sql, userId);
+    String deleteSql = "DELETE FROM users WHERE id = CAST(? AS UUID)";
+    jdbcTemplate.update(deleteSql, userId);
     log.warn("HardDelete 성공. 사용자 id: {}", userId);
   }
 

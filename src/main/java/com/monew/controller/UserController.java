@@ -50,11 +50,12 @@ public class UserController {
   public void logicalDelete(@LoginUser UUID loginUserId, @PathVariable UUID userId) {
     log.debug("사용자 논리적 삭제 시도. 요청 id: {}", loginUserId);
     userService.softDelete(userId);
+    log.info("사용자 논리적 삭제 완료. userId: {}", userId);
   }
 
   @DeleteMapping("{userId}/hard")
-  public void hardDelete(@LoginUser UUID loginUserId, @PathVariable UUID userId) {
-    log.warn("사용자 물리적 삭제 시도. 요청 id: {}", loginUserId);
+  public void hardDelete(@PathVariable UUID userId) {
+    log.warn("사용자 물리적 삭제 시도. 요청 id: {}", userId);
     userService.hardDelete(userId);
   }
 }
