@@ -21,7 +21,7 @@ import org.hibernate.annotations.SoftDelete;
 public class User extends BaseUpdatableEntity {
   @Column(name = "email", unique = true, nullable = false)
   private String email;
-  @Column(name = "nickname", nullable = false)
+  @Column(name = "nickname", nullable = false, length = 20)
   private String nickname;
   @Column(name = "password", nullable = false)
   private String password;
@@ -34,8 +34,7 @@ public class User extends BaseUpdatableEntity {
         .build();
   }
 
-  public User update(String nickname){
+  public void update(String nickname){
     this.nickname = nickname;
-    return this;
   }
 }
