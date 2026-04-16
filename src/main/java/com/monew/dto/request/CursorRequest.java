@@ -7,7 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 public record CursorRequest(
     String cursor,
-    Instant after,
+    LocalDateTime after,
     @NotNull
     Integer limit,
     @NotNull
