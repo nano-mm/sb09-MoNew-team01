@@ -26,6 +26,7 @@ public class ArticleQueryRepository {
 
   private final JPAQueryFactory queryFactory;
 
+  // 커서기반 조회 용
   public CursorPageResponseDto<Article> searchArticlesByCursor(
       ArticleSearchCondition condition,
       List<String> interestKeywords,
@@ -140,5 +141,14 @@ public class ArticleQueryRepository {
       case "viewCount" -> new OrderSpecifier[]{new OrderSpecifier<>(order, article.viewCount), new OrderSpecifier<>(order, article.id)};
       default -> new OrderSpecifier[]{new OrderSpecifier<>(order, article.publishDate), new OrderSpecifier<>(order, article.id)};
     };
+  }
+
+  // 출처 조회
+  public List<ArticleSource> findSources() {
+    return queryFactory
+        .select(article.source)
+        .from(article)
+        .distinct()
+        .fetch();
   }
 }

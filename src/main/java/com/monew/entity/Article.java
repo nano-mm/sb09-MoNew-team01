@@ -31,7 +31,7 @@ public class Article {
   private UUID id;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 50)
+  @Column(name = "source", nullable = false)
   private ArticleSource source;
 
   @Column(name = "source_url", nullable = false, length = 500)
@@ -61,5 +61,9 @@ public class Article {
   @Builder.Default
   @Column(name = "is_deleted", nullable = false)
   private Boolean isDeleted = false;
+
+  public void markAsDeleted() {
+    this.isDeleted = true;
+  }
 
 }

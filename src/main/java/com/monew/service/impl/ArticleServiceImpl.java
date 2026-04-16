@@ -6,6 +6,7 @@ import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.enums.ArticleSource;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -131,7 +132,13 @@ public class ArticleServiceImpl implements ArticleService {
   }
 
   @Override
-  public void delete(UUID articleId) {
+  public void softDelete(UUID articleId) {
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    targetArticle.markAsDeleted();
+  }
+
+  @Override
+  public void hardDelete(UUID articleId) {
     // 존재여부 확인 로그 추가 필요
     Article targetArticle = articleRepository.findById(articleId).orElseThrow();
 
@@ -141,6 +148,16 @@ public class ArticleServiceImpl implements ArticleService {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<String> getSources() {
+    List<ArticleSource> sources = articleQueryRepository.findSources();
+
+    return sources.stream()
+        .map(Enum::name)
+        .toList();
   }
 
   private boolean isKeywordMatch(ArticleDto dto, String keyword) {

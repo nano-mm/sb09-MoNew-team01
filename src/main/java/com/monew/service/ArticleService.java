@@ -4,6 +4,7 @@ import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
+import java.util.List;
 import java.util.UUID;
 
 public interface ArticleService {
@@ -15,6 +16,9 @@ public interface ArticleService {
 
   ArticleDto find(UUID articleId);
 
-  void delete(UUID articleId);
+  void softDelete(UUID articleId);
 
+  void hardDelete(UUID articleId);
+
+  List<String> getSources();
 }
