@@ -28,7 +28,7 @@ public class User extends BaseUpdatableEntity {
   @Column(name = "is_deleted")
   private boolean isDeleted = false;
 
-  public static User to(String email, String nickname, String password) {
+  public static User of(String email, String nickname, String password) {
     return User.builder()
         .email(email)
         .nickname(nickname)
@@ -44,3 +44,32 @@ public class User extends BaseUpdatableEntity {
     this.isDeleted = isDeleted;
   }
 }
+
+/* 아래 부분은 PR 날아오는 것을 확인하고서 작업 진행할 예정
+
+  // 사용자가 작성한 구독 목록
+  @Builder.Default
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Subscription> subscriptions = new ArrayList<>();
+
+  // 사용자가 쓴 댓글 목록
+  @Builder.Default
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Comment> comments = new ArrayList<>();
+
+  // 사용자가 누른 댓글 좋아요 목록
+  @Builder.Default
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CommentLike> commentLikes = new ArrayList<>();
+
+  // 사용자의 게시글 조회 기록
+  @Builder.Default
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<ArticleView> articleViews = new ArrayList<>();
+
+  // 사용자의 알림 목록
+  @Builder.Default
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Notification> notifications = new ArrayList<>();
+
+   */

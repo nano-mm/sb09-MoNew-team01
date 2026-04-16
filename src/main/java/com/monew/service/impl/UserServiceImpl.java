@@ -47,7 +47,7 @@ public class UserServiceImpl implements UserService {
 
     String encodedPassword = passwordEncoder.encode(request.password());
 
-    User user = User.to(request.email(), request.nickname(), encodedPassword);
+    User user = User.of(request.email(), request.nickname(), encodedPassword);
     User savedUser = userRepository.save(user);
     log.info("사용자 생성 완료. userId: {}", user.getId());
     return userMapper.toDto(savedUser);
