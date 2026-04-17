@@ -3,6 +3,7 @@ package com.monew.repository;
 import com.monew.entity.Notification;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +33,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     return findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
   }
 
-  java.util.Optional<Notification> findByIdAndUserIdAndConfirmedFalse(UUID id, UUID userId);
+  Optional<Notification> findByIdAndUserIdAndConfirmedFalse(UUID id, UUID userId);
+
+  List<Notification> findAllByUserIdAndConfirmedFalse(UUID userId);
 
   long countByUserIdAndConfirmedFalse(UUID userId);
 }
