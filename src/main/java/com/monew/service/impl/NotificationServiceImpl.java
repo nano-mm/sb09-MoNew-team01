@@ -104,11 +104,9 @@ public class NotificationServiceImpl implements NotificationService {
         throw new BaseException(ErrorCode.INVALID_INPUT);
       }
 
-      Instant cursorAfter = notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId)
+      return notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId)
           .map(Notification::getCreatedAt)
           .orElseThrow(() -> new BaseException(ErrorCode.INVALID_INPUT));
-
-      return cursorAfter;
     }
 
     return after;
