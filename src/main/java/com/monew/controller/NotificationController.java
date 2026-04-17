@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,5 +33,22 @@ public class NotificationController {
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     return ResponseEntity.ok(notificationService.getNotifications(userId, cursor, after, limit));
+  }
+
+  @PatchMapping("/{notificationId}")
+  public ResponseEntity<Void> confirmNotification(
+      @PathVariable UUID notificationId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    notificationService.confirmNotification(userId, notificationId);
+    return ResponseEntity.ok().build();
+  }
+
+  @PatchMapping
+  public ResponseEntity<Void> confirmAllNotifications(
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ) {
+    notificationService.confirmAllNotifications(userId);
+    return ResponseEntity.ok().build();
   }
 }
