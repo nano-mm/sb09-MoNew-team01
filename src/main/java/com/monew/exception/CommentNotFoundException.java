@@ -1,10 +1,13 @@
 package com.monew.exception;
 
-public class CommentNotFoundException extends RuntimeException {
+public class CommentNotFoundException extends BaseException {
+
   public CommentNotFoundException() {
-    super("댓글을 찾을 수 없습니다.");
+    super(ErrorCode.COMMENT_NOT_FOUND);
   }
+
   public CommentNotFoundException(String id) {
-    super("댓글을 찾을 수 없습니다: " + id);
+    super(ErrorCode.COMMENT_NOT_FOUND);
   }
 }
+
