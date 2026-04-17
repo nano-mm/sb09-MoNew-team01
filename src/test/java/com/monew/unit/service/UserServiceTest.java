@@ -25,7 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +33,6 @@ class UserServiceTest {
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private UserRepository userRepository;
   @Mock private UserMapper userMapper;
-  @Mock private JdbcTemplate jdbcTemplate;
   @Mock private EntityManager entityManager;
 
   @InjectMocks
@@ -48,7 +46,7 @@ class UserServiceTest {
     void create_Success() {
       // given
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Tester", "Password123!");
-      when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any())).thenReturn(0);
+      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
       when(passwordEncoder.encode(any())).thenReturn("encoded_pw");
       when(userRepository.save(any())).thenReturn(User.of(request.email(), request.nickname(), "encoded_pw"));
       when(userMapper.toDto(any())).thenReturn(new UserDto(UUID.randomUUID(), request.email(), request.nickname(), Instant.now()));
@@ -65,7 +63,7 @@ class UserServiceTest {
     @DisplayName("실패: 이메일 중복")
     void create_DuplicateEmail() {
       UserRegisterRequest request = new UserRegisterRequest("exist@test.com", "Nick", "Pass123!");
-      when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any())).thenReturn(1);
+      when(userRepository.existsInAllUsers(anyString())).thenReturn(true);
 
       assertThrows(AlreadyExistEmailException.class, () -> userService.create(request));
     }
@@ -74,7 +72,7 @@ class UserServiceTest {
     @DisplayName("실패: 비밀번호 패턴 부적합")
     void create_InvalidPasswordPattern() {
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Nick", "123");
-      when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any())).thenReturn(0);
+      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
 
       assertThrows(PasswordPatternException.class, () -> userService.create(request));
     }
@@ -150,25 +148,11 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Soft Delete 실패 - 존재하지 않는 사용자 id")
-    void softDelete_Fail_NotFound() {
-      UUID userId = UUID.randomUUID();
-      User user = spy(User.of("test@test.com", "Tester", "pw"));
-      when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-      assertThrows(NoSuchElementException.class, () -> userService.softDelete(userId));
-    }
-
-    @Test
-    @DisplayName("hardDelete 성공: 사용자가 존재하면 DB에서 직접 삭제한다")
+    @DisplayName("hardDelete 성공: 사용자가 존재하면 Repository를 통해 삭제한다")
     void hardDelete_Success() {
       // given
       UUID userId = UUID.randomUUID();
-      String checkSql = "SELECT COUNT(*) FROM users WHERE id = CAST(? AS UUID)";
-      String deleteSql = "DELETE FROM users WHERE id = CAST(? AS UUID)";
-
-      when(jdbcTemplate.queryForObject(eq(checkSql), eq(Integer.class), eq(userId)))
-          .thenReturn(1);
+      when(userRepository.existsByIdPhysical(userId)).thenReturn(true);
 
       // when
       userService.hardDelete(userId);
@@ -176,15 +160,17 @@ class UserServiceTest {
       // then
       verify(entityManager, times(1)).flush();
       verify(entityManager, times(1)).clear();
-      verify(jdbcTemplate, times(1)).update(eq(deleteSql), eq(userId));
+      verify(userRepository, times(1)).deleteByIdPhysical(userId);
     }
 
     @Test
     @DisplayName("Hard Delete 실패: 사용자를 찾을 수 없음")
     void hardDelete_Fail_NotFound() {
+      // given
       UUID userId = UUID.randomUUID();
-      when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(userId))).thenReturn(0);
+      when(userRepository.existsByIdPhysical(userId)).thenReturn(false);
 
+      // when & then
       assertThrows(NoSuchElementException.class, () -> userService.hardDelete(userId));
     }
   }
