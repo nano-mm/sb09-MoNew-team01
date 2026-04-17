@@ -5,6 +5,7 @@ import com.monew.dto.comment.CommentSortType;
 import com.monew.dto.request.CreateCommentRequest;
 import com.monew.dto.request.UpdateCommentRequest;
 import com.monew.dto.response.CommentResponse;
+import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
 import com.monew.service.CommentService;
 import jakarta.validation.Valid;
@@ -93,7 +94,7 @@ public class CommentController {
   }
 
   @GetMapping
-  public ResponseEntity<List<CommentResponse>> getComments(
+  public ResponseEntity<CursorPageResponseDto<CommentResponse>> getComments(
       @RequestParam UUID articleId,
       @RequestParam CommentSortType sortType,
       @RequestParam(required = false) String cursor,
@@ -114,7 +115,7 @@ public class CommentController {
         size
     );
 
-    List<CommentResponse> response = comments.stream()
+    List<CommentResponse> content = comments.stream()
         .map(c -> CommentResponse.builder()
             .commentId(c.getId())
             .userId(c.getUserId())
@@ -123,6 +124,30 @@ public class CommentController {
             .createdAt(LocalDateTime.from(c.getCreatedAt()))
             .build())
         .toList();
+
+    boolean hasNext = comments.size() == size;
+    String nextCursor = null;
+    Instant nextAfter = null;
+
+    if (hasNext) {
+      Comment last = comments.get(comments.size() - 1);
+      if ("LIKE_COUNT".equals(String.valueOf(sortType))) {
+        nextCursor = last.getId() + "," + last.getLikeCount();
+        // nextAfter는 LIKE_COUNT 정렬에선 불필요하므로 null 유지
+      } else {
+        nextAfter = last.getCreatedAt();
+        nextCursor = last.getId() + "," + nextAfter.toString();
+      }
+    }
+
+    CursorPageResponseDto<CommentResponse> response = CursorPageResponseDto.<CommentResponse>builder()
+        .content(content)
+        .nextCursor(nextCursor)
+        .nextAfter(nextAfter)
+        .size(content.size())
+        .totalElements((long) content.size())  // 전체 카운트가 필요하면 서비스에서 별도 조회 필요
+        .hasNext(hasNext)
+        .build();
 
     return ResponseEntity.ok(response);
   }
