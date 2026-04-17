@@ -23,9 +23,13 @@ public class SecurityConfig {
         // 1. CSRF 비활성화: REST API에서는 보통 끕니다. (이게 안 되어 있으면 403이 납니다)
         .csrf(csrf -> csrf.disable())
 
+        .headers(headers -> headers
+            .frameOptions(frameOptions -> frameOptions.sameOrigin())
+        )
+
         // 2. 경로별 권한 설정
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/assets/**","/api/**").permitAll() // 테스트를 위해 우선 모두 허용
+            .requestMatchers("/", "/index.html", "/assets/**","/api/**", "/h2-console/**").permitAll() // 테스트를 위해 우선 모두 허용
             .anyRequest().authenticated()
         )
 
