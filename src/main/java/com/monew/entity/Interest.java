@@ -39,6 +39,8 @@ public class Interest extends BaseEntity {
   }
 
   public void decreaseSubscriber() {
-    this.subscriberCount--;
+    if (this.subscriberCount > 0) {
+      this.subscriberCount--;
+    }
   }
 }
