@@ -1,4 +1,4 @@
-package com.monew.repository;
+package com.monew.repository.article;
 
 import com.monew.entity.Article;
 import java.util.List;
