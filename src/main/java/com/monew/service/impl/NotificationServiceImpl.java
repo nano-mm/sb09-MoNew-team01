@@ -87,7 +87,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     notifications.forEach(Notification::confirm);
-    notificationRepository.saveAll(notifications);
   }
 
   private void assertUserExists(UUID userId) {
