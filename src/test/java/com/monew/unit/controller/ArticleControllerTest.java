@@ -8,6 +8,7 @@ import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
 import com.monew.entity.ArticleView;
 import com.monew.entity.User;
+import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.UserRepository;
 import com.monew.service.impl.ArticleServiceImpl;
@@ -80,7 +81,7 @@ class ArticleControllerTest {
   @Test
   @DisplayName("기사 단건 조회 - 실패 (존재하지 않는 기사)")
   void search_Fail_NotFound() throws Exception {
-    given(articleService.find(ARTICLE_ID)).willThrow(new NoSuchElementException("기사를 찾을 수 없습니다."));
+    given(articleService.find(ARTICLE_ID)).willThrow(new ArticleNotFoundException(ARTICLE_ID));
 
     mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID))
         .andExpect(status().isNotFound());

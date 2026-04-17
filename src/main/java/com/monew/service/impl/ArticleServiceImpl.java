@@ -7,6 +7,7 @@ import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
 import com.monew.entity.enums.ArticleSource;
+import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -101,6 +102,8 @@ public class ArticleServiceImpl implements ArticleService {
   public CursorPageResponseDto<ArticleDto> findArticles(ArticleSearchCondition condition
       , CursorRequest cursorRequest, UUID userId) {
 
+
+    log.info("뉴스 기사 조회 시도: userId={}", userId);
     // 관심사 기능 추가 시 추가 구현 필요
     List<String> interestKeywords = null;
 
@@ -115,6 +118,7 @@ public class ArticleServiceImpl implements ArticleService {
         })
         .toList();
 
+    log.info("뉴스 기사 조회 완료: userId={}", userId);
     return CursorPageResponseDto.<ArticleDto>builder()
         .content(dtoList)
         .nextCursor(entityPage.nextCursor())
@@ -127,39 +131,50 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   public ArticleDto find(UUID articleId) {
+    log.info("뉴스 기사 단건 조회 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    log.info("뉴스 기사 단건 조회 완료: articleId={}", articleId);
     return articleMapper.toDto(targetArticle);
   }
 
   @Override
   public void softDelete(UUID articleId) {
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    log.info("뉴스 기사 논리 삭제 시도: articleId={}", articleId);
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+        -> {
+          log.warn("뉴스 기사 논리 삭제 실패: 존재하지 않는 채널 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
     targetArticle.markAsDeleted();
+    log.info("뉴스 기사 논리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   public void hardDelete(UUID articleId) {
-    // 존재여부 확인 로그 추가 필요
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
-
-    // 존재 확인 후 삭제
-    try {
-      articleRepository.deleteById(articleId);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    log.info("뉴스 기사 물리 삭제 시도: articleId={}", articleId);
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+            -> {
+          log.warn("뉴스 기사 물리 삭제 실패: 존재하지 않는 채널 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
+    articleRepository.delete(targetArticle);
+    log.info("뉴스 기사 물리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<String> getSources() {
+    log.info("뉴스 기사 출처 조회 시도");
     List<ArticleSource> sources = articleQueryRepository.findSources();
-
+    log.info("뉴스 기사 출처 조회 성공");
     return sources.stream()
         .map(Enum::name)
         .toList();
   }
 
+  // 나중에 쓸지도 모름...
   private boolean isKeywordMatch(ArticleDto dto, String keyword) {
     String content = (dto.title() + dto.summary()).toLowerCase();
     return content.contains(keyword.toLowerCase());
