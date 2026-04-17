@@ -2,6 +2,7 @@ package com.monew.entity.base;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import java.time.Instant;
@@ -17,5 +18,6 @@ public abstract class BaseUpdatableEntity extends BaseEntity {
 
   @JsonIgnore
   @LastModifiedDate
+  @Column(name = "updated_at")
   protected Instant updatedAt;
 }
