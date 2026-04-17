@@ -6,18 +6,21 @@ import com.monew.entity.Notification;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.repository.NotificationRepository;
+import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final UserRepository userRepository;
 
   @Override
   public CursorPageResponseDto<NotificationDto> getNotifications(
@@ -26,6 +29,8 @@ public class NotificationServiceImpl implements NotificationService {
       Instant after,
       int size
   ) {
+    assertUserExists(userId);
+
     int pageSize = Math.max(1, size);
     Instant cursorPoint = resolveCursorPoint(userId, cursor, after);
 
@@ -47,7 +52,7 @@ public class NotificationServiceImpl implements NotificationService {
     String nextCursor = null;
     Instant nextAfter = null;
 
-    if (!pageItems.isEmpty()) {
+    if (hasNext && !pageItems.isEmpty()) {
       Notification last = pageItems.get(pageItems.size() - 1);
       nextCursor = last.getId().toString();
       nextAfter = last.getCreatedAt();
@@ -61,6 +66,32 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.countByUserIdAndConfirmedFalse(userId),
         hasNext
     );
+  }
+
+  @Override
+  @Transactional
+  public void confirmNotification(UUID userId, UUID notificationId) {
+    assertUserExists(userId);
+    notificationRepository.findByIdAndUserIdAndConfirmedFalse(notificationId, userId)
+        .ifPresent(Notification::confirm);
+  }
+
+  @Override
+  @Transactional
+  public void confirmAllNotifications(UUID userId) {
+    assertUserExists(userId);
+    List<Notification> notifications = notificationRepository.findAllByUserIdAndConfirmedFalse(userId);
+
+    if (notifications.isEmpty()) {
+      return;
+    }
+
+    notifications.forEach(Notification::confirm);
+  }
+
+  private void assertUserExists(UUID userId) {
+    userRepository.findById(userId)
+        .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
   }
 
   private Instant resolveCursorPoint(UUID userId, String cursor, Instant after) {
