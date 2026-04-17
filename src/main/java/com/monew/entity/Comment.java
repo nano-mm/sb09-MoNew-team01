@@ -22,12 +22,13 @@ import java.util.UUID;
 @SQLRestriction("deleted_at IS NULL")
 public class Comment extends BaseEntity {
 
-  @Column(name = "article_id", nullable = false)
-  private String articleId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "article_id")
+  private Article article;
 
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
-
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User user;
   @Column(name = "content", nullable = false, length = 1000)
   private String content;
 
@@ -40,20 +41,20 @@ public class Comment extends BaseEntity {
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentLike> likes = new ArrayList<>();
 
-  protected Comment() {}
-
-  private Comment(String articleId, UUID userId, String content) {
-    this.articleId = articleId;
-    this.userId = userId;
+  private Comment(Article article, User user, String content) {
+    this.article = article;
+    this.user = user;
     this.content = content;
   }
 
-  public static Comment create(String articleId, UUID userId, String content) {
-    return new Comment(articleId, userId, content);
+  protected Comment() {}
+
+  public static Comment create(Article article, User user, String content) {
+    return new Comment(article, user, content);
   }
 
   public boolean isOwnedBy(UUID requestUserId) {
-    return this.userId.equals(requestUserId);
+    return this.user.getId().equals(requestUserId);
   }
 
   public boolean isDeleted() {
@@ -78,8 +79,13 @@ public class Comment extends BaseEntity {
     }
   }
 
-  public String getArticleId() { return articleId; }
-  public UUID getUserId() { return userId; }
+  public UUID getArticleId() {
+    return article.getId();
+  }
+
+  public UUID getUserId() {
+    return user.getId();
+  }
   public String getContent() { return content; }
   public int getLikeCount() { return likeCount; }
 }

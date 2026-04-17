@@ -19,7 +19,7 @@ public class CommentLike {
   private Comment comment;
 
   @Id
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "User", nullable = false)
   private UUID userId;
 
   @CreatedDate

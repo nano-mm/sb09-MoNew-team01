@@ -45,8 +45,8 @@ public class CommentController {
 
     UUID commentId = commentService.createComment(
         userId,
-        request.getArticleId(),
-        request.getContent()
+        request.articleId(),
+        request.content()
     );
 
     return ResponseEntity.ok(commentId);
@@ -116,13 +116,13 @@ public class CommentController {
     );
 
     List<CommentResponse> content = comments.stream()
-        .map(c -> CommentResponse.builder()
-            .commentId(c.getId())
-            .userId(c.getUserId())
-            .content(c.getContent())
-            .likeCount(c.getLikeCount())
-            .createdAt(LocalDateTime.from(c.getCreatedAt()))
-            .build())
+        .map(c -> new CommentResponse(
+            c.getId(),
+            c.getUserId(),
+            c.getContent(),
+            c.getLikeCount(),
+            LocalDateTime.from(c.getCreatedAt()
+            )))
         .toList();
 
     boolean hasNext = comments.size() == size;
