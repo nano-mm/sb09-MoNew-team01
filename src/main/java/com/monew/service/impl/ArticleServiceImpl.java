@@ -1,10 +1,16 @@
 package com.monew.service.impl;
 
 import com.monew.client.ArticleFetcher;
+import com.monew.dto.request.ArticleSearchCondition;
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
+import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.enums.ArticleSource;
 import com.monew.mapper.ArticleMapper;
-import com.monew.repository.ArticleRepository;
+import com.monew.repository.ArticleViewRepository;
+import com.monew.repository.article.ArticleQueryRepository;
+import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +21,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -22,6 +29,8 @@ import org.springframework.stereotype.Service;
 public class ArticleServiceImpl implements ArticleService {
 
   private final ArticleRepository articleRepository;
+  private final ArticleQueryRepository articleQueryRepository;
+  private final ArticleViewRepository articleViewRepository;
   private final ArticleMapper articleMapper;
   private final List<ArticleFetcher> articleFetchers;
 
@@ -88,13 +97,48 @@ public class ArticleServiceImpl implements ArticleService {
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public CursorPageResponseDto<ArticleDto> findArticles(ArticleSearchCondition condition
+      , CursorRequest cursorRequest, UUID userId) {
+
+    // 관심사 기능 추가 시 추가 구현 필요
+    List<String> interestKeywords = null;
+
+    CursorPageResponseDto<Article> entityPage =
+        articleQueryRepository.searchArticlesByCursor(condition, interestKeywords, cursorRequest);
+
+    List<ArticleDto> dtoList = entityPage.content().stream()
+        .map(article -> {
+          ArticleDto dto = articleMapper.toDto(article);
+          // 임시
+          return dto.toBuilder().viewedByMe(false).build();
+        })
+        .toList();
+
+    return CursorPageResponseDto.<ArticleDto>builder()
+        .content(dtoList)
+        .nextCursor(entityPage.nextCursor())
+        .nextAfter(entityPage.nextAfter())
+        .size(entityPage.size())
+        .totalElements(entityPage.totalElements())
+        .hasNext(entityPage.hasNext())
+        .build();
+  }
+
+  @Override
   public ArticleDto find(UUID articleId) {
     Article targetArticle = articleRepository.findById(articleId).orElseThrow();
     return articleMapper.toDto(targetArticle);
   }
 
   @Override
-  public void delete(UUID articleId) {
+  public void softDelete(UUID articleId) {
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    targetArticle.markAsDeleted();
+  }
+
+  @Override
+  public void hardDelete(UUID articleId) {
     // 존재여부 확인 로그 추가 필요
     Article targetArticle = articleRepository.findById(articleId).orElseThrow();
 
@@ -104,6 +148,16 @@ public class ArticleServiceImpl implements ArticleService {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<String> getSources() {
+    List<ArticleSource> sources = articleQueryRepository.findSources();
+
+    return sources.stream()
+        .map(Enum::name)
+        .toList();
   }
 
   private boolean isKeywordMatch(ArticleDto dto, String keyword) {

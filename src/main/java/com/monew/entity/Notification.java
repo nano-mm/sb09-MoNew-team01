@@ -38,7 +38,7 @@ public class Notification extends BaseUpdatableEntity {
   @Column(name = "confirmed")
   private Boolean confirmed;
 
-  public static Notification to(
+  public static Notification of(
       UUID userId,
       String content,
       ResourceType resourceType,
