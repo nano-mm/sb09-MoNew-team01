@@ -23,7 +23,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;

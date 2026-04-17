@@ -132,7 +132,12 @@ public class ArticleServiceImpl implements ArticleService {
   @Override
   public ArticleDto find(UUID articleId) {
     log.info("뉴스 기사 단건 조회 시도: articleId={}", articleId);
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+            -> {
+          log.warn("뉴스 기사 단건 조회 실패: 존재하지 않는 채널 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
     log.info("뉴스 기사 단건 조회 완료: articleId={}", articleId);
     return articleMapper.toDto(targetArticle);
   }
