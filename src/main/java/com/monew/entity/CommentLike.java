@@ -1,17 +1,17 @@
 package com.monew.entity;
 
+import com.monew.entity.base.BaseEntity;
 import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "comment_likes")
 @IdClass(CommentLikeId.class)
-@EntityListeners(AuditingEntityListener.class)
-public class CommentLike {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class CommentLike extends BaseEntity {
 
   @Id
   @ManyToOne(fetch = FetchType.LAZY)
@@ -19,14 +19,8 @@ public class CommentLike {
   private Comment comment;
 
   @Id
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "User", nullable = false)
   private UUID userId;
-
-  @CreatedDate
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
-
-  protected CommentLike() {}
 
   public CommentLike(Comment comment, UUID userId) {
     this.comment = comment;
@@ -35,5 +29,4 @@ public class CommentLike {
 
   public Comment getComment() { return comment; }
   public UUID getUserId() { return userId; }
-  public LocalDateTime getCreatedAt() { return createdAt; }
 }
