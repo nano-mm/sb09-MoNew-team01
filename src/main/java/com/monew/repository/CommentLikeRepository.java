@@ -21,5 +21,7 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Commen
   // 특정 사용자의 좋아요 삭제 (좋아요 취소)
   @Modifying
   @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.userId = :userId")
-  void deleteByCommentIdAndUserId(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+  int deleteByCommentIdAndUserId(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+
+  int deleteCommentLikeAndUserId(UUID commentId, UUID userId);
 }

@@ -7,6 +7,7 @@ import com.monew.entity.CommentLike;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
+import com.monew.exception.LikeNotFoundException;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
 import java.util.List;
@@ -70,7 +71,12 @@ public class CommentService {
   @Transactional
   public void unlikeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+
+    int deleted = commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+    if (deleted == 0) {
+      throw new LikeNotFoundException(); // 좋아요가 없었으면 예외
+    }
+
     comment.decreaseLikeCount();
   }
 

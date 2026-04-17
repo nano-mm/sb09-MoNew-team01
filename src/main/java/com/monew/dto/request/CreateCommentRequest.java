@@ -4,15 +4,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
-import lombok.Getter;
 
-@Getter
-public class CreateCommentRequest {
+public record CreateCommentRequest(
 
-  @NotNull
-  private UUID articleId;
+    @NotNull
+    UUID articleId,
 
-  @NotBlank
-  @Size(max = 1000)
-  private String content;
-}
+    @NotBlank
+    @Size(max = 1000)
+    String content
+
+) {}
