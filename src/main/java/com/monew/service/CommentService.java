@@ -68,17 +68,21 @@ public class CommentService {  // 클래스 레벨 @Transactional 제거
   @Transactional
   public void likeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+    if (commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)) {
       throw new DuplicateLikeException();
     }
-    commentLikeRepository.save(new CommentLike(comment, userId));
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
+
+    commentLikeRepository.save(new CommentLike(comment, user));
     comment.increaseLikeCount();
   }
 
   @Transactional
   public void unlikeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    int deleted = commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+    int deleted = commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
     if (deleted == 0) {
       throw new LikeNotFoundException();
     }
@@ -101,10 +105,15 @@ public class CommentService {  // 클래스 레벨 @Transactional 제거
     List<CommentResponse> content = comments.stream()
         .map(c -> new CommentResponse(
             c.getId(),
+            c.getArticleId(),
             c.getUserId(),
+            c.getUser().getNickname(),
             c.getContent(),
             c.getLikeCount(),
-            LocalDateTime.from(c.getCreatedAt())
+            commentLikeRepository.existsByComment_IdAndUser_Id(
+                c.getId(), userId
+            ),
+            c.getCreatedAt()
         ))
         .toList();
 

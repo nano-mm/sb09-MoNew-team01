@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface CommentLikeRepository extends JpaRepository<CommentLike, CommentLikeId> {
 
-  boolean existsByCommentIdAndUserId(UUID commentId, UUID userId);
+  boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
 
   // 물리 삭제 시 댓글에 달린 좋아요 전체 삭제 (cascade 대비 명시적 처리)
   @Modifying
@@ -21,7 +21,7 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Commen
   // 특정 사용자의 좋아요 삭제 (좋아요 취소)
   @Modifying
   @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.userId = :userId")
-  int deleteByCommentIdAndUserId(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+  int deleteByComment_IdAndUser_Id(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
 
-  int deleteCommentLikeAndUserId(UUID commentId, UUID userId);
+  int deleteCommentLike_AndUser_Id(UUID commentId, UUID userId);
 }

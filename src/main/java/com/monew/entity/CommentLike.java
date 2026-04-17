@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Entity
 @Table(name = "comment_likes")
 @IdClass(CommentLikeId.class)
@@ -19,14 +17,15 @@ public class CommentLike extends BaseEntity {
   private Comment comment;
 
   @Id
-  @Column(name = "User", nullable = false)
-  private UUID userId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-  public CommentLike(Comment comment, UUID userId) {
+  public CommentLike(Comment comment, User user) {
     this.comment = comment;
-    this.userId = userId;
+    this.user = user;
   }
 
   public Comment getComment() { return comment; }
-  public UUID getUserId() { return userId; }
+  public User getUser() { return user; }
 }

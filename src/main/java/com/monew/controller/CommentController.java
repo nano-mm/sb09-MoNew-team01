@@ -51,13 +51,13 @@ public class CommentController {
     return ResponseEntity.ok().build();
   }
 
-  @PostMapping("/{commentId}/like")
+  @PostMapping("/{commentId}/likes")
   public ResponseEntity<Void> like(@PathVariable UUID commentId) {
     commentService.likeComment(getUserId(), commentId);
     return ResponseEntity.ok().build();
   }
 
-  @DeleteMapping("/{commentId}/like")
+  @DeleteMapping("/{commentId}/likes")
   public ResponseEntity<Void> unlike(@PathVariable UUID commentId) {
     commentService.unlikeComment(getUserId(), commentId);
     return ResponseEntity.ok().build();

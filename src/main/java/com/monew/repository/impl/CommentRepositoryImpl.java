@@ -8,6 +8,7 @@ import com.monew.repository.CommentRepositoryCustom;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
     return queryFactory
         .selectFrom(qComment)
         .where(
-            qComment.articleId.eq(articleId),
+            qComment.article.id.eq(UUID.fromString(articleId)),
             qComment.deletedAt.isNull(),
             cursorCondition(sortType, cursor)
         )

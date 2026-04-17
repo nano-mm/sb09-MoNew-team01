@@ -7,13 +7,13 @@ import java.util.UUID;
 public class CommentLikeId implements Serializable {
 
   private UUID comment;
-  private UUID userId;
+  private UUID user;
 
   protected CommentLikeId() {}
 
-  public CommentLikeId(UUID comment, UUID userId) {
+  public CommentLikeId(UUID comment, UUID user) {
     this.comment = comment;
-    this.userId = userId;
+    this.user = user;
   }
 
   @Override
@@ -21,11 +21,11 @@ public class CommentLikeId implements Serializable {
     if (this == o) return true;
     if (!(o instanceof CommentLikeId that)) return false;
     return Objects.equals(comment, that.comment)
-        && Objects.equals(userId, that.userId);
+        && Objects.equals(user, that.user);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(comment, userId);
+    return Objects.hash(comment, user);
   }
 }

@@ -5,11 +5,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record CommentResponse(
-    UUID commentId,
+    UUID id,
+    UUID articleId,
     UUID userId,
+    String userNickname,
     String content,
-    int likeCount,
+    long likeCount,
+    boolean likedByMe,
     LocalDateTime createdAt
-) {
-
-}
+) {}
