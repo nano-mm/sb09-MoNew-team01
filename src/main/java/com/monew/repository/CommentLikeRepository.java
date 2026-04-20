@@ -1,7 +1,6 @@
 package com.monew.repository;
 
 import com.monew.entity.CommentLike;
-import com.monew.entity.CommentLikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.UUID;
 
-public interface CommentLikeRepository extends JpaRepository<CommentLike, CommentLikeId> {
+public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
 
   boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
 
