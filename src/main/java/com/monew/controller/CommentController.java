@@ -71,7 +71,7 @@ public class CommentController {
       @RequestParam(defaultValue = "10") int size
   ) {
     return ResponseEntity.ok(
-        commentService.getComments(articleId, sortType, cursor, size)
+        commentService.getComments(articleId, getUserId(), sortType, cursor, size)
     );
   }
 }

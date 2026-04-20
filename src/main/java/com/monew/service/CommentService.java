@@ -15,7 +15,9 @@ import com.monew.repository.CommentRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,9 +91,10 @@ public class CommentService {  // 클래스 레벨 @Transactional 제거
     comment.decreaseLikeCount();
   }
 
-  @Transactional(readOnly = true)  // 조회 메서드에만 readOnly
+  @Transactional(readOnly = true)
   public CursorPageResponseDto<CommentResponse> getComments(
       UUID articleId,
+      UUID userId,
       CommentSortType sortType,
       String rawCursor,
       int size
@@ -102,17 +105,19 @@ public class CommentService {  // 클래스 레벨 @Transactional 제거
         articleId.toString(), sortType, cursor, size
     );
 
+    List<UUID> userIds = comments.stream().map(Comment::getUserId).toList();
+    Map<UUID, String> nicknameMap = userRepository.findAllById(userIds).stream()
+        .collect(Collectors.toMap(User::getId, User::getNickname));
+
     List<CommentResponse> content = comments.stream()
         .map(c -> new CommentResponse(
             c.getId(),
             c.getArticleId(),
             c.getUserId(),
-            c.getUser().getNickname(),
+            nicknameMap.getOrDefault(c.getUserId(), ""),
             c.getContent(),
             c.getLikeCount(),
-            commentLikeRepository.existsByComment_IdAndUser_Id(
-                c.getId(), userId
-            ),
+            commentLikeRepository.existsByComment_IdAndUser_Id(c.getId(), userId),
             c.getCreatedAt()
         ))
         .toList();
