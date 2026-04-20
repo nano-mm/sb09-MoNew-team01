@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @EqualsAndHashCode
 public class CommentLikeId implements Serializable {
-  private UUID commentId;
-  private UUID userId;
+  private UUID comment;
+  private UUID user;
 }
