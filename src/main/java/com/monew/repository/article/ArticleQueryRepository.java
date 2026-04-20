@@ -66,7 +66,7 @@ public class ArticleQueryRepository {
         .from(article)
         .where(
             keywordContains(condition.keyword()),
-            interestId(condition.interestId()), // 👈 카운트 쿼리에도 동일하게 반영
+            interestId(condition.interestId()),
             sourceIn(condition.sourceIn()),
             publishDateBetween(condition.publishDateFrom(), condition.publishDateTo())
         )
