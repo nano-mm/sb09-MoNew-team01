@@ -20,6 +20,7 @@ import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleViewRepository;
+import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.impl.ArticleServiceImpl;
@@ -43,6 +44,7 @@ class ArticleServiceTest {
   @Mock private ArticleRepository articleRepository;
   @Mock private ArticleQueryRepository articleQueryRepository;
   @Mock private ArticleViewRepository articleViewRepository;
+  @Mock private InterestRepository interestRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private ArticleFetcher mockFetcher;
 
@@ -59,6 +61,7 @@ class ArticleServiceTest {
         articleRepository,
         articleQueryRepository,
         articleViewRepository,
+        interestRepository,
         articleMapper,
         List.of(mockFetcher)
     );
@@ -99,7 +102,7 @@ class ArticleServiceTest {
         .hasNext(false)
         .build();
 
-    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any())).willReturn(mockPage);
+    given(articleQueryRepository.searchArticlesByCursor(any(), any())).willReturn(mockPage);
     given(articleMapper.toDto(any(Article.class))).willReturn(mockDto);
 
     CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition, cursorRequest, userId);

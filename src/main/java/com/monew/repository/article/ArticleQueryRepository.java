@@ -4,10 +4,12 @@ import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.QArticleInterest;
 import com.monew.entity.enums.ArticleSource;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +31,6 @@ public class ArticleQueryRepository {
   // 커서기반 조회 용
   public CursorPageResponseDto<Article> searchArticlesByCursor(
       ArticleSearchCondition condition,
-      List<String> interestKeywords,
       CursorRequest cursorRequest) {
 
     int limit = cursorRequest.limit();
@@ -39,11 +40,11 @@ public class ArticleQueryRepository {
     List<Article> content = queryFactory
         .selectFrom(article)
         .where(
-            keywordContains(condition.keyword()),            // 제목/요약 부분일치
-            interestKeywordsContains(interestKeywords),     // 관심사 키워드 검색
-            sourceIn(condition.sourceIn()),                  // 출처 필터
-            publishDateBetween(condition.publishDateFrom(), condition.publishDateTo()), // 날짜 범위
-            cursorCondition(cursorRequest.after(), cursorRequest.cursor(), orderBy, direction) // 동적 커서 로직
+            keywordContains(condition.keyword()),
+            interestId(condition.interestId()),
+            sourceIn(condition.sourceIn()),
+            publishDateBetween(condition.publishDateFrom(), condition.publishDateTo()),
+            cursorCondition(cursorRequest.after(), cursorRequest.cursor(), orderBy, direction)
         )
         .orderBy(getOrderSpecifiers(orderBy, direction))
         .limit(limit + 1)
@@ -65,7 +66,7 @@ public class ArticleQueryRepository {
         .from(article)
         .where(
             keywordContains(condition.keyword()),
-            interestKeywordsContains(interestKeywords),
+            interestId(condition.interestId()), // 👈 카운트 쿼리에도 동일하게 반영
             sourceIn(condition.sourceIn()),
             publishDateBetween(condition.publishDateFrom(), condition.publishDateTo())
         )
@@ -87,14 +88,17 @@ public class ArticleQueryRepository {
         article.title.contains(keyword).or(article.summary.contains(keyword));
   }
 
-  private BooleanExpression interestKeywordsContains(List<String> keywords) {
-    if (keywords == null || keywords.isEmpty()) return null;
-    BooleanExpression expression = null;
-    for (String kw : keywords) {
-      BooleanExpression match = article.title.contains(kw).or(article.summary.contains(kw));
-      expression = (expression == null) ? match : expression.or(match);
-    }
-    return expression;
+  private BooleanExpression interestId(UUID interestId) {
+    if (interestId == null) return null;
+
+    QArticleInterest articleInterest = QArticleInterest.articleInterest;
+
+    return article.id.in(
+        JPAExpressions
+            .select(articleInterest.article.id)
+            .from(articleInterest)
+            .where(articleInterest.interest.id.eq(interestId))
+    );
   }
 
   private BooleanExpression sourceIn(List<ArticleSource> sources) {
