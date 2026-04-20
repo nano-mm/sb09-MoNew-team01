@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,12 +65,12 @@ public class InterestController {
   @Operation(summary = "관심사 목록 조회", description = "조건에 맞는 관심사 목록을 조회합니다.")
   @GetMapping
   public CursorPageResponseDto<InterestDto> find(
-      @RequestParam String keyword,
+      @RequestParam(required = false) String keyword,
       @RequestParam(defaultValue = "name") String sort,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "10") int size,
-      @RequestParam UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     InterestSearchRequest request = new InterestSearchRequest(
         keyword,

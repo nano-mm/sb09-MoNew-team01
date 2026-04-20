@@ -24,6 +24,8 @@ public class Interest extends BaseEntity {
 
   @ElementCollection
   private List<String> keywords = new ArrayList<>();
+  // SET으로 만드는게 좋아보임.
+  //
 
   public Interest(String name, List<String> keywords) {
     this.name = name;
