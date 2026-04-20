@@ -86,7 +86,6 @@ class ArticleServiceTest {
   @Test
   @DisplayName("기사 목록 페이징 조회 - 성공")
   void findArticles_Success() {
-    // Given
     ArticleSearchCondition condition = ArticleSearchCondition.builder().build();
     CursorRequest cursorRequest = new CursorRequest(null, null, 10, "publishDate", "DESC");
 
@@ -103,10 +102,8 @@ class ArticleServiceTest {
     given(articleQueryRepository.searchArticlesByCursor(any(), any(), any())).willReturn(mockPage);
     given(articleMapper.toDto(any(Article.class))).willReturn(mockDto);
 
-    // When
     CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition, cursorRequest, userId);
 
-    // Then
     assertThat(result.content()).hasSize(1);
     assertThat(result.content().get(0).title()).isEqualTo("DTO");
   }
@@ -114,7 +111,7 @@ class ArticleServiceTest {
   @Test
   @DisplayName("기사 단건 조회 - 성공")
   void find_Success() {
-    Article mockEntity = Article.builder().title("엔티티").build();
+    Article mockEntity = Article.builder().title("entity").build();
     ArticleDto mockDto = ArticleDto.builder().title("DTO").build();
 
     given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.of(mockEntity));
