@@ -3,6 +3,7 @@ package com.monew.repository;
 import com.monew.entity.Notification;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,13 +11,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-  List<Notification> findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(
+  List<Notification> findByUser_IdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(
       UUID userId,
       Instant cursor,
       Pageable pageable
   );
 
-  List<Notification> findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(
+  List<Notification> findByUser_IdAndConfirmedFalseOrderByCreatedAtDesc(
       UUID userId,
       Pageable pageable
   );
@@ -26,13 +27,15 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     Pageable pageable = PageRequest.of(0, pageSize);
 
     if (cursorPoint == null) {
-      return findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(userId, pageable);
+      return findByUser_IdAndConfirmedFalseOrderByCreatedAtDesc(userId, pageable);
     }
 
-    return findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
+    return findByUser_IdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
   }
 
-  java.util.Optional<Notification> findByIdAndUserIdAndConfirmedFalse(UUID id, UUID userId);
+  Optional<Notification> findByIdAndUser_IdAndConfirmedFalse(UUID id, UUID userId);
 
-  long countByUserIdAndConfirmedFalse(UUID userId);
+  List<Notification> findAllByUser_IdAndConfirmedFalse(UUID userId);
+
+  long countByUser_IdAndConfirmedFalse(UUID userId);
 }

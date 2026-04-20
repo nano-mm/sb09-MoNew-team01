@@ -3,21 +3,25 @@ package com.monew.service.impl;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
 import com.monew.entity.Notification;
+import com.monew.entity.User;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.repository.NotificationRepository;
+import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final UserRepository userRepository;
 
   @Override
   public CursorPageResponseDto<NotificationDto> getNotifications(
@@ -26,6 +30,8 @@ public class NotificationServiceImpl implements NotificationService {
       Instant after,
       int size
   ) {
+    assertUserExists(userId);
+
     int pageSize = Math.max(1, size);
     Instant cursorPoint = resolveCursorPoint(userId, cursor, after);
 
@@ -47,7 +53,7 @@ public class NotificationServiceImpl implements NotificationService {
     String nextCursor = null;
     Instant nextAfter = null;
 
-    if (!pageItems.isEmpty()) {
+    if (hasNext && !pageItems.isEmpty()) {
       Notification last = pageItems.get(pageItems.size() - 1);
       nextCursor = last.getId().toString();
       nextAfter = last.getCreatedAt();
@@ -58,9 +64,35 @@ public class NotificationServiceImpl implements NotificationService {
         nextCursor,
         nextAfter,
         content.size(),
-        notificationRepository.countByUserIdAndConfirmedFalse(userId),
+        notificationRepository.countByUser_IdAndConfirmedFalse(userId),
         hasNext
     );
+  }
+
+  @Override
+  @Transactional
+  public void confirmNotification(UUID userId, UUID notificationId) {
+    assertUserExists(userId);
+    notificationRepository.findByIdAndUser_IdAndConfirmedFalse(notificationId, userId)
+        .ifPresent(Notification::confirm);
+  }
+
+  @Override
+  @Transactional
+  public void confirmAllNotifications(UUID userId) {
+    assertUserExists(userId);
+    List<Notification> notifications = notificationRepository.findAllByUser_IdAndConfirmedFalse(userId);
+
+    if (notifications.isEmpty()) {
+      return;
+    }
+
+    notifications.forEach(Notification::confirm);
+  }
+
+  private void assertUserExists(UUID userId) {
+    userRepository.findById(userId)
+        .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
   }
 
   private Instant resolveCursorPoint(UUID userId, String cursor, Instant after) {
@@ -72,7 +104,7 @@ public class NotificationServiceImpl implements NotificationService {
         throw new BaseException(ErrorCode.INVALID_INPUT);
       }
 
-      return notificationRepository.findByIdAndUserIdAndConfirmedFalse(cursorId, userId)
+      return notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId)
           .map(Notification::getCreatedAt)
           .orElseThrow(() -> new BaseException(ErrorCode.INVALID_INPUT));
     }
@@ -81,12 +113,13 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   private NotificationDto toDto(Notification notification) {
+    User user = notification.getUser();
     return new NotificationDto(
         notification.getId(),
         notification.getCreatedAt(),
         notification.getUpdatedAt(),
         Boolean.TRUE.equals(notification.getConfirmed()),
-        notification.getUserId(),
+        user == null ? null : user.getId(),
         notification.getContent(),
         notification.getResourceType().name().toLowerCase(),
         notification.getResourceId()
