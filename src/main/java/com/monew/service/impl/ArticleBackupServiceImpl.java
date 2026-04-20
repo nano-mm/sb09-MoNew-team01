@@ -14,8 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,22 +49,9 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
   @Transactional(readOnly = true)
   public void export() throws IOException {
     String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
-    
-    String fileName = "backup_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
-    String fullPath = dirPath + fileName;
-
-    Resource resource = resourcePatternResolver.getResource(fullPath);
-    
-    if (resource.getURI().getScheme().equals("file")) {
-      File file = resource.getFile();
-      File parentDir = file.getParentFile();
-      if (parentDir != null && !parentDir.exists()) {
-        parentDir.mkdirs();
-      }
-    }
+    ZoneId zoneId = ZoneId.of("Asia/Seoul");
 
     List<Article> articles = articleRepository.findAll();
-
     List<ArticleInterest> allMappings = articleInterestRepository.findAllWithInterest();
 
     Map<UUID, Set<String>> articleToInterestsMap = allMappings.stream()
@@ -73,7 +60,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
             Collectors.mapping(ai -> ai.getInterest().getName(), Collectors.toSet())
         ));
 
-    List<ArticleBackupDto> backupList = articles.stream()
+    Map<LocalDate, List<ArticleBackupDto>> groupedByDate = articles.stream()
         .map(article -> new ArticleBackupDto(
             article.getTitle(),
             article.getSummary(),
@@ -82,16 +69,26 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
             article.getPublishDate(),
             articleToInterestsMap.getOrDefault(article.getId(), Collections.emptySet())
         ))
-        .toList();
+        .collect(Collectors.groupingBy(dto -> dto.publishDate().atZone(zoneId).toLocalDate()));
 
-    if (resource instanceof WritableResource writableResource) {
-      try (OutputStream os = writableResource.getOutputStream()) {
-        objectMapper.writeValue(os, backupList);
+    for (Map.Entry<LocalDate, List<ArticleBackupDto>> entry : groupedByDate.entrySet()) {
+      LocalDate date = entry.getKey();
+      List<ArticleBackupDto> data = entry.getValue();
+
+      String fileName = "backup_" + date.toString() + ".json";
+      Resource resource = resourcePatternResolver.getResource(dirPath + fileName);
+
+      if (resource.getURI().getScheme().equals("file")) {
+        File parentDir = resource.getFile().getParentFile();
+        if (parentDir != null && !parentDir.exists()) parentDir.mkdirs();
       }
-    } else {
-      objectMapper.writeValue(resource.getFile(), backupList);
-    }
 
-    log.info("새 백업 파일 생성 성공: {}", fullPath);
+      if (resource instanceof WritableResource writableResource) {
+        try (OutputStream os = writableResource.getOutputStream()) {
+          objectMapper.writeValue(os, data);
+        }
+      }
+      log.info("뉴스 기사 백업 완료: {}", fileName);
+    }
   }
 }
