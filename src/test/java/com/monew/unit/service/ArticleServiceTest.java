@@ -16,9 +16,11 @@ import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.Interest;
 import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
+import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -45,6 +47,7 @@ class ArticleServiceTest {
   @Mock private ArticleQueryRepository articleQueryRepository;
   @Mock private ArticleViewRepository articleViewRepository;
   @Mock private InterestRepository interestRepository;
+  @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private ArticleFetcher mockFetcher;
 
@@ -63,7 +66,8 @@ class ArticleServiceTest {
         articleViewRepository,
         interestRepository,
         articleMapper,
-        List.of(mockFetcher)
+        List.of(mockFetcher),
+        articleInterestRepository
     );
   }
 
@@ -73,7 +77,9 @@ class ArticleServiceTest {
     String duplicateUrl = "https://news.test.com/123";
     ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(duplicateUrl).build();
     Article mockEntity = Article.builder().title("test").build();
+    Interest mockInterest = new Interest("IT", List.of("반도체"));
 
+    given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
     given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
     given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of());
 
