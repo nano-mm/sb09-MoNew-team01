@@ -17,7 +17,7 @@ public class CommentLike extends BaseEntity {
   private UUID commentId;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "comment_id", nullable = false, insertable = false, updatable = false)
+  @JoinColumn(name = "comment_id", insertable = false, updatable = false)
   private Comment comment;
 
   @Id
@@ -25,16 +25,18 @@ public class CommentLike extends BaseEntity {
   private UUID userId;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
+  @JoinColumn(name = "user_id", insertable = false, updatable = false)
   private User user;
 
   public CommentLike(Comment comment, User user) {
+    this.commentId = comment.getId();  // UUID 값 직접 세팅
     this.comment = comment;
-    this.commentId = comment.getId();
+    this.userId = user.getId();        // UUID 값 직접 세팅
     this.user = user;
-    this.userId = user.getId();
   }
 
   public Comment getComment() { return comment; }
   public User getUser() { return user; }
+  public UUID getCommentId() { return commentId; }
+  public UUID getUserId() { return userId; }
 }

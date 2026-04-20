@@ -13,7 +13,6 @@ import com.monew.exception.LikeNotFoundException;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +30,7 @@ import com.monew.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
-public class CommentService {  // 클래스 레벨 @Transactional 제거
+public class CommentService {
 
   private final CommentRepository commentRepository;
   private final CommentLikeRepository commentLikeRepository;
