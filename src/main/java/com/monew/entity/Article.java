@@ -50,10 +50,6 @@ public class Article {
   @Column(name = "comment_count", nullable = false)
   private Long commentCount = 0L;
 
-  // 임시
-  @Column(name = "interest_id")
-  private UUID interestId;
-
   @Builder.Default
   @Column(name = "view_count", nullable = false)
   private Long viewCount = 0L;
