@@ -2,26 +2,35 @@ package com.monew.service.impl;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import com.monew.dto.request.NotificationCreateCommand;
 import com.monew.entity.Notification;
 import com.monew.entity.User;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
+import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
+  private final NotificationMapper notificationMapper;
 
   @Override
   public CursorPageResponseDto<NotificationDto> getNotifications(
@@ -30,6 +39,14 @@ public class NotificationServiceImpl implements NotificationService {
       Instant after,
       int size
   ) {
+    log.debug(
+        "[알림] 조회 처리 시작. userId={}, 요청크기={}, cursor존재={}, after존재={}",
+        userId,
+        size,
+        cursor != null && !cursor.isBlank(),
+        after != null
+    );
+
     assertUserExists(userId);
 
     int pageSize = Math.max(1, size);
@@ -47,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
         : notifications;
 
     List<NotificationDto> content = pageItems.stream()
-        .map(this::toDto)
+        .map(notificationMapper::toDto)
         .toList();
 
     String nextCursor = null;
@@ -59,22 +76,48 @@ public class NotificationServiceImpl implements NotificationService {
       nextAfter = last.getCreatedAt();
     }
 
-    return new CursorPageResponseDto<>(
+    long totalElements = notificationRepository.countByUser_IdAndConfirmedFalse(userId);
+    CursorPageResponseDto<NotificationDto> response = new CursorPageResponseDto<>(
         content,
         nextCursor,
         nextAfter,
         content.size(),
-        notificationRepository.countByUser_IdAndConfirmedFalse(userId),
+        totalElements,
         hasNext
     );
+
+    log.debug(
+        "[알림] 조회 처리 완료. userId={}, 반환개수={}, 전체개수={}, 다음페이지존재={}",
+        userId,
+        response.size(),
+        response.totalElements(),
+        response.hasNext()
+    );
+
+    return response;
   }
 
   @Override
   @Transactional
   public void confirmNotification(UUID userId, UUID notificationId) {
     assertUserExists(userId);
-    notificationRepository.findByIdAndUser_IdAndConfirmedFalse(notificationId, userId)
-        .ifPresent(Notification::confirm);
+    boolean confirmed = notificationRepository.findByIdAndUser_IdAndConfirmedFalse(notificationId, userId)
+        .map(notification -> {
+          notification.confirm();
+          return true;
+        })
+        .orElse(false);
+
+    if (confirmed) {
+      log.info("[알림] 단건 확인 반영. userId={}, notificationId={}", userId, notificationId);
+      return;
+    }
+
+    log.debug(
+        "[알림] 단건 확인 미반영. userId={}, notificationId={}, 사유=없거나_이미_확인됨",
+        userId,
+        notificationId
+    );
   }
 
   @Override
@@ -84,14 +127,65 @@ public class NotificationServiceImpl implements NotificationService {
     List<Notification> notifications = notificationRepository.findAllByUser_IdAndConfirmedFalse(userId);
 
     if (notifications.isEmpty()) {
+      log.debug("[알림] 전체 확인 미반영. userId={}, 사유=미확인_알림_없음", userId);
       return;
     }
 
     notifications.forEach(Notification::confirm);
+    log.info("[알림] 전체 확인 반영. userId={}, 반영건수={}", userId, notifications.size());
+  }
+
+  @Override
+  @Transactional
+  public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
+    User user = getUserOrThrow(userId);
+    Notification notification = Notification.of(user, content, resourceType, resourceId);
+    notificationRepository.save(notification);
+
+    log.info(
+        "[알림] 단건 생성 반영. userId={}, resourceType={}, resourceId={}",
+        userId,
+        resourceType,
+        resourceId
+    );
+  }
+
+  @Override
+  @Transactional
+  public int createNotifications(List<NotificationCreateCommand> commands) {
+    if (commands == null || commands.isEmpty()) {
+      log.debug("[알림] 다건 생성 미반영. 사유=요청_비어있음");
+      return 0;
+    }
+
+    Map<UUID, User> userCache = new HashMap<>();
+    List<Notification> notifications = commands.stream()
+        .filter(Objects::nonNull)
+        .map(command -> {
+          User user = userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
+          return Notification.of(user, command.content(), command.resourceType(), command.resourceId());
+        })
+        .toList();
+
+    if (notifications.isEmpty()) {
+      log.debug("[알림] 다건 생성 미반영. 사유=유효_명령_없음");
+      return 0;
+    }
+
+    notificationRepository.saveAll(notifications);
+    log.info("[알림] 다건 생성 반영. 요청건수={}, 반영건수={}", commands.size(), notifications.size());
+    return notifications.size();
   }
 
   private void assertUserExists(UUID userId) {
     userRepository.findById(userId)
+        .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+    log.debug("[알림] 사용자 검증 완료. userId={}", userId);
+  }
+
+  private User getUserOrThrow(UUID userId) {
+    return userRepository.findById(userId)
         .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
   }
 
@@ -112,17 +206,4 @@ public class NotificationServiceImpl implements NotificationService {
     return after;
   }
 
-  private NotificationDto toDto(Notification notification) {
-    User user = notification.getUser();
-    return new NotificationDto(
-        notification.getId(),
-        notification.getCreatedAt(),
-        notification.getUpdatedAt(),
-        Boolean.TRUE.equals(notification.getConfirmed()),
-        user == null ? null : user.getId(),
-        notification.getContent(),
-        notification.getResourceType().name().toLowerCase(),
-        notification.getResourceId()
-    );
-  }
 }

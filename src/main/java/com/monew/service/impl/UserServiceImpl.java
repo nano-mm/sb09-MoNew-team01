@@ -87,18 +87,14 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void hardDelete(UUID userId) {
-    String checkSql = "SELECT COUNT(*) FROM users WHERE id = CAST(? AS UUID)";
-    Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId);
-
-    if (count == null || count == 0) {
+    if (!userRepository.existsByIdPhysical(userId)) {
       log.warn("hardDelete 실패. DB에 존재하지 않는 사용자 id: {}", userId);
       throw new NoSuchElementException("User not found with id: " + userId);
     }
 
     entityManager.flush();
     entityManager.clear();
-    String deleteSql = "DELETE FROM users WHERE id = CAST(? AS UUID)";
-    jdbcTemplate.update(deleteSql, userId);
+    userRepository.deleteByIdPhysical(userId);
     log.warn("HardDelete 성공. 사용자 id: {}", userId);
   }
 
@@ -117,8 +113,6 @@ public class UserServiceImpl implements UserService {
   }
 
   private boolean existsInAllUsers(String email) {
-    String sql = "SELECT count(*) FROM users WHERE email = ?";
-    Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
-    return count != null && count > 0;
+    return userRepository.existsInAllUsers(email);
   }
 }
