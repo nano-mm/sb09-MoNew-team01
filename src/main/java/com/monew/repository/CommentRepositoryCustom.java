@@ -4,6 +4,7 @@ import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
 import com.monew.entity.Comment;
 import java.util.List;
+import java.util.UUID;
 
 public interface CommentRepositoryCustom {
 
@@ -16,7 +17,7 @@ public interface CommentRepositoryCustom {
    * @param limit     조회할 댓글 수
    */
   List<Comment> findByArticleIdWithCursor(
-      String articleId,
+      UUID articleId,
       CommentSortType sortType,
       CommentCursor cursor,
       int limit
