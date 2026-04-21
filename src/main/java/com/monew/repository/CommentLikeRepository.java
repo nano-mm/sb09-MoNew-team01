@@ -1,6 +1,7 @@
 package com.monew.repository;
 
 import com.monew.entity.CommentLike;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +22,8 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
   @Modifying
   @Query("DELETE FROM CommentLike c WHERE c.comment.id = :commentId AND c.user.id = :userId")
   int deleteByComment_IdAndUser_Id(UUID commentId, UUID userId);
+
+  List<UUID> findCommentIdsByUserIdAndCommentIdIn(UUID userId, List<UUID> commentIds);
 
   int deleteCommentLike_AndUser_Id(UUID commentId, UUID userId);
 }

@@ -13,8 +13,10 @@ import com.monew.exception.LikeNotFoundException;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -100,15 +102,25 @@ public class CommentService {
   ) {
     CommentCursor cursor = parseCursor(sortType, rawCursor);
 
+    // size+1 조회로 hasNext 정확하게 판단
     List<Comment> comments = commentRepository.findByArticleIdWithCursor(
-        articleId.toString(), sortType, cursor, size
+        articleId.toString(), sortType, cursor, size + 1
     );
 
-    List<UUID> userIds = comments.stream().map(Comment::getUserId).toList();
+    boolean hasNext = comments.size() > size;
+    List<Comment> pageComments = hasNext ? comments.subList(0, size) : comments;
+
+    // N+1 방지: 한 번에 likedByMe 조회
+    List<UUID> commentIds = pageComments.stream().map(Comment::getId).toList();
+    Set<UUID> likedCommentIds = new HashSet<>(
+        commentLikeRepository.findCommentIdsByUserIdAndCommentIdIn(userId, commentIds)
+    );
+
+    List<UUID> userIds = pageComments.stream().map(Comment::getUserId).toList();
     Map<UUID, String> nicknameMap = userRepository.findAllById(userIds).stream()
         .collect(Collectors.toMap(User::getId, User::getNickname));
 
-    List<CommentResponse> content = comments.stream()
+    List<CommentResponse> content = pageComments.stream()
         .map(c -> new CommentResponse(
             c.getId(),
             c.getArticleId(),
@@ -116,17 +128,16 @@ public class CommentService {
             nicknameMap.getOrDefault(c.getUserId(), ""),
             c.getContent(),
             c.getLikeCount(),
-            commentLikeRepository.existsByComment_IdAndUser_Id(c.getId(), userId),
+            likedCommentIds.contains(c.getId()), // N+1 해소
             c.getCreatedAt()
         ))
         .toList();
 
-    boolean hasNext = comments.size() == size;
     String nextCursor = null;
     Instant nextAfter = null;
 
     if (hasNext) {
-      Comment last = comments.get(comments.size() - 1);
+      Comment last = pageComments.get(pageComments.size() - 1);
       if (sortType == CommentSortType.LIKE_COUNT) {
         nextCursor = last.getId() + "," + last.getLikeCount();
       } else {
@@ -135,12 +146,15 @@ public class CommentService {
       }
     }
 
+    // totalElements: 전체 개수 별도 조회
+    long totalElements = commentRepository.countByArticleId(articleId.toString());
+
     return CursorPageResponseDto.<CommentResponse>builder()
         .content(content)
         .nextCursor(nextCursor)
         .nextAfter(nextAfter)
         .size(content.size())
-        .totalElements((long) content.size())
+        .totalElements(totalElements)
         .hasNext(hasNext)
         .build();
   }
