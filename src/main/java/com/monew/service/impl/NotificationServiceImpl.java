@@ -2,7 +2,10 @@ package com.monew.service.impl;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import com.monew.dto.request.NotificationCreateCommand;
 import com.monew.entity.Notification;
+import com.monew.entity.User;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.NotificationMapper;
@@ -10,7 +13,10 @@ import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -129,11 +135,58 @@ public class NotificationServiceImpl implements NotificationService {
     log.info("[알림] 전체 확인 반영. userId={}, 반영건수={}", userId, notifications.size());
   }
 
+  @Override
+  @Transactional
+  public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
+    User user = getUserOrThrow(userId);
+    Notification notification = Notification.of(user, content, resourceType, resourceId);
+    notificationRepository.save(notification);
+
+    log.info(
+        "[알림] 단건 생성 반영. userId={}, resourceType={}, resourceId={}",
+        userId,
+        resourceType,
+        resourceId
+    );
+  }
+
+  @Override
+  @Transactional
+  public int createNotifications(List<NotificationCreateCommand> commands) {
+    if (commands == null || commands.isEmpty()) {
+      log.debug("[알림] 다건 생성 미반영. 사유=요청_비어있음");
+      return 0;
+    }
+
+    Map<UUID, User> userCache = new HashMap<>();
+    List<Notification> notifications = commands.stream()
+        .filter(Objects::nonNull)
+        .map(command -> {
+          User user = userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
+          return Notification.of(user, command.content(), command.resourceType(), command.resourceId());
+        })
+        .toList();
+
+    if (notifications.isEmpty()) {
+      log.debug("[알림] 다건 생성 미반영. 사유=유효_명령_없음");
+      return 0;
+    }
+
+    notificationRepository.saveAll(notifications);
+    log.info("[알림] 다건 생성 반영. 요청건수={}, 반영건수={}", commands.size(), notifications.size());
+    return notifications.size();
+  }
+
   private void assertUserExists(UUID userId) {
     userRepository.findById(userId)
         .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
 
     log.debug("[알림] 사용자 검증 완료. userId={}", userId);
+  }
+
+  private User getUserOrThrow(UUID userId) {
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
   }
 
   private Instant resolveCursorPoint(UUID userId, String cursor, Instant after) {

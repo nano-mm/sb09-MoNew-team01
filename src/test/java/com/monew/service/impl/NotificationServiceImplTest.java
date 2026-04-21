@@ -3,15 +3,16 @@ package com.monew.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import com.monew.dto.request.NotificationCreateCommand;
 import com.monew.entity.Notification;
 import com.monew.entity.User;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.NotificationMapper;
@@ -24,6 +25,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -227,6 +229,72 @@ class NotificationServiceImplTest {
         .isEqualTo(ErrorCode.USER_NOT_FOUND);
 
     verify(notificationRepository, never()).findAllByUser_IdAndConfirmedFalse(any());
+  }
+
+  @Test
+  void createNotification_사용자가_있으면_알림을_저장한다() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    UUID resourceId = UUID.randomUUID();
+
+    notificationService.createNotification(userId, "새 기사 알림", ResourceType.INTEREST, resourceId);
+
+    ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+    verify(notificationRepository).save(captor.capture());
+
+    Notification saved = captor.getValue();
+    assertThat(saved.getUser()).isEqualTo(user);
+    assertThat(saved.getContent()).isEqualTo("새 기사 알림");
+    assertThat(saved.getResourceType()).isEqualTo(ResourceType.INTEREST);
+    assertThat(saved.getResourceId()).isEqualTo(resourceId);
+    assertThat(saved.getConfirmed()).isFalse();
+  }
+
+  @Test
+  void createNotification_사용자가_없으면_USER_NOT_FOUND를_던진다() {
+    when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> notificationService.createNotification(
+        userId,
+        "새 기사 알림",
+        ResourceType.INTEREST,
+        UUID.randomUUID()
+    ))
+        .isInstanceOf(BaseException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.USER_NOT_FOUND);
+
+    verify(notificationRepository, never()).save(any());
+  }
+
+  @Test
+  void createNotifications_요청이_있으면_다건_저장하고_반영건수를_반환한다() {
+    UUID userId2 = UUID.randomUUID();
+    User user2 = User.builder()
+        .email("test2@monew.com")
+        .nickname("tester2")
+        .password("password")
+        .build();
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(userRepository.findById(userId2)).thenReturn(Optional.of(user2));
+
+    List<NotificationCreateCommand> commands = List.of(
+        new NotificationCreateCommand(userId, "알림1", ResourceType.INTEREST, UUID.randomUUID()),
+        new NotificationCreateCommand(userId2, "알림2", ResourceType.COMMENT, UUID.randomUUID())
+    );
+
+    int created = notificationService.createNotifications(commands);
+
+    verify(notificationRepository).saveAll(any());
+    assertThat(created).isEqualTo(2);
+  }
+
+  @Test
+  void createNotifications_요청이_비어있으면_저장하지_않고_0을_반환한다() {
+    int created = notificationService.createNotifications(List.of());
+
+    assertThat(created).isZero();
+    verify(notificationRepository, never()).saveAll(any());
   }
 
   private Notification notification(UUID notificationId, Instant createdAt) {
