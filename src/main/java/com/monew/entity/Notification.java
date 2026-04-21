@@ -6,7 +6,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,8 +26,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Notification extends BaseUpdatableEntity {
 
-  @Column(name = "user_id")
-  private UUID userId;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
   @Column(name = "content")
   private String content;
@@ -39,13 +44,13 @@ public class Notification extends BaseUpdatableEntity {
   private Boolean confirmed;
 
   public static Notification of(
-      UUID userId,
+      User user,
       String content,
       ResourceType resourceType,
       UUID resourceId
   ) {
     return Notification.builder()
-        .userId(userId)
+        .user(Objects.requireNonNull(user, "user must not be null"))
         .content(content)
         .resourceType(resourceType)
         .resourceId(resourceId)

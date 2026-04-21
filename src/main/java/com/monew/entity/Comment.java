@@ -3,7 +3,6 @@ package com.monew.entity;
 import com.monew.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +20,7 @@ import org.hibernate.annotations.SQLRestriction;
     }
 )
 @SQLRestriction("deleted_at IS NULL")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)  // protected Comment() {} 대체
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -39,7 +38,7 @@ public class Comment extends BaseEntity {
   private int likeCount = 0;
 
   @Column(name = "deleted_at")
-  private LocalDateTime deletedAt;
+  private Instant deletedAt;  // LocalDateTime → Instant 통일
 
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentLike> likes = new ArrayList<>();
@@ -58,16 +57,15 @@ public class Comment extends BaseEntity {
     return this.user.getId().equals(requestUserId);
   }
 
-  public boolean isDeleted() {
-    return this.deletedAt != null;
-  }
-
   public void updateContent(String newContent) {
     this.content = newContent;
   }
 
-  public void softDelete() {
-    this.deletedAt = LocalDateTime.now();
+  // isDeleted() + softDelete() → 하나로 통합
+  public void softDelete(boolean isDelete) {
+    if (isDelete) {
+      this.deletedAt = Instant.now();
+    }
   }
 
   public void increaseLikeCount() {

@@ -83,8 +83,6 @@ public class NaverApiFetcher implements ArticleFetcher {
   private ArticleDto convertToDto(NaverNewsItem item) {
     return ArticleDto.builder()
         .source(getSourceName())
-        // 네이버 링크보다 언론사 원본 링크(originallink)를 우선 사용합니다.
-        // 만약 원본 링크가 비어있다면 fallback으로 네이버 링크 사용
         .sourceUrl(item.originallink() != null && !item.originallink().isEmpty()
             ? item.originallink() : item.link())
         .title(cleanHtml(item.title()))

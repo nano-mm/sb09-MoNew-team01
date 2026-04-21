@@ -43,9 +43,39 @@ public class InterestService {
     for(Interest i : interests){
       double similarity = SimilarityUtils.calculateSimilarity(name, i.getName());
       if (similarity>=0.8){
-        throw new IllegalArgumentException("이미 유사한 관심사가 존재합니다.");
+        throw new BaseException(ErrorCode.INTEREST_DUPLICATED);
       }
     }
+  }
+
+  // << 수정 >>
+  public void update(UUID id, InterestUpdateRequest request) {
+    Interest interest = interestRepository.findById(id)
+        .orElseThrow();
+
+    interest.updateKeywords(request.keywords());
+  }
+
+  // << 삭제 >>
+  public void delete(UUID id) {
+    interestRepository.deleteById(id);
+  }
+
+  // << 목록 조회 >>
+  public List<InterestDto> search(String keyword, UUID userId) {
+    List<Interest> interests = interestRepository.search(keyword);
+
+    List<UUID> subscribedIds = subscriptionRepository.findByUserId(userId)
+        .stream()
+        .map(s -> s.getInterest().getId())
+        .toList();
+
+    return interests.stream()
+        .map(i -> InterestMapper.toDto(
+            i,
+            subscribedIds.contains(i.getId())
+        ))
+        .toList();
   }
 
 }

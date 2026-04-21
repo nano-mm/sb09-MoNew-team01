@@ -65,7 +65,7 @@ public class CommentService {
     if (!comment.getUserId().equals(userId)) {
       throw new ForbiddenException();
     }
-    comment.softDelete();
+    comment.softDelete(true);
   }
 
   @Transactional
@@ -179,11 +179,7 @@ public class CommentService {
   }
 
   private Comment getActiveComment(UUID commentId) {
-    Comment comment = commentRepository.findById(commentId)
+    return commentRepository.findById(commentId)
         .orElseThrow(CommentNotFoundException::new);
-    if (comment.isDeleted()) {
-      throw new CommentNotFoundException();
-    }
-    return comment;
   }
 }
