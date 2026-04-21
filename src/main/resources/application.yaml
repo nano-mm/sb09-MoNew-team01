@@ -19,5 +19,11 @@ monew:
   batch:
     news:
       cron: ${NEWS_CRON_TIME:0 0 * * * *}
+    newsbackup:
+      cron: ${NEWSBACKUP_CRON_TIME:0 0 * * * *}
     notification-cleanup:
       cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * *}
+
+app:
+  backup:
+    dir: ${BACKUP_DIR:file:./backups/}

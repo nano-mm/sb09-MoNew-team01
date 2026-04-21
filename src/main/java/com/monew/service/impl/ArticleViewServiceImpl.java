@@ -28,6 +28,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   @Override
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
 
+    // 임시로 만듦. 수정 필요함
     Article article = articleRepository.findById(articleId).orElseThrow();
     User user = userRepository.findById(requestUserId).orElseThrow();
 

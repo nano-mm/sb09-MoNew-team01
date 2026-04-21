@@ -6,22 +6,32 @@ import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.ArticleInterest;
+import com.monew.entity.Interest;
 import com.monew.entity.enums.ArticleSource;
+import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
+import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
+import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -31,52 +41,68 @@ public class ArticleServiceImpl implements ArticleService {
   private final ArticleRepository articleRepository;
   private final ArticleQueryRepository articleQueryRepository;
   private final ArticleViewRepository articleViewRepository;
+  private final InterestRepository interestRepository;
+
   private final ArticleMapper articleMapper;
+
   private final List<ArticleFetcher> articleFetchers;
+
+  private final ArticleInterestRepository articleInterestRepository;
 
   @Override
   public void collect() {
+    List<Interest> allInterests = interestRepository.findAllWithKeywords();
 
-    Set<ArticleDto> articles = new HashSet<>();
-    // 키워드 불러오는 작업 필요
-    Set<String> allKeywords = Set.of(
-        "정부", "시장", "금리", "증시", "투자",
-        "발표", "출시", "상승", "하락", "경제",
-        "반도체", "인공지능", "부동산", "물가"
-    );
+    Map<String, Set<Interest>> keywordToInterestsMap = new HashMap<>();
+    for (Interest interest : allInterests) {
+      keywordToInterestsMap.computeIfAbsent(interest.getName(), k -> new HashSet<>()).add(interest);
+      for (String kw : interest.getKeywords()) {
+        keywordToInterestsMap.computeIfAbsent(kw, k -> new HashSet<>()).add(interest);
+      }
+    }
 
+    Set<String> allKeywords = keywordToInterestsMap.keySet();
     log.info("뉴스 수집 배치 시작. 키워드 갯수: {}", allKeywords.size());
 
-    List<ArticleDto> allFetchedItems = allKeywords.stream()
-        .map(this::collectByKeyword)
-        .flatMap(Collection::stream)
-        .toList();
+    Map<String, Article> urlToArticleMap = new HashMap<>();
+    Map<String, Set<Interest>> urlToInterestsMap = new HashMap<>();
 
-    List<String> fetchedUrls = allFetchedItems.stream()
-        .map(ArticleDto::sourceUrl)
-        .toList();
+    for (String keyword : allKeywords) {
+      List<ArticleDto> fetchedDtos = collectByKeyword(keyword);
+      Set<Interest> relatedInterests = keywordToInterestsMap.get(keyword);
 
-    // 이미 저장된 URL
-    Set<String> existingUrlsInDb = articleRepository.findExistingUrls(fetchedUrls);
-
-    List<Article> articleList = new ArrayList<>();
-
-    // 이번 배치 처리 내부의 URL 중복 필터링
-    Set<String> urlsInBatch = new HashSet<>();
-    for (ArticleDto dto : allFetchedItems) {
-      String url = dto.sourceUrl();
-
-      if (urlsInBatch.contains(url) || existingUrlsInDb.contains(url)) {
-        continue;
+      for (ArticleDto dto : fetchedDtos) {
+        String url = dto.sourceUrl();
+        urlToArticleMap.putIfAbsent(url, articleMapper.toEntity(dto));
+        urlToInterestsMap.computeIfAbsent(url, k -> new HashSet<>()).addAll(relatedInterests);
       }
-
-      articleList.add(articleMapper.toEntity(dto));
-      urlsInBatch.add(url);
     }
 
-    if (!articleList.isEmpty()) {
-      articleRepository.saveAll(articleList);
+    Set<String> existingUrls = articleRepository.findExistingUrls(new ArrayList<>(urlToArticleMap.keySet()));
+    existingUrls.forEach(url -> {
+      urlToArticleMap.remove(url);
+      urlToInterestsMap.remove(url);
+    });
+
+    if (urlToArticleMap.isEmpty()) {
+      log.info("새로 저장할 뉴스 기사가 없습니다.");
+      return;
     }
+
+    List<Article> articleList = new ArrayList<>(urlToArticleMap.values());
+    articleRepository.saveAll(articleList);
+
+    List<ArticleInterest> mappingList = new ArrayList<>();
+    for (Article article : articleList) {
+      Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
+      if (interests != null) {
+        for (Interest interest : interests) {
+          mappingList.add(ArticleInterest.of(article, interest));
+        }
+      }
+    }
+
+    articleInterestRepository.saveAll(mappingList);
 
     log.info("뉴스 기사 수집 완료.  {}개 저장.", articleList.size());
   }
@@ -98,14 +124,15 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   @Transactional(readOnly = true)
-  public CursorPageResponseDto<ArticleDto> findArticles(ArticleSearchCondition condition
-      , CursorRequest cursorRequest, UUID userId) {
+  public CursorPageResponseDto<ArticleDto> findArticles(
+      ArticleSearchCondition condition,
+      CursorRequest cursorRequest,
+      UUID userId) {
 
-    // 관심사 기능 추가 시 추가 구현 필요
-    List<String> interestKeywords = null;
+    log.info("뉴스 기사 조회 시도: userId={}, 검색조건={}", userId, condition);
 
     CursorPageResponseDto<Article> entityPage =
-        articleQueryRepository.searchArticlesByCursor(condition, interestKeywords, cursorRequest);
+        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest);
 
     List<ArticleDto> dtoList = entityPage.content().stream()
         .map(article -> {
@@ -114,6 +141,8 @@ public class ArticleServiceImpl implements ArticleService {
           return dto.toBuilder().viewedByMe(false).build();
         })
         .toList();
+
+    log.info("뉴스 기사 조회 완료: userId={}", userId);
 
     return CursorPageResponseDto.<ArticleDto>builder()
         .content(dtoList)
@@ -127,41 +156,69 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   public ArticleDto find(UUID articleId) {
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    log.info("뉴스 기사 단건 조회 시도: articleId={}", articleId);
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+            -> {
+          log.warn("뉴스 기사 단건 조회 실패: 존재하지 않는 기사 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
+    log.info("뉴스 기사 단건 조회 완료: articleId={}", articleId);
     return articleMapper.toDto(targetArticle);
   }
 
   @Override
   public void softDelete(UUID articleId) {
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
+    log.info("뉴스 기사 논리 삭제 시도: articleId={}", articleId);
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+        -> {
+          log.warn("뉴스 기사 논리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
     targetArticle.markAsDeleted();
+    log.info("뉴스 기사 논리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   public void hardDelete(UUID articleId) {
-    // 존재여부 확인 로그 추가 필요
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow();
-
-    // 존재 확인 후 삭제
-    try {
-      articleRepository.deleteById(articleId);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    log.info("뉴스 기사 물리 삭제 시도: articleId={}", articleId);
+    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+            -> {
+          log.warn("뉴스 기사 물리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
+          return new ArticleNotFoundException(articleId);
+        }
+    );
+    articleRepository.delete(targetArticle);
+    log.info("뉴스 기사 물리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<String> getSources() {
+    log.info("뉴스 기사 출처 조회 시도");
     List<ArticleSource> sources = articleQueryRepository.findSources();
-
+    log.info("뉴스 기사 출처 조회 성공");
     return sources.stream()
         .map(Enum::name)
         .toList();
   }
 
+  // 나중에 쓸지도 모름...
   private boolean isKeywordMatch(ArticleDto dto, String keyword) {
     String content = (dto.title() + dto.summary()).toLowerCase();
     return content.contains(keyword.toLowerCase());
+  }
+
+  private Set<String> getSearchKeywords() {
+    return interestRepository.findAllWithKeywords().stream()
+        .flatMap(interest -> {
+          return Stream.concat(
+              Stream.of(interest.getName()),
+              interest.getKeywords().stream()
+          );
+        })
+        .filter(StringUtils::hasText)
+        .collect(Collectors.toSet());
   }
 }
