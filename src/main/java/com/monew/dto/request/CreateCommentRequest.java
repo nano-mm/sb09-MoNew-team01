@@ -9,6 +9,8 @@ public record CreateCommentRequest(
 
     @NotNull
     UUID articleId,
+    @NotNull
+    UUID userId,
 
     @NotBlank
     @Size(max = 1000)
