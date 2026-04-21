@@ -52,36 +52,54 @@ dependencies {
 
 def querydslDir = "$buildDir/generated/querydsl"
 
+jacoco {
+	toolVersion = '0.8.13'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = false
+	}
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('jacocoTestReport')
 }
 
 jacoco {
-    toolVersion = "0.8.11"
+	toolVersion = "0.8.11"
 }
 
 test {
-    useJUnitPlatform()
-    finalizedBy jacocoTestReport
+	useJUnitPlatform()
+	finalizedBy jacocoTestReport
 }
 
 jacocoTestReport {
-    dependsOn test
+	dependsOn test
 
-    reports {
-        xml.required = true
-        csv.required = false
-        html.required = true
-    }
+	reports {
+		xml.required = true
+		csv.required = false
+		html.required = true
+	}
 
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                    "**/dto/**",
-                    "**/entity/**",
-                    "**/exception/**",
-                    "**/mapper/**"
-            ])
-        }))
-    }
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+					"**/dto/**",
+					"**/entity/**",
+					"**/exception/**",
+					"**/mapper/**"
+			])
+		}))
+	}
 }
