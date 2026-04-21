@@ -51,7 +51,6 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   public void collect() {
-
     List<Interest> allInterests = interestRepository.findAllWithKeywords();
 
     Map<String, Set<Interest>> keywordToInterestsMap = new HashMap<>();

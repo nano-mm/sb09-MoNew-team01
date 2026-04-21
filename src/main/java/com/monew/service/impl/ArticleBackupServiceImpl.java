@@ -55,7 +55,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
     ZoneId zoneId = ZoneId.of("Asia/Seoul");
 
-    log.info("[뉴스 기사] 백업 시작: {}", zoneId);
+    log.info("[뉴스 기사] 백업 시작");
 
     List<Article> articles = articleRepository.findAll();
     List<ArticleInterest> allMappings = articleInterestRepository.findAllWithInterest();
