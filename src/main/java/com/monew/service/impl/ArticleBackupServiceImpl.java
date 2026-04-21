@@ -55,6 +55,8 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
     ZoneId zoneId = ZoneId.of("Asia/Seoul");
 
+    log.info("[뉴스 기사] 백업 시작: {}", zoneId);
+
     List<Article> articles = articleRepository.findAll();
     List<ArticleInterest> allMappings = articleInterestRepository.findAllWithInterest();
 
@@ -88,7 +90,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
           objectMapper.writeValue(os, data);
         }
       }
-      log.info("뉴스 기사 백업 완료: {}", fileName);
+      log.info("[뉴스 기사] 백업 완료: {}", fileName);
     }
   }
 
@@ -100,7 +102,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     Resource[] resources = resourcePatternResolver.getResources(pattern);
 
     if (resources.length == 0) {
-      log.warn("백업 폴더에 파일이 없습니다: {}", dirPath);
+      log.warn("[뉴스 기사] 백업 폴더에 파일이 없습니다: {}", dirPath);
       return;
     }
 
@@ -110,7 +112,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     int totalImported = 0;
 
     for (Resource resource : resources) {
-      log.info("백업 파일 읽는 중... : {}", resource.getFilename());
+      log.info("[뉴스 기사] 백업 파일 읽는 중... : {}", resource.getFilename());
 
       try (InputStream is = resource.getInputStream()) {
         List<ArticleBackupDto> backupList = objectMapper.readValue(is,
@@ -132,16 +134,17 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
         }
       }
     }
-    log.info("전체 복구 성공: 총 {}개의 기사가 처리되었습니다.", totalImported);
+    log.info("[뉴스 기사] 데이터 복구 성공: 총 {}개의 기사가 처리되었습니다.", totalImported);
   }
 
+  // 프로그램 실행 시 바로 복구. 필요한지는 모르겠는데 일단 만듦
   @EventListener(ApplicationReadyEvent.class)
   public void onApplicationReady() {
-    log.info("백업 데이터 복구 시작");
+    log.info("[뉴스 기사] 백업 데이터 복구 시작");
     try {
       this.importBackup();
     } catch (IOException e) {
-      log.error("뉴스 기사 데이터 복구 중 에러 발생", e);
+      log.error("[뉴스 기사] 데이터 복구 중 에러 발생", e);
     }
   }
 }
