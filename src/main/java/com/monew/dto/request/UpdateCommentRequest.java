@@ -2,12 +2,11 @@ package com.monew.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
 
-@Getter
-public class UpdateCommentRequest {
+public record UpdateCommentRequest(
 
-  @NotBlank
-  @Size(max = 500)
-  private String content;
-}
+    @NotBlank
+    @Size(max = 1000)
+    String content
+
+) {}

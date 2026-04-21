@@ -1,7 +1,6 @@
 package com.monew.dto.comment;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record CommentCursor(

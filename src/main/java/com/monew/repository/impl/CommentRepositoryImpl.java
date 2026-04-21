@@ -24,7 +24,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 
   @Override
   public List<Comment> findByArticleIdWithCursor(
-      String articleId,
+      UUID articleId,
       CommentSortType sortType,
       CommentCursor cursor,
       int limit
@@ -34,7 +34,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
     return queryFactory
         .selectFrom(qComment)
         .where(
-            qComment.article.id.eq(UUID.fromString(articleId)),
+            qComment.article.id.eq(articleId),
             qComment.deletedAt.isNull(),
             cursorCondition(sortType, cursor)
         )

@@ -74,10 +74,8 @@ public class CommentService {
     if (commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)) {
       throw new DuplicateLikeException();
     }
-
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
-
     commentLikeRepository.save(new CommentLike(comment, user));
     comment.increaseLikeCount();
   }
@@ -102,9 +100,8 @@ public class CommentService {
   ) {
     CommentCursor cursor = parseCursor(sortType, rawCursor);
 
-    // size+1 조회로 hasNext 정확하게 판단
     List<Comment> comments = commentRepository.findByArticleIdWithCursor(
-        articleId.toString(), sortType, cursor, size + 1
+        articleId, sortType, cursor, size + 1
     );
 
     boolean hasNext = comments.size() > size;
@@ -128,7 +125,7 @@ public class CommentService {
             nicknameMap.getOrDefault(c.getUserId(), ""),
             c.getContent(),
             c.getLikeCount(),
-            likedCommentIds.contains(c.getId()), // N+1 해소
+            likedCommentIds.contains(c.getId()),
             c.getCreatedAt()
         ))
         .toList();
@@ -146,8 +143,7 @@ public class CommentService {
       }
     }
 
-    // totalElements: 전체 개수 별도 조회
-    long totalElements = commentRepository.countByArticleId(articleId.toString());
+    long totalElements = commentRepository.countByArticleId(articleId);
 
     return CursorPageResponseDto.<CommentResponse>builder()
         .content(content)

@@ -8,6 +8,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
-  @Mapping(target = "likeCount", expression = "java(comment.getLikes().size())")
+  @Mapping(target = "likeCount", source = "likeCount")
   CommentResponse toResponse(Comment comment);
 }

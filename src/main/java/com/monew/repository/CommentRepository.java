@@ -11,9 +11,6 @@ import java.util.UUID;
 
 public interface CommentRepository extends JpaRepository<Comment, UUID>, CommentRepositoryCustom {
 
-  // @SQLRestriction 이 자동으로 deleted_at IS NULL 조건을 추가하므로
-  // 아래 메서드들은 모두 활성 댓글만 조회함
-
   // 물리 삭제 전용 - 테스트에서만 사용, @SQLRestriction 우회하여 삭제된 것도 포함
   @Query(value = "SELECT * FROM comments WHERE id = :id", nativeQuery = true)
   Optional<Comment> findByIdIncludingDeleted(@Param("id") UUID id);
@@ -23,6 +20,7 @@ public interface CommentRepository extends JpaRepository<Comment, UUID>, Comment
   @Query(value = "DELETE FROM comments WHERE id = :id", nativeQuery = true)
   void hardDeleteById(@Param("id") UUID id);
 
-  // 특정 기사의 댓글 수 (논리 삭제 제외)
-  long countByArticleId(String articleId);
+  // 특정 기사의 댓글 수 (논리 삭제 제외, @SQLRestriction 자동 적용)
+  @Query("SELECT COUNT(c) FROM Comment c WHERE c.article.id = :articleId")
+  long countByArticleId(@Param("articleId") UUID articleId);
 }
