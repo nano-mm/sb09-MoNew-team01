@@ -1,9 +1,14 @@
 package com.monew.entity;
 
 import com.monew.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,8 +30,11 @@ public class User extends BaseUpdatableEntity {
   private String nickname;
   @Column(name = "password", nullable = false)
   private String password;
+  @Builder.Default
   @Column(name = "is_deleted")
   private boolean isDeleted = false;
+  @Column(name = "deleted_at")
+  private Instant deletedAt;
 
   public static User of(String email, String nickname, String password) {
     return User.builder()
@@ -42,34 +50,10 @@ public class User extends BaseUpdatableEntity {
 
   public void markAsDeleted(boolean isDeleted) {
     this.isDeleted = isDeleted;
+    if (isDeleted) {
+      this.deletedAt = Instant.now();
+    } else {
+      this.deletedAt = null;
+    }
   }
 }
-
-/* 아래 부분은 PR 날아오는 것을 확인하고서 작업 진행할 예정
-
-  // 사용자가 작성한 구독 목록
-  @Builder.Default
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Subscription> subscriptions = new ArrayList<>();
-
-  // 사용자가 쓴 댓글 목록
-  @Builder.Default
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Comment> comments = new ArrayList<>();
-
-  // 사용자가 누른 댓글 좋아요 목록
-  @Builder.Default
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<CommentLike> commentLikes = new ArrayList<>();
-
-  // 사용자의 게시글 조회 기록
-  @Builder.Default
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<ArticleView> articleViews = new ArrayList<>();
-
-  // 사용자의 알림 목록
-  @Builder.Default
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Notification> notifications = new ArrayList<>();
-
-   */
