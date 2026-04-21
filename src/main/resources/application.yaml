@@ -10,6 +10,10 @@ spring:
         order_inserts: true
         order_updates: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 naver:
   client:
     id: ${NAVER_CLIENT_ID:temp}

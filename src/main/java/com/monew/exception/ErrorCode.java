@@ -28,6 +28,8 @@ public enum ErrorCode {
 
   // 댓글
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_404", "댓글을 찾을 수 없습니다"),
+  LIKE_DUPLICATED(HttpStatus.CONFLICT, "COMMENT_409", "이미 좋아요를 눌렀습니다"),
+  LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT_404", "좋아요를 누르지 않은 상태에서는 취소할 수 없습니다."),
 
   // 알림
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTI_404", "알림을 찾을 수 없습니다");
