@@ -19,3 +19,5 @@ monew:
   batch:
     news:
       cron: ${NEWS_CRON_TIME:0 0 * * * *}
+    notification-cleanup:
+      cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * *}

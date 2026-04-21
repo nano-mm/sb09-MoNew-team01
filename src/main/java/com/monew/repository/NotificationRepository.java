@@ -38,4 +38,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   List<Notification> findAllByUser_IdAndConfirmedFalse(UUID userId);
 
   long countByUser_IdAndConfirmedFalse(UUID userId);
+
+  long deleteByConfirmedIsTrueAndCreatedAtBefore(Instant threshold);
 }
