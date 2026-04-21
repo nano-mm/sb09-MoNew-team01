@@ -11,6 +11,7 @@ public record ArticleBackupDto(
     String sourceUrl,
     String source,
     Instant publishDate,
+    Boolean isDeleted,
     Set<String> interestNames
 ) {
 }
