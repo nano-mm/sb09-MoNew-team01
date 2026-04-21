@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -49,7 +50,7 @@ public class Notification extends BaseUpdatableEntity {
       UUID resourceId
   ) {
     return Notification.builder()
-        .user(user)
+        .user(Objects.requireNonNull(user, "user must not be null"))
         .content(content)
         .resourceType(resourceType)
         .resourceId(resourceId)
