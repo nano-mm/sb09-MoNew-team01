@@ -3,12 +3,13 @@ package com.monew.entity;
 import com.monew.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
-import org.hibernate.annotations.SQLRestriction;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(
@@ -20,6 +21,7 @@ import java.util.UUID;
     }
 )
 @SQLRestriction("deleted_at IS NULL")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)  // protected Comment() {} 대체
 public class Comment extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -29,6 +31,7 @@ public class Comment extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   private User user;
+
   @Column(name = "content", nullable = false, length = 1000)
   private String content;
 
@@ -46,8 +49,6 @@ public class Comment extends BaseEntity {
     this.user = user;
     this.content = content;
   }
-
-  protected Comment() {}
 
   public static Comment create(Article article, User user, String content) {
     return new Comment(article, user, content);
@@ -86,6 +87,8 @@ public class Comment extends BaseEntity {
   public UUID getUserId() {
     return user.getId();
   }
+
   public String getContent() { return content; }
+
   public int getLikeCount() { return likeCount; }
 }
