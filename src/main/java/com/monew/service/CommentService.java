@@ -2,6 +2,7 @@ package com.monew.service;
 
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
+import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CommentResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
@@ -53,12 +54,13 @@ public class CommentService {
   }
 
   @Transactional
-  public void updateComment(UUID userId, UUID commentId, String content) {
+  public CommentResponse updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
     if (!comment.getUserId().equals(userId)) {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
+    return commentMapper.toResponse(comment);
   }
 
   @Transactional
@@ -71,15 +73,29 @@ public class CommentService {
   }
 
   @Transactional
-  public void likeComment(UUID userId, UUID commentId) {
+  public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
     if (commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)) {
       throw new DuplicateLikeException();
     }
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
-    commentLikeRepository.save(new CommentLike(comment, user));
+    CommentLike commentLike = new CommentLike(comment, user);
+    commentLikeRepository.save(commentLike);
     comment.increaseLikeCount();
+
+    return new CommentLikeResponse(
+        commentLike.getId(),
+        userId,
+        commentLike.getCreatedAt(),
+        comment.getId(),
+        comment.getArticleId(),
+        comment.getUserId(),
+        user.getNickname(),
+        comment.getContent(),
+        comment.getLikeCount(),
+        comment.getCreatedAt()
+    );
   }
 
   @Transactional
