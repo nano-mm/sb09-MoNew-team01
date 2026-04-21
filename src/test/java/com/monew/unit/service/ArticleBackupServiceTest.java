@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class AArticleBackupServiceTest {
+class ArticleBackupServiceTest {
 
   @InjectMocks
   private ArticleBackupServiceImpl backupService;
