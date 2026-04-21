@@ -3,6 +3,7 @@ package com.monew.service.impl;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
 import com.monew.entity.Notification;
+import com.monew.entity.User;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.repository.NotificationRepository;
@@ -63,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
         nextCursor,
         nextAfter,
         content.size(),
-        notificationRepository.countByUserIdAndConfirmedFalse(userId),
+        notificationRepository.countByUser_IdAndConfirmedFalse(userId),
         hasNext
     );
   }
@@ -72,7 +73,7 @@ public class NotificationServiceImpl implements NotificationService {
   @Transactional
   public void confirmNotification(UUID userId, UUID notificationId) {
     assertUserExists(userId);
-    notificationRepository.findByIdAndUserIdAndConfirmedFalse(notificationId, userId)
+    notificationRepository.findByIdAndUser_IdAndConfirmedFalse(notificationId, userId)
         .ifPresent(Notification::confirm);
   }
 
@@ -80,7 +81,7 @@ public class NotificationServiceImpl implements NotificationService {
   @Transactional
   public void confirmAllNotifications(UUID userId) {
     assertUserExists(userId);
-    List<Notification> notifications = notificationRepository.findAllByUserIdAndConfirmedFalse(userId);
+    List<Notification> notifications = notificationRepository.findAllByUser_IdAndConfirmedFalse(userId);
 
     if (notifications.isEmpty()) {
       return;
@@ -103,7 +104,7 @@ public class NotificationServiceImpl implements NotificationService {
         throw new BaseException(ErrorCode.INVALID_INPUT);
       }
 
-      return notificationRepository.findByIdAndUserIdAndConfirmedFalse(cursorId, userId)
+      return notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId)
           .map(Notification::getCreatedAt)
           .orElseThrow(() -> new BaseException(ErrorCode.INVALID_INPUT));
     }
@@ -112,12 +113,13 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   private NotificationDto toDto(Notification notification) {
+    User user = notification.getUser();
     return new NotificationDto(
         notification.getId(),
         notification.getCreatedAt(),
         notification.getUpdatedAt(),
         Boolean.TRUE.equals(notification.getConfirmed()),
-        notification.getUserId(),
+        user == null ? null : user.getId(),
         notification.getContent(),
         notification.getResourceType().name().toLowerCase(),
         notification.getResourceId()
