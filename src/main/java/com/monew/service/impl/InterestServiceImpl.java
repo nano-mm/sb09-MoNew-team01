@@ -73,24 +73,36 @@ public class InterestServiceImpl implements InterestService {
   @Override
   public CursorPageResponseDto<InterestDto> find(InterestSearchRequest request) {
 
-    String sort = request.getSortOrDefault();
+    String keyword = request.keyword();
+    String orderBy = request.getOrderByOrDefault();
+    String direction = request.getDirectionOrDefault();
+    String cursor = request.cursor();
+    Instant after = request.after();
     int size = request.getSizeOrDefault();
-    Long cursorCount = null;
-
-    if ("subscriberCount".equals(sort) && request.cursor() != null) {
-      cursorCount = Long.parseLong(request.cursor());
-    }
 
     Pageable pageable = PageRequest.of(0, size + 1);
 
-    List<Interest> results = interestRepository.searchWithCursor(
-        request.keyword(),
-        sort,
-        request.cursor(),
-        cursorCount,
-        request.after(),
-        pageable
-    );
+    List<Interest> results;
+
+    boolean isAsc = direction.equalsIgnoreCase("ASC");
+
+    if (orderBy.equals("name")) {
+
+      results = isAsc
+          ? interestRepository.findByNameAsc(keyword, cursor, after, pageable)
+          : interestRepository.findByNameDesc(keyword, cursor, after, pageable);
+
+    } else if (orderBy.equals("subscriberCount")) {
+
+      Long cursorValue = (cursor != null) ? Long.parseLong(cursor) : null;
+
+      results = isAsc
+          ? interestRepository.findBySubscriberAsc(keyword, cursorValue, after, pageable)
+          : interestRepository.findBySubscriberDesc(keyword, cursorValue, after, pageable);
+
+    } else {
+      throw new IllegalArgumentException("잘못된 orderBy 값");
+    }
 
     boolean hasNext = results.size() > size;
 
@@ -104,9 +116,11 @@ public class InterestServiceImpl implements InterestService {
     if (!results.isEmpty()) {
       Interest last = results.get(results.size() - 1);
 
-      nextCursor = "name".equals(sort)
-          ? last.getName()
-          : String.valueOf(last.getSubscriberCount());
+      if (orderBy.equals("name")) {
+        nextCursor = last.getName();
+      } else{
+        nextCursor = String.valueOf(last.getSubscriberCount());
+      }
 
       nextAfter = last.getCreatedAt();
     }

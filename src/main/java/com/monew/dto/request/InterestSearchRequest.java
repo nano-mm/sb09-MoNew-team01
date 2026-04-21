@@ -4,16 +4,19 @@ import java.time.Instant;
 
 public record InterestSearchRequest(
     String keyword,
-    String sort,     // name or subscriberCount
+    String orderBy,
+    String direction,
     String cursor,
     Instant after,
     Integer size,
     String userId
 ) {
 
-  public String getSortOrDefault() {
-    return sort == null ? "name" : sort;
+  public String getOrderByOrDefault() {
+    return orderBy == null ? "name" : orderBy;
   }
+
+  public String getDirectionOrDefault() { return direction == null ? "ASC" : direction;}
 
   public int getSizeOrDefault() {
     return size == null ? 10 : size;

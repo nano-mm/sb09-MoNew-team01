@@ -66,7 +66,8 @@ public class InterestController {
   @GetMapping
   public CursorPageResponseDto<InterestDto> find(
       @RequestParam(required = false) String keyword,
-      @RequestParam(defaultValue = "name") String sort,
+      @RequestParam(defaultValue = "name") String orderBy,
+      @RequestParam(value = "ASC") String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "10") int size,
@@ -74,7 +75,8 @@ public class InterestController {
   ) {
     InterestSearchRequest request = new InterestSearchRequest(
         keyword,
-        sort,
+        orderBy,
+        direction,
         cursor,
         after,
         size,
