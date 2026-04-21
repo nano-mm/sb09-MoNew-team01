@@ -19,7 +19,7 @@ import org.hibernate.annotations.SQLRestriction;
         @Index(name = "idx_comment_like_count", columnList = "like_count")
     }
 )
-@SQLRestriction("deleted_at IS NULL")
+@SQLRestriction("is_deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
