@@ -19,3 +19,9 @@ monew:
   batch:
     news:
       cron: ${NEWS_CRON_TIME:0 0 * * * *}
+    newsbackup:
+      cron: ${NEWSBACKUP_CRON_TIME:0 0 * * * *}
+
+app:
+  backup:
+    dir: ${BACKUP_DIR:file:./backups/}
