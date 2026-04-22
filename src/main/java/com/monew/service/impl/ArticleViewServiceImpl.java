@@ -35,7 +35,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
         .article(article)
         .user(user)
         .build();
-    return articleViewMapper.toDto(newArticleView, article);
+    return articleViewMapper.toDto(newArticleView);
   }
 
   @Override
@@ -46,6 +46,6 @@ public class ArticleViewServiceImpl implements ArticleViewService {
 
     ArticleView targetArticleView = articleViewRepository.findByArticleAndUser(article, user);
 
-    return articleViewMapper.toDto(targetArticleView, article);
+    return articleViewMapper.toDto(targetArticleView);
   }
 }
