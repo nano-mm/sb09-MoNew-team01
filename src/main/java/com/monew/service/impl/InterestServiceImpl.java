@@ -94,7 +94,12 @@ public class InterestServiceImpl implements InterestService {
 
     } else if (orderBy.equals("subscriberCount")) {
 
-      Long cursorValue = (cursor != null) ? Long.parseLong(cursor) : null;
+      Long cursorValue = null;
+      try {
+        cursorValue = (cursor != null) ? Long.parseLong(cursor) : null;
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("cursor는 숫자여야 합니다.");
+      }
 
       results = isAsc
           ? interestRepository.findBySubscriberAsc(keyword, cursorValue, after, pageable)

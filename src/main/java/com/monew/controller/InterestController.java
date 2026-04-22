@@ -67,7 +67,7 @@ public class InterestController {
   public CursorPageResponseDto<InterestDto> find(
       @RequestParam(required = false) String keyword,
       @RequestParam(defaultValue = "name") String orderBy,
-      @RequestParam(value = "ASC") String direction,
+      @RequestParam(defaultValue = "ASC") String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "10") int size,
