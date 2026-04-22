@@ -11,4 +11,6 @@ import org.springframework.data.repository.query.Param;
 public interface ArticleRepository extends JpaRepository<Article, UUID> {
   @Query("SELECT a.sourceUrl FROM Article a WHERE a.sourceUrl IN :urls")
   Set<String> findExistingUrls(@Param("urls") List<String> urls);
+
+  boolean existsBySourceUrl(String url);
 }

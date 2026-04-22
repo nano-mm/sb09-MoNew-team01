@@ -14,6 +14,17 @@ public class ChosunRssFetcher extends BaseRssFetcher {
   }
 
   @Override
+  protected String preprocessXml(String rawXml) {
+    if (rawXml == null || rawXml.isBlank()) {
+      return "";
+    }
+
+    String cleanedXml = rawXml.replaceAll("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]", "");
+
+    return cleanedXml;
+  }
+
+  @Override
   public String getSourceName() {
     return ArticleSource.CHOSUN.toString();
   }

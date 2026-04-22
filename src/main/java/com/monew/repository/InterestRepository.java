@@ -91,4 +91,10 @@ order by i.subscriberCount desc, i.createdAt asc
       Pageable pageable
   );
 
+  List<Interest> search(String keyword);
+
+
+  // 뉴스 기사 수집할 때 쓸 쿼리
+  @Query("SELECT DISTINCT i FROM Interest i LEFT JOIN FETCH i.keywords")
+  List<Interest> findAllWithKeywords();
 }
