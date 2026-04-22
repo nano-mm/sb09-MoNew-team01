@@ -62,7 +62,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     Set<String> allKeywords = keywordToInterestsMap.keySet();
-    log.info("뉴스 수집 배치 시작. 키워드 갯수: {}", allKeywords.size());
+    log.info("[뉴스 기사] 수집 시작. 키워드 갯수: {}", allKeywords.size());
 
     Map<String, Article> urlToArticleMap = new HashMap<>();
     Map<String, Set<Interest>> urlToInterestsMap = new HashMap<>();
@@ -85,7 +85,7 @@ public class ArticleServiceImpl implements ArticleService {
     });
 
     if (urlToArticleMap.isEmpty()) {
-      log.info("새로 저장할 뉴스 기사가 없습니다.");
+      log.info("[뉴스 기사] 새로 저장할 뉴스 기사가 없습니다.");
       return;
     }
 
@@ -104,7 +104,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     articleInterestRepository.saveAll(mappingList);
 
-    log.info("뉴스 기사 수집 완료.  {}개 저장.", articleList.size());
+    log.info("[뉴스 기사] 수집 완료.  {}개 저장.", articleList.size());
   }
 
   private List<ArticleDto> collectByKeyword(String keyword) {
@@ -114,7 +114,7 @@ public class ArticleServiceImpl implements ArticleService {
       try {
         fetchedItems.addAll(fetcher.fetch(keyword));
       } catch (Exception e) {
-        log.error("[{}] 키워드 수집 중 [{}]에서 에러 발생: {}",
+        log.error("[뉴스 기사] [{}] 키워드 수집 중 [{}]에서 에러 발생: {}",
             keyword, fetcher.getClass().getSimpleName(), e.getMessage());
       }
     }
@@ -129,76 +129,61 @@ public class ArticleServiceImpl implements ArticleService {
       CursorRequest cursorRequest,
       UUID userId) {
 
-    log.info("뉴스 기사 조회 시도: userId={}, 검색조건={}", userId, condition);
+    log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}", userId, condition);
 
-    CursorPageResponseDto<Article> entityPage =
-        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest);
+    CursorPageResponseDto<ArticleDto> result =
+        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest, userId);
 
-    List<ArticleDto> dtoList = entityPage.content().stream()
-        .map(article -> {
-          ArticleDto dto = articleMapper.toDto(article);
-          // 임시
-          return dto.toBuilder().viewedByMe(false).build();
-        })
-        .toList();
+    log.info("[뉴스 기사] 조회 완료: userId={}", userId);
 
-    log.info("뉴스 기사 조회 완료: userId={}", userId);
-
-    return CursorPageResponseDto.<ArticleDto>builder()
-        .content(dtoList)
-        .nextCursor(entityPage.nextCursor())
-        .nextAfter(entityPage.nextAfter())
-        .size(entityPage.size())
-        .totalElements(entityPage.totalElements())
-        .hasNext(entityPage.hasNext())
-        .build();
+    return result;
   }
 
   @Override
   public ArticleDto find(UUID articleId) {
-    log.info("뉴스 기사 단건 조회 시도: articleId={}", articleId);
+    log.info("[뉴스 기사] 단건 조회 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
             -> {
-          log.warn("뉴스 기사 단건 조회 실패: 존재하지 않는 기사 ID={}", articleId);
+          log.warn("[뉴스 기사] 단건 조회 실패: 존재하지 않는 기사 ID={}", articleId);
           return new ArticleNotFoundException(articleId);
         }
     );
-    log.info("뉴스 기사 단건 조회 완료: articleId={}", articleId);
+    log.info("[뉴스 기사] 단건 조회 완료: articleId={}", articleId);
     return articleMapper.toDto(targetArticle);
   }
 
   @Override
   public void softDelete(UUID articleId) {
-    log.info("뉴스 기사 논리 삭제 시도: articleId={}", articleId);
+    log.info("[뉴스 기사] 논리 삭제 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
         -> {
-          log.warn("뉴스 기사 논리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
+          log.warn("[뉴스 기사] 논리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
           return new ArticleNotFoundException(articleId);
         }
     );
     targetArticle.markAsDeleted();
-    log.info("뉴스 기사 논리 삭제 완료: articleId={}", articleId);
+    log.info("[뉴스 기사] 논리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   public void hardDelete(UUID articleId) {
-    log.info("뉴스 기사 물리 삭제 시도: articleId={}", articleId);
+    log.info("[뉴스 기사] 물리 삭제 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
             -> {
-          log.warn("뉴스 기사 물리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
+          log.warn("[뉴스 기사] 물리 삭제 실패: 존재하지 않는 기사 ID={}", articleId);
           return new ArticleNotFoundException(articleId);
         }
     );
     articleRepository.delete(targetArticle);
-    log.info("뉴스 기사 물리 삭제 완료: articleId={}", articleId);
+    log.info("[뉴스 기사] 물리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<String> getSources() {
-    log.info("뉴스 기사 출처 조회 시도");
+    log.info("[뉴스 기사] 출처 조회 시도");
     List<ArticleSource> sources = articleQueryRepository.findSources();
-    log.info("뉴스 기사 출처 조회 성공");
+    log.info("[뉴스 기사] 출처 조회 성공");
     return sources.stream()
         .map(Enum::name)
         .toList();

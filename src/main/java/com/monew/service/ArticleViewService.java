@@ -6,6 +6,4 @@ import java.util.UUID;
 public interface ArticleViewService {
 
   ArticleViewDto create(UUID articleId, UUID requestUserId);
-
-  ArticleViewDto findByArticleIdAndUserId(UUID articleId, UUID requestUserId);
 }

@@ -18,5 +18,7 @@ public interface NotificationService {
 
   void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId);
 
-  int createNotifications(List<NotificationCreateCommand> commands);
+   int createNotifications(List<NotificationCreateCommand> commands);
+
+   long deleteOldConfirmedNotifications();
 }

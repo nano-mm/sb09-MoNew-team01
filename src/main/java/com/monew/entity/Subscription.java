@@ -17,15 +17,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Subscription extends BaseEntity {
 
-  @Column(nullable = false, name = "userId")
-  private UUID userId;
+  @ManyToOne
+  @JoinColumn(name = "user_id")
+  private User user;
 
   @JoinColumn(nullable = false)
   @ManyToOne(fetch = FetchType.LAZY)
   private Interest interest;
 
-  public Subscription(UUID userId, Interest interest) {
-    this.userId = userId;
+  public Subscription(User user, Interest interest) {
+    this.user = user;
     this.interest = interest;
   }
 }
