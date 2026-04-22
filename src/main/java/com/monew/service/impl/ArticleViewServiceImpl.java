@@ -40,6 +40,8 @@ public class ArticleViewServiceImpl implements ArticleViewService {
 
     articleViewRepository.saveAndFlush(newArticleView);
 
+    articleRepository.incrementViewCount(article.getId());
+
     log.info("[뉴스 기사 뷰] 생성 완료. articleId: {}, requestUserId: {}", articleId, requestUserId);
 
     return articleViewMapper.toDto(newArticleView, article);
