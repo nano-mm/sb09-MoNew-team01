@@ -3,6 +3,7 @@ package com.monew.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.monew.config.JpaAuditConfig;
+import com.monew.config.QuerydslConfig;
 import com.monew.entity.Notification;
 import com.monew.entity.User;
 import com.monew.entity.enums.ResourceType;
@@ -20,7 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 @DataJpaTest
-@Import(JpaAuditConfig.class)
+@Import({JpaAuditConfig.class, QuerydslConfig.class})
 @TestPropertySource(properties = {
     "spring.sql.init.mode=never",
     "spring.jpa.hibernate.ddl-auto=create-drop"

@@ -47,7 +47,10 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_SQL_INIT_MODE: never
-        run: ./gradlew test -Dspring.profiles.active=test -Dspring.sql.init.mode=never --no-daemon --stacktrace || true
+        run: |
+          ./gradlew --no-daemon --stacktrace test \
+            -Dspring.profiles.active=test \
+            -Dspring.sql.init.mode=never
 
       - name: Upload test reports
         if: always()
