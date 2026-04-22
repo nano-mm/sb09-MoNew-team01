@@ -29,7 +29,7 @@ public class SecurityConfig {
 
         // 2. 경로별 권한 설정
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/assets/**","/api/**", "/h2-console/**").permitAll() // 테스트를 위해 우선 모두 허용
+            .requestMatchers("/", "/index.html", "/assets/**","/api/**", "/h2-console/**", "/actuator/**").permitAll() // 테스트를 위해 우선 모두 허용
             .anyRequest().authenticated()
         )
 

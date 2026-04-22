@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    image: monew:latest
+    container_name: monew-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://monew-db.cv6o22k88o02.ap-northeast-2.rds.amazonaws.com:5432/monewdb
+      DB_USERNAME: monew
+      DB_PASSWORD: monewteam
+    restart: always

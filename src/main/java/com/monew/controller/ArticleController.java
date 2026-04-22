@@ -47,6 +47,7 @@ public class ArticleController {
 
     return ResponseEntity.ok(responseDto);
   }
+
   @GetMapping
   public ResponseEntity<CursorPageResponseDto<ArticleDto>> searchArticles(
       @ModelAttribute ArticleSearchCondition searchRequest,

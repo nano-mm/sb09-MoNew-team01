@@ -84,3 +84,11 @@ CREATE TABLE IF NOT EXISTS NOTIFICATIONS (
     "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "fk_noti_user" FOREIGN KEY ("user_id") REFERENCES users ("id") ON DELETE CASCADE
 );
+
+-- 구독 조회 성능 개선
+CREATE INDEX idx_subscription_interest_id ON subscriptions(interest_id);
+CREATE INDEX idx_subscription_user_id ON subscriptions(user_id);
+
+-- 중복 구독 방지 + 성능
+CREATE UNIQUE INDEX uq_subscription_user_interest
+    ON subscriptions(user_id, interest_id);
