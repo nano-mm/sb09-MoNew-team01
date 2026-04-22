@@ -2,6 +2,7 @@ package com.monew.repository;
 
 import com.monew.entity.CommentLike;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,9 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.user.id = :userId")
   int deleteByComment_IdAndUser_Id(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+
+  @Query("select cl from CommentLike cl join fetch cl.comment c join fetch c.user where cl.user.id = :userId order by cl.createdAt desc")
+  List<CommentLike> findTop10ByUserIdWithCommentAndUser(@Param("userId") UUID userId, Pageable pageable);
 
   // N+1 방지: 특정 사용자가 좋아요한 댓글 ID 목록 조회
   @Query("SELECT cl.comment.id FROM CommentLike cl WHERE cl.user.id = :userId AND cl.comment.id IN :commentIds")
