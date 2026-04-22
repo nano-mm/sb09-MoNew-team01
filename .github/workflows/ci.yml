@@ -2,8 +2,8 @@ name: CI
 
 on:
   pull_request:
-    branches: [ cd-test ]
-
+    branches: [ test ]
+##테스트
 jobs:
   build:
     runs-on: ubuntu-latest
