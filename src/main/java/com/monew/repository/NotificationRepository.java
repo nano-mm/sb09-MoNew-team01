@@ -11,13 +11,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-  List<Notification> findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(
+  List<Notification> findByUser_IdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(
       UUID userId,
       Instant cursor,
       Pageable pageable
   );
 
-  List<Notification> findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(
+  List<Notification> findByUser_IdAndConfirmedFalseOrderByCreatedAtDesc(
       UUID userId,
       Pageable pageable
   );
@@ -27,15 +27,15 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     Pageable pageable = PageRequest.of(0, pageSize);
 
     if (cursorPoint == null) {
-      return findByUserIdAndConfirmedFalseOrderByCreatedAtDesc(userId, pageable);
+      return findByUser_IdAndConfirmedFalseOrderByCreatedAtDesc(userId, pageable);
     }
 
-    return findByUserIdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
+    return findByUser_IdAndConfirmedFalseAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorPoint, pageable);
   }
 
-  Optional<Notification> findByIdAndUserIdAndConfirmedFalse(UUID id, UUID userId);
+  Optional<Notification> findByIdAndUser_IdAndConfirmedFalse(UUID id, UUID userId);
 
-  List<Notification> findAllByUserIdAndConfirmedFalse(UUID userId);
+  List<Notification> findAllByUser_IdAndConfirmedFalse(UUID userId);
 
-  long countByUserIdAndConfirmedFalse(UUID userId);
+  long countByUser_IdAndConfirmedFalse(UUID userId);
 }
