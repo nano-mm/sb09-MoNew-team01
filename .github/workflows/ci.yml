@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  push:
+    branches: [ main, master, '**' ]
   pull_request:
-    branches: [ test ]
+    branches: [ main, master, '**' ]
 
 jobs:
   build:
@@ -31,17 +33,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Debug: show environment and test config
+      - name: Check Java & Gradle versions
         run: |
-          echo "### JAVA & GRADLE" 
           java -version || true
           ./gradlew --version
-          echo "### WORKSPACE FILES" 
-          ls -la
-          echo "### TEST RESOURCES" 
-          ls -la src/test/resources || true
-          echo "### application-test.yaml content" 
-          if [ -f src/test/resources/application-test.yaml ]; then cat src/test/resources/application-test.yaml; else echo "missing"; fi
 
       - name: Run tests
         env:
