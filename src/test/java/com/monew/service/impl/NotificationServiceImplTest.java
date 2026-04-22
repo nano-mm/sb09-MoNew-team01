@@ -297,6 +297,113 @@ class NotificationServiceImplTest {
     verify(notificationRepository, never()).saveAll(any());
   }
 
+  @Test
+  void deleteOldConfirmedNotifications_정상동작() {
+    // given
+    Instant now = Instant.parse("2026-04-21T12:00:00Z");
+    Instant eightDaysAgo = now.minusSeconds(8 * 24 * 3600);
+    Instant threeDaysAgo = now.minusSeconds(3 * 24 * 3600);
+
+    // 8일 전, 확인된 알림 (삭제 대상)
+    Notification oldConfirmed = Notification.builder()
+            .user(user)
+            .content("old confirmed")
+            .resourceType(ResourceType.INTEREST)
+            .resourceId(UUID.randomUUID())
+            .confirmed(true)
+            .build();
+    ReflectionTestUtils.setField(oldConfirmed, "createdAt", eightDaysAgo);
+
+    // 3일 전, 확인된 알림 (삭제 대상 아님)
+    Notification recentConfirmed = Notification.builder()
+            .user(user)
+            .content("recent confirmed")
+            .resourceType(ResourceType.INTEREST)
+            .resourceId(UUID.randomUUID())
+            .confirmed(true)
+            .build();
+    ReflectionTestUtils.setField(recentConfirmed, "createdAt", threeDaysAgo);
+
+    // 10일 전, 미확인 알림 (삭제 대상 아님)
+    Notification oldUnconfirmed = Notification.builder()
+            .user(user)
+            .content("old unconfirmed")
+            .resourceType(ResourceType.INTEREST)
+            .resourceId(UUID.randomUUID())
+            .confirmed(false)
+            .build();
+    ReflectionTestUtils.setField(oldUnconfirmed, "createdAt", now.minusSeconds(10 * 24 * 3600));
+
+    // deleteByConfirmedIsTrueAndCreatedAtBefore가 1을 반환하도록 설정
+    when(notificationRepository.deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class))).thenReturn(1L);
+
+    // when
+    long deleted = notificationService.deleteOldConfirmedNotifications();
+
+    // then
+    assertThat(deleted).isEqualTo(1L);
+    verify(notificationRepository).deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class));
+  }
+
+  @Test
+  void deleteOldConfirmedNotifications_resourceType_여러종류_동작확인() {
+    // given
+    Instant now = Instant.parse("2026-04-21T12:00:00Z");
+    Instant eightDaysAgo = now.minusSeconds(8 * 24 * 3600);
+    Instant nineDaysAgo = now.minusSeconds(9 * 24 * 3600);
+    Instant threeDaysAgo = now.minusSeconds(3 * 24 * 3600);
+
+    // 8일 전, INTEREST, 확인됨 (삭제 대상)
+    Notification oldInterest = Notification.builder()
+        .user(user)
+        .content("old interest")
+        .resourceType(ResourceType.INTEREST)
+        .resourceId(UUID.randomUUID())
+        .confirmed(true)
+        .build();
+    ReflectionTestUtils.setField(oldInterest, "createdAt", eightDaysAgo);
+
+    // 9일 전, COMMENT, 확인됨 (삭제 대상)
+    Notification oldComment = Notification.builder()
+        .user(user)
+        .content("old comment")
+        .resourceType(ResourceType.COMMENT)
+        .resourceId(UUID.randomUUID())
+        .confirmed(true)
+        .build();
+    ReflectionTestUtils.setField(oldComment, "createdAt", nineDaysAgo);
+
+    // 3일 전, COMMENT, 확인됨 (삭제 대상 아님)
+    Notification recentComment = Notification.builder()
+        .user(user)
+        .content("recent comment")
+        .resourceType(ResourceType.COMMENT)
+        .resourceId(UUID.randomUUID())
+        .confirmed(true)
+        .build();
+    ReflectionTestUtils.setField(recentComment, "createdAt", threeDaysAgo);
+
+    // 10일 전, INTEREST, 미확인 (삭제 대상 아님)
+    Notification oldUnconfirmed = Notification.builder()
+        .user(user)
+        .content("old unconfirmed")
+        .resourceType(ResourceType.INTEREST)
+        .resourceId(UUID.randomUUID())
+        .confirmed(false)
+        .build();
+    ReflectionTestUtils.setField(oldUnconfirmed, "createdAt", now.minusSeconds(10 * 24 * 3600));
+
+    // deleteByConfirmedIsTrueAndCreatedAtBefore가 2를 반환하도록 설정
+    when(notificationRepository.deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class))).thenReturn(2L);
+
+    // when
+    long deleted = notificationService.deleteOldConfirmedNotifications();
+
+    // then
+    assertThat(deleted).isEqualTo(2L);
+    verify(notificationRepository).deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class));
+  }
+
   private Notification notification(UUID notificationId, Instant createdAt) {
     Notification notification = Notification.of(user, "content", com.monew.entity.enums.ResourceType.INTEREST, UUID.randomUUID());
     ReflectionTestUtils.setField(notification, "id", notificationId);

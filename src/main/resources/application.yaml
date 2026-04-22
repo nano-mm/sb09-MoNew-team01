@@ -27,6 +27,8 @@ monew:
       cron: ${USER_HARD_DELETE_CRON_TIME:0 0 3 * * *}
     newsbackup:
       cron: ${NEWSBACKUP_CRON_TIME:0 0 * * * *}
+    notification-cleanup:
+      cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * *}
 
 app:
   backup:

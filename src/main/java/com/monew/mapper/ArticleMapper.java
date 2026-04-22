@@ -8,6 +8,7 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ArticleMapper {
+  @Mapping(target = "viewedByMe", ignore = true)
   ArticleDto toDto(Article article);
 
   @Mapping(target = "commentCount", constant = "0L")

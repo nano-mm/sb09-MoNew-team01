@@ -6,6 +6,7 @@ import com.monew.dto.backup.ArticleBackupDto;
 import com.monew.entity.Article;
 import com.monew.entity.ArticleInterest;
 import com.monew.entity.Interest;
+import com.monew.mapper.ArticleBackupMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.WritableResource;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -40,7 +44,8 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
   private final InterestRepository interestRepository;
   private final ArticleInterestRepository articleInterestRepository;
   private final ObjectMapper objectMapper;
-  
+  private final ArticleBackupMapper articleBackupMapper;
+
   private final ResourcePatternResolver resourcePatternResolver;
 
   @Value("${app.backup.dir}")
@@ -51,23 +56,26 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
     ZoneId zoneId = ZoneId.of("Asia/Seoul");
 
+    log.info("[뉴스 기사] 백업 시작");
+
     List<Article> articles = articleRepository.findAll();
     List<ArticleInterest> allMappings = articleInterestRepository.findAllWithInterest();
 
-    Map<UUID, Set<String>> articleToInterestsMap = allMappings.stream()
+    // 관심사, 키워드 백업
+    Map<UUID, Map<String, List<String>>> articleToInterestsMap = allMappings.stream()
         .collect(Collectors.groupingBy(
             ai -> ai.getArticle().getId(),
-            Collectors.mapping(ai -> ai.getInterest().getName(), Collectors.toSet())
+            Collectors.toMap(
+                ai -> ai.getInterest().getName(),
+                ai -> ai.getInterest().getKeywords() != null ? ai.getInterest().getKeywords() : new ArrayList<>(),
+                (existing, replacement) -> existing
+            )
         ));
 
     Map<LocalDate, List<ArticleBackupDto>> groupedByDate = articles.stream()
-        .map(article -> new ArticleBackupDto(
-            article.getTitle(),
-            article.getSummary(),
-            article.getSourceUrl(),
-            article.getSource().toString(),
-            article.getPublishDate(),
-            articleToInterestsMap.getOrDefault(article.getId(), Collections.emptySet())
+        .map(article -> articleBackupMapper.toDto(
+            article,
+            articleToInterestsMap.getOrDefault(article.getId(), Collections.emptyMap())
         ))
         .collect(Collectors.groupingBy(dto -> dto.publishDate().atZone(zoneId).toLocalDate()));
 
@@ -88,7 +96,72 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
           objectMapper.writeValue(os, data);
         }
       }
-      log.info("뉴스 기사 백업 완료: {}", fileName);
+      log.info("[뉴스 기사] 백업 완료: {}", fileName);
+    }
+  }
+
+  @Transactional
+  public void importBackup() throws IOException {
+    String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
+
+    String pattern = dirPath + "*.json";
+    Resource[] resources = resourcePatternResolver.getResources(pattern);
+
+    if (resources.length == 0) {
+      log.warn("[뉴스 기사] 백업 폴더에 파일이 없습니다: {}", dirPath);
+      return;
+    }
+
+    Map<String, Interest> interestMap = interestRepository.findAll().stream()
+        .collect(Collectors.toMap(Interest::getName, i -> i));
+
+    int totalImported = 0;
+
+    for (Resource resource : resources) {
+      try (InputStream is = resource.getInputStream()) {
+        List<ArticleBackupDto> backupList = objectMapper.readValue(is,
+            new TypeReference<List<ArticleBackupDto>>() {});
+
+        for (ArticleBackupDto dto : backupList) {
+          if (articleRepository.existsBySourceUrl(dto.sourceUrl())) continue;
+
+          Article article = articleBackupMapper.toEntity(dto);
+          articleRepository.save(article);
+
+          Map<String, List<String>> keywordsMap = dto.interestKeywords() != null
+              ? dto.interestKeywords()
+              : Collections.emptyMap();
+
+          for (Map.Entry<String, List<String>> entry : keywordsMap.entrySet()) {
+            String interestName = entry.getKey();
+            List<String> keywords = entry.getValue() != null ? entry.getValue() : new ArrayList<>();
+
+            Interest interest = interestMap.get(interestName);
+
+            if (interest == null) {
+              interest = new Interest(interestName, keywords);
+              interestRepository.save(interest);
+
+              interestMap.put(interestName, interest);
+            }
+
+            articleInterestRepository.save(ArticleInterest.of(article, interest));
+          }
+          totalImported++;
+        }
+      }
+    }
+    log.info("[뉴스 기사] 데이터 복구 성공: 총 {}개의 기사가 처리되었습니다.", totalImported);
+  }
+
+  // 프로그램 실행 시 바로 복구. 필요한지는 모르겠는데 일단 만듦
+  @EventListener(ApplicationReadyEvent.class)
+  public void onApplicationReady() {
+    log.info("[뉴스 기사] 백업 데이터 복구 시작");
+    try {
+      this.importBackup();
+    } catch (IOException e) {
+      log.error("[뉴스 기사] 데이터 복구 중 에러 발생", e);
     }
   }
 }

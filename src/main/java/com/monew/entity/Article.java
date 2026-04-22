@@ -16,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -47,14 +48,17 @@ public class Article {
   private String summary;
 
   @Builder.Default
+  @ColumnDefault("0")
   @Column(name = "comment_count", nullable = false)
   private Long commentCount = 0L;
 
   @Builder.Default
+  @ColumnDefault("0")
   @Column(name = "view_count", nullable = false)
   private Long viewCount = 0L;
 
   @Builder.Default
+  @ColumnDefault("false")
   @Column(name = "is_deleted", nullable = false)
   private Boolean isDeleted = false;
 
