@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_URL: jdbc:postgresql://monew-db.cv6o22k88o02.ap-northeast-2.rds.amazonaws.com:5432/monewdb
-      DB_USERNAME: monew
-      DB_PASSWORD: monewteam
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     restart: always
