@@ -1,0 +1,10 @@
+spring:
+  sql:
+    init:
+      mode: never
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# Use embedded DB defaults for tests. If tests need specific datasource settings,
+# add them here (e.g., url, username, password) or rely on auto-configured H2.
