@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,16 +61,21 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     List<Article> articles = articleRepository.findAll();
     List<ArticleInterest> allMappings = articleInterestRepository.findAllWithInterest();
 
-    Map<UUID, Set<String>> articleToInterestsMap = allMappings.stream()
+    // 관심사, 키워드 백업
+    Map<UUID, Map<String, List<String>>> articleToInterestsMap = allMappings.stream()
         .collect(Collectors.groupingBy(
             ai -> ai.getArticle().getId(),
-            Collectors.mapping(ai -> ai.getInterest().getName(), Collectors.toSet())
+            Collectors.toMap(
+                ai -> ai.getInterest().getName(),
+                ai -> ai.getInterest().getKeywords() != null ? ai.getInterest().getKeywords() : new ArrayList<>(),
+                (existing, replacement) -> existing
+            )
         ));
 
     Map<LocalDate, List<ArticleBackupDto>> groupedByDate = articles.stream()
         .map(article -> articleBackupMapper.toDto(
             article,
-            articleToInterestsMap.getOrDefault(article.getId(), Collections.emptySet())
+            articleToInterestsMap.getOrDefault(article.getId(), Collections.emptyMap())
         ))
         .collect(Collectors.groupingBy(dto -> dto.publishDate().atZone(zoneId).toLocalDate()));
 
@@ -112,8 +118,6 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     int totalImported = 0;
 
     for (Resource resource : resources) {
-      log.info("[뉴스 기사] 백업 파일 읽는 중... : {}", resource.getFilename());
-
       try (InputStream is = resource.getInputStream()) {
         List<ArticleBackupDto> backupList = objectMapper.readValue(is,
             new TypeReference<List<ArticleBackupDto>>() {});
@@ -124,11 +128,24 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
           Article article = articleBackupMapper.toEntity(dto);
           articleRepository.save(article);
 
-          for (String interestName : dto.interestNames()) {
+          Map<String, List<String>> keywordsMap = dto.interestKeywords() != null
+              ? dto.interestKeywords()
+              : Collections.emptyMap();
+
+          for (Map.Entry<String, List<String>> entry : keywordsMap.entrySet()) {
+            String interestName = entry.getKey();
+            List<String> keywords = entry.getValue() != null ? entry.getValue() : new ArrayList<>();
+
             Interest interest = interestMap.get(interestName);
-            if (interest != null) {
-              articleInterestRepository.save(ArticleInterest.of(article, interest));
+
+            if (interest == null) {
+              interest = new Interest(interestName, keywords);
+              interestRepository.save(interest);
+
+              interestMap.put(interestName, interest);
             }
+
+            articleInterestRepository.save(ArticleInterest.of(article, interest));
           }
           totalImported++;
         }

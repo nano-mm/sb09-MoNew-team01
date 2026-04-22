@@ -2,16 +2,22 @@ package com.monew.repository.article;
 
 import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
+import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
 import com.monew.entity.QArticleInterest;
+import com.monew.entity.QArticleView;
 import com.monew.entity.enums.ArticleSource;
+import com.monew.mapper.ArticleMapper;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -28,10 +34,14 @@ public class ArticleQueryRepository {
 
   private final JPAQueryFactory queryFactory;
 
+  private final ArticleMapper articleMapper;
+
   // 커서기반 조회 용
-  public CursorPageResponseDto<Article> searchArticlesByCursor(
+  public CursorPageResponseDto<ArticleDto> searchArticlesByCursor(
       ArticleSearchCondition condition,
-      CursorRequest cursorRequest) {
+      CursorRequest cursorRequest,
+      UUID userId
+  ) {
 
     int limit = cursorRequest.limit();
     String orderBy = cursorRequest.orderBy();
@@ -61,6 +71,19 @@ public class ArticleQueryRepository {
       nextAfter = last.getPublishDate();
     }
 
+    List<UUID> articleIds = content.stream().map(Article::getId).toList();
+    Set<UUID> viewedArticleIds = getViewedArticleIds(userId, articleIds);
+
+    List<ArticleDto> dtoList = content.stream()
+        .map(article -> {
+          ArticleDto dto = articleMapper.toDto(article);
+          return dto.toBuilder()
+              .viewedByMe(viewedArticleIds.contains(article.getId()))
+              .build();
+        })
+        .toList();
+
+
     Long totalElements = queryFactory
         .select(article.count())
         .from(article)
@@ -72,8 +95,8 @@ public class ArticleQueryRepository {
         )
         .fetchOne();
 
-    return CursorPageResponseDto.<Article>builder()
-        .content(content)
+    return CursorPageResponseDto.<ArticleDto>builder()
+        .content(dtoList)
         .nextCursor(nextCursor)
         .nextAfter(nextAfter)
         .size(limit)
@@ -154,5 +177,26 @@ public class ArticleQueryRepository {
         .from(article)
         .distinct()
         .fetch();
+  }
+
+  // 읽은 기사 조회
+  // 조회한 기사를 요청자 읽었는지 판별하기 위한 메서드
+  private Set<UUID> getViewedArticleIds(UUID userId, List<UUID> articleIds) {
+    if (userId == null || articleIds.isEmpty()) {
+      return Collections.emptySet();
+    }
+
+    QArticleView articleView = QArticleView.articleView;
+
+    List<UUID> viewedIds = queryFactory
+        .select(articleView.article.id)
+        .from(articleView)
+        .where(
+            articleView.user.id.eq(userId),
+            articleView.article.id.in(articleIds)
+        )
+        .fetch();
+
+    return new HashSet<>(viewedIds);
   }
 }
