@@ -42,6 +42,7 @@ public class InterestServiceImpl implements InterestService {
         request.name(),
         request.keywords()
     );
+
     return interestRepository.save(interest);
   }
 
