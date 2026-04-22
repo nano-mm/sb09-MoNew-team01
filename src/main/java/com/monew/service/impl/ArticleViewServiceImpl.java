@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ArticleViewServiceImpl implements ArticleViewService {
 
   private final ArticleViewRepository articleViewRepository;
@@ -28,6 +27,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   private final UserRepository userRepository;
 
   @Override
+  @Transactional
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
 
     log.info("[뉴스 기사 뷰] 생성 시작. articleId: {}, requestUserId: {}", articleId, requestUserId);
