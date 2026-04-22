@@ -28,7 +28,6 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   @Override
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
 
-    // 임시로 만듦. 수정 필요함
     Article article = articleRepository.findById(articleId).orElseThrow();
     User user = userRepository.findById(requestUserId).orElseThrow();
 
@@ -36,7 +35,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
         .article(article)
         .user(user)
         .build();
-    return articleViewMapper.toDto(newArticleView);
+    return articleViewMapper.toDto(newArticleView, article);
   }
 
   @Override
@@ -47,6 +46,6 @@ public class ArticleViewServiceImpl implements ArticleViewService {
 
     ArticleView targetArticleView = articleViewRepository.findByArticleAndUser(article, user);
 
-    return articleViewMapper.toDto(targetArticleView);
+    return articleViewMapper.toDto(targetArticleView, article);
   }
 }

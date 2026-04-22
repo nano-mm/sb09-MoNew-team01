@@ -131,27 +131,12 @@ public class ArticleServiceImpl implements ArticleService {
 
     log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}", userId, condition);
 
-    CursorPageResponseDto<Article> entityPage =
-        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest);
-
-    List<ArticleDto> dtoList = entityPage.content().stream()
-        .map(article -> {
-          ArticleDto dto = articleMapper.toDto(article);
-          // 임시
-          return dto.toBuilder().viewedByMe(false).build();
-        })
-        .toList();
+    CursorPageResponseDto<ArticleDto> result =
+        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest, userId);
 
     log.info("[뉴스 기사] 조회 완료: userId={}", userId);
 
-    return CursorPageResponseDto.<ArticleDto>builder()
-        .content(dtoList)
-        .nextCursor(entityPage.nextCursor())
-        .nextAfter(entityPage.nextAfter())
-        .size(entityPage.size())
-        .totalElements(entityPage.totalElements())
-        .hasNext(entityPage.hasNext())
-        .build();
+    return result;
   }
 
   @Override
