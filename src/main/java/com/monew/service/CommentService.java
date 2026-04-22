@@ -49,6 +49,10 @@ public class CommentService {
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
     commentRepository.save(comment);
+
+    // 뉴스 기사 댓글 수 갱신
+    articleRepository.incrementCommentCount(article.getId());
+
     return commentMapper.toResponse(comment);
   }
 
