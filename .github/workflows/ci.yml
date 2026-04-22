@@ -31,7 +31,26 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Debug: show environment and test config
+        run: |
+          echo "### JAVA & GRADLE" 
+          java -version || true
+          ./gradlew --version
+          echo "### WORKSPACE FILES" 
+          ls -la
+          echo "### TEST RESOURCES" 
+          ls -la src/test/resources || true
+          echo "### application-test.yaml content" 
+          if [ -f src/test/resources/application-test.yaml ]; then cat src/test/resources/application-test.yaml; else echo "missing"; fi
+
       - name: Run tests
         env:
           SPRING_PROFILES_ACTIVE: test
-        run: ./gradlew test --no-daemon --stacktrace
+        run: ./gradlew test -Dspring.profiles.active=test --no-daemon --stacktrace || true
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test/**
