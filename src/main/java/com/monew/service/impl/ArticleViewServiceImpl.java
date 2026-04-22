@@ -11,10 +11,11 @@ import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleViewService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-//@Slf4j
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,6 +29,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   @Override
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
 
+    log.info("[뉴스 기사 뷰] 생성 시작. articleId: {}, requestUserId: {}", articleId, requestUserId);
     Article article = articleRepository.findById(articleId).orElseThrow();
     User user = userRepository.findById(requestUserId).orElseThrow();
 
@@ -35,17 +37,11 @@ public class ArticleViewServiceImpl implements ArticleViewService {
         .article(article)
         .user(user)
         .build();
-    return articleViewMapper.toDto(newArticleView);
-  }
 
-  @Override
-  public ArticleViewDto findByArticleIdAndUserId(UUID articleId, UUID requestUserId) {
+    articleViewRepository.saveAndFlush(newArticleView);
 
-    Article article = articleRepository.findById(articleId).orElseThrow();
-    User user = userRepository.findById(requestUserId).orElseThrow();
+    log.info("[뉴스 기사 뷰] 생성 완료. articleId: {}, requestUserId: {}", articleId, requestUserId);
 
-    ArticleView targetArticleView = articleViewRepository.findByArticleAndUser(article, user);
-
-    return articleViewMapper.toDto(targetArticleView);
+    return articleViewMapper.toDto(newArticleView, article);
   }
 }
