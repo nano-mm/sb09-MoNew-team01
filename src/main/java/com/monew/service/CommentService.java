@@ -56,7 +56,7 @@ public class CommentService {
   @Transactional
   public CommentResponse updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.getUserId().equals(userId)) {
+    if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
@@ -66,10 +66,20 @@ public class CommentService {
   @Transactional
   public void deleteComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.getUserId().equals(userId)) {
+    if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
-    comment.softDelete();
+    comment.softDelete();  // isDeleted = true 플래그만 변경
+  }
+
+  @Transactional
+  public void hardDeleteComment(UUID userId, UUID commentId) {
+    Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
+        .orElseThrow(CommentNotFoundException::new);
+    if (!comment.isOwnedBy(userId)) {
+      throw new ForbiddenException();
+    }
+    commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
   }
 
   @Transactional

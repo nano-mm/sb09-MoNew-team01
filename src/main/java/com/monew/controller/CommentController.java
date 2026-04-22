@@ -47,18 +47,31 @@ public class CommentController {
     return ResponseEntity.ok(commentResponse);
   }
 
+  // 논리 삭제 (Soft Delete) — isDeleted 플래그만 true로 변경
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID commentId
   ) {
-    log.info("댓글 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
+    log.info("댓글 논리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
     commentService.deleteComment(userId, commentId);
-    log.debug("댓글 삭제 요청 처리 완료: commentId={}", commentId);
-    return ResponseEntity.ok().build();
+    log.debug("댓글 논리 삭제 요청 처리 완료: commentId={}", commentId);
+    return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/{commentId}/likes")
+  // 물리 삭제 (Hard Delete) — DB에서 실제로 제거
+  @DeleteMapping("/{commentId}/hard")
+  public ResponseEntity<Void> hardDeleteComment(
+      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @PathVariable UUID commentId
+  ) {
+    log.info("댓글 물리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
+    commentService.hardDeleteComment(userId, commentId);
+    log.debug("댓글 물리 삭제 요청 처리 완료: commentId={}", commentId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{commentId}/comment-likes")
   public ResponseEntity<CommentLikeResponse> like(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID commentId
@@ -69,7 +82,7 @@ public class CommentController {
     return ResponseEntity.ok(response);
   }
 
-  @DeleteMapping("/{commentId}/likes")
+  @DeleteMapping("/{commentId}/comment-likes")
   public ResponseEntity<Void> unlike(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID commentId

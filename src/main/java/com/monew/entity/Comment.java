@@ -19,7 +19,7 @@ import org.hibernate.annotations.SQLRestriction;
         @Index(name = "idx_comment_like_count", columnList = "like_count")
     }
 )
-@SQLRestriction("\"is_deleted\" = false")
+@SQLRestriction("is_deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
@@ -34,13 +34,13 @@ public class Comment extends BaseEntity {
   @Column(name = "content", nullable = false, length = 1000)
   private String content;
 
-  @Column(name = "\"likeCount\"", nullable = false)
+  @Column(name = "like_count", nullable = false)
   private int likeCount = 0;
 
   @Column(name = "deleted_at")
   private Instant deletedAt;  // LocalDateTime → Instant 통일
 
-  @Column(name = "\"is_Deleted\"", nullable = false)
+  @Column(name = "is_deleted", nullable = false)
   private boolean isDeleted = false;
 
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -64,7 +64,6 @@ public class Comment extends BaseEntity {
     this.content = newContent;
   }
 
-  // isDeleted() + softDelete() → 하나로 통합
   public void softDelete() {
     this.isDeleted = true;
     this.deletedAt = Instant.now();

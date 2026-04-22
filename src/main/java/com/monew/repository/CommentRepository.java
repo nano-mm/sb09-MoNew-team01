@@ -11,16 +11,12 @@ import java.util.UUID;
 
 public interface CommentRepository extends JpaRepository<Comment, UUID>, CommentRepositoryCustom {
 
-  // 물리 삭제 전용 - 테스트에서만 사용, @SQLRestriction 우회하여 삭제된 것도 포함
+  // @SQLRestriction 우회 — 논리삭제된 댓글도 조회 (hardDelete용)
   @Query(value = "SELECT * FROM comments WHERE id = :id", nativeQuery = true)
-  Optional<Comment> findByIdIncludingDeleted(@Param("id") UUID id);
-
-  // 물리 삭제 (연관된 likes는 DB CASCADE 또는 서비스에서 먼저 삭제)
-  @Modifying
-  @Query(value = "DELETE FROM comments WHERE id = :id", nativeQuery = true)
-  void hardDeleteById(@Param("id") UUID id);
+  Optional<Comment> findByIdIncludeDeleted(@Param("id") UUID id);
 
   // 특정 기사의 댓글 수 (논리 삭제 제외, @SQLRestriction 자동 적용)
   @Query("SELECT COUNT(c) FROM Comment c WHERE c.article.id = :articleId")
   long countByArticleId(@Param("articleId") UUID articleId);
+
 }
