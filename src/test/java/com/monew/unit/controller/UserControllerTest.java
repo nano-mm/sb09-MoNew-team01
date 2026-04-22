@@ -16,6 +16,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monew.config.LoginUserArgumentResolver;
 import com.monew.config.SecurityConfig;
+import com.monew.config.WebConfig;
 import com.monew.controller.UserController;
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
@@ -35,12 +36,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@Import(SecurityConfig.class)
+@ActiveProfiles("test")
+@Import({SecurityConfig.class, WebConfig.class})
 @WebMvcTest(UserController.class)
 class UserControllerTest {
 

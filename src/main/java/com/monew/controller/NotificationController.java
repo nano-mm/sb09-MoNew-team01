@@ -31,7 +31,7 @@ public class NotificationController {
   public ResponseEntity<CursorPageResponseDto<NotificationDto>> getNotifications(
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
-      @RequestParam @Min(1) int limit,
+      @RequestParam(defaultValue = "10") @Min(1) int limit,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     log.debug(

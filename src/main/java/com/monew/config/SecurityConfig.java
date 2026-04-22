@@ -3,6 +3,7 @@ package com.monew.config;
 import com.monew.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 
 @Configuration
 @EnableWebSecurity
@@ -52,5 +54,12 @@ public class SecurityConfig {
         .formLogin(AbstractHttpConfigurer::disable);
 
     return http.build();
+  }
+
+  @Bean
+  @Profile("test")
+  public WebSecurityCustomizer webSecurityCustomizer() {
+    // 테스트 및 외부 헬스 체크 편의를 위해 API 엔드포인트를 보안 필터체인에서 제외
+    return web -> web.ignoring().requestMatchers("/api/**");
   }
 }
