@@ -69,7 +69,7 @@ public class CommentService {
     if (!comment.getUserId().equals(userId)) {
       throw new ForbiddenException();
     }
-    comment.softDelete(true);
+    comment.softDelete();
   }
 
   @Transactional

@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS comments (
     "content" TEXT NOT NULL,
     "likeCount" BIGINT DEFAULT 0,
     "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "isDeleted" BOOLEAN NOT NULL DEFAULT FALSE,
+    "is_Deleted" BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT "fk_comment_article" FOREIGN KEY ("article_id") REFERENCES articles ("id") ON DELETE CASCADE,
     CONSTRAINT "fk_comment_user" FOREIGN KEY ("user_id") REFERENCES users ("id") ON DELETE CASCADE
 );

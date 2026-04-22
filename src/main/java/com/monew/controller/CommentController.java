@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,7 @@ public class CommentController {
     CommentResponse commentResponse = commentService.createComment(request.userId(),
         request.articleId(), request.content());
     log.debug("댓글 생성 요청 처리 완료: commentId={}", commentResponse.id());
-    return ResponseEntity.ok(commentResponse);
+    return ResponseEntity.status(HttpStatus.CREATED).body(commentResponse);
   }
 
   @PatchMapping("/{commentId}")
@@ -76,7 +77,7 @@ public class CommentController {
     log.info("댓글 좋아요 취소 요청 수신: userId={}, commentId={}", userId, commentId);
     commentService.unlikeComment(userId, commentId);
     log.debug("댓글 좋아요 취소 요청 처리 완료: commentId={}", commentId);
-    return ResponseEntity.ok().build();
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping
@@ -94,4 +95,3 @@ public class CommentController {
     return ResponseEntity.ok(response);
   }
 }
-
