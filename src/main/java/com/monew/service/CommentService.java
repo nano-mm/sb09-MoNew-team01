@@ -11,6 +11,7 @@ import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
+import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
@@ -27,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.monew.entity.Article;
 import com.monew.entity.User;
-import com.monew.exception.ArticleNotFoundException;
 import com.monew.exception.user.UserNotFoundException;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.repository.UserRepository;
@@ -45,7 +45,7 @@ public class CommentService {
   @Transactional
   public CommentResponse createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
-        .orElseThrow(ArticleNotFoundException::new);
+        .orElseThrow();
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
