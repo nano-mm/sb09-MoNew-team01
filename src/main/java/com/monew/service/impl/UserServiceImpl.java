@@ -7,7 +7,15 @@ import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
+import com.monew.dto.response.UserActivityResponse;
+import com.monew.mapper.ArticleMapper;
+import com.monew.mapper.CommentMapper;
+import com.monew.mapper.InterestMapper;
 import com.monew.mapper.UserMapper;
+import com.monew.repository.ArticleViewRepository;
+import com.monew.repository.CommentLikeRepository;
+import com.monew.repository.CommentRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.UserService;
 import jakarta.persistence.EntityManager;
@@ -15,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +39,14 @@ public class UserServiceImpl implements UserService {
   private final JdbcTemplate jdbcTemplate;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+
+  private final SubscriptionRepository subscriptionRepository;
+  private final CommentRepository commentRepository;
+  private final CommentLikeRepository commentLikeRepository;
+  private final ArticleViewRepository articleViewRepository;
+
+  private final CommentMapper commentMapper;
+  private final ArticleMapper articleMapper;
 
   @Override
   public UserDto create(UserRegisterRequest request){
@@ -114,5 +131,28 @@ public class UserServiceImpl implements UserService {
 
   private boolean existsInAllUsers(String email) {
     return userRepository.existsInAllUsers(email);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public UserActivityResponse getActivity(UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+    return UserActivityResponse.builder()
+        .user(userMapper.toDto(user))
+        .subscribedInterests(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
+            .map(s -> InterestMapper.toDto(s.getInterest(), true))
+            .toList())
+        .recentComments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
+            .map(commentMapper::toResponse)
+            .toList())
+        .recentLikedComments(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
+            .map(cl -> commentMapper.toResponse(cl.getComment()))
+            .toList())
+        .recentViewedArticles(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
+            .map(av -> articleMapper.toDto(av.getArticle()))
+            .toList())
+        .build();
   }
 }

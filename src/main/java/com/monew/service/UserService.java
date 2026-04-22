@@ -4,6 +4,7 @@ import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
+import com.monew.dto.response.UserActivityResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 
@@ -18,4 +19,6 @@ public interface UserService {
   void softDelete(UUID userId);
 
   void hardDelete(UUID userId);
+
+  UserActivityResponse getActivity(UUID userId);
 }
