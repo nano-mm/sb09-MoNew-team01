@@ -9,6 +9,7 @@ import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleViewService;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,5 +46,16 @@ public class ArticleViewServiceImpl implements ArticleViewService {
     log.info("[뉴스 기사 뷰] 생성 완료. articleId: {}, requestUserId: {}", articleId, requestUserId);
 
     return articleViewMapper.toDto(newArticleView, article);
+  }
+
+
+  @Transactional(readOnly = true)
+  public List<ArticleViewDto> getRecentArticleViews(UUID userId) {
+
+    List<ArticleView> views = articleViewRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
+
+    return views.stream()
+        .map(view -> articleViewMapper.toDto(view, view.getArticle()))
+        .toList();
   }
 }
