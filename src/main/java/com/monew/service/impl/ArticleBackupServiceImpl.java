@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -126,9 +127,16 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
 
           for (String interestName : dto.interestNames()) {
             Interest interest = interestMap.get(interestName);
-            if (interest != null) {
-              articleInterestRepository.save(ArticleInterest.of(article, interest));
+
+            if (interest == null) {
+              interest = new Interest(interestName, new ArrayList<>());
+
+              interestRepository.save(interest);
+
+              interestMap.put(interestName, interest);
             }
+
+            articleInterestRepository.save(ArticleInterest.of(article, interest));
           }
           totalImported++;
         }
