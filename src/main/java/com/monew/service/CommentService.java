@@ -11,7 +11,6 @@ import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
-import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
@@ -50,7 +49,7 @@ public class CommentService {
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
     commentRepository.save(comment);
-    return commentMapper.toResponse(comment);
+    return commentMapper.toResponse(comment, user);
   }
 
   @Transactional
@@ -60,7 +59,9 @@ public class CommentService {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
-    return commentMapper.toResponse(comment);
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
+    return commentMapper.toResponse(comment, user);
   }
 
   @Transactional
