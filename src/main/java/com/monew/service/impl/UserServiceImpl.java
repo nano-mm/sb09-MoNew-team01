@@ -3,11 +3,11 @@ package com.monew.service.impl;
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
+import com.monew.dto.response.UserActivityDto;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
-import com.monew.dto.response.UserActivityResponse;
 import com.monew.mapper.ArticleMapper;
 import com.monew.mapper.CommentMapper;
 import com.monew.mapper.InterestMapper;
@@ -24,7 +24,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
   private final PasswordEncoder passwordEncoder;
   private final EntityManager entityManager;
-  private final JdbcTemplate jdbcTemplate;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
@@ -135,11 +133,11 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional(readOnly = true)
-  public UserActivityResponse getActivity(UUID userId) {
+  public UserActivityDto getActivity(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
-    return UserActivityResponse.builder()
+    return UserActivityDto.builder()
         .user(userMapper.toDto(user))
         .subscribedInterests(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
             .map(s -> InterestMapper.toDto(s.getInterest(), true))
