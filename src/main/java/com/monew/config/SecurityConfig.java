@@ -1,5 +1,7 @@
 package com.monew.config;
 
+import com.monew.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -43,7 +45,6 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/users", "/api/users/login").permitAll() // 회원가입 및 로그인
             .requestMatchers("/h2-console/**").permitAll() // H2 콘솔
             .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
-            .anyRequest().authenticated()
         )
 
         // 4. 나머지 기본 보안 기능 비활성화
