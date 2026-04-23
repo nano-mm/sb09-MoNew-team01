@@ -1,5 +1,6 @@
 package com.monew.controller;
 
+import com.monew.config.LoginUser;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,11 +66,11 @@ public class InterestController {
   public CursorPageResponseDto<InterestDto> find(
       @RequestParam(required = false) String keyword,
       @RequestParam(defaultValue = "name") String orderBy,
-      @RequestParam(value = "ASC") String direction,
+      @RequestParam(defaultValue = "ASC") String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "10") int size,
-      @RequestHeader("Monew-Request-User-ID") UUID userId
+      @LoginUser UUID userId
   ) {
     InterestSearchRequest request = new InterestSearchRequest(
         keyword,
@@ -80,27 +79,27 @@ public class InterestController {
         cursor,
         after,
         size,
-        userId.toString()
+        userId
     );
 
     return interestService.find(request);
   }
 
   @Operation(summary = "관심사 구독", description = "관심사를 구독합니다.")
-  @PostMapping("/{interestId}/subscribe")
+  @PostMapping("/{interestId}/subscriptions")
   public void subscribe(
       @PathVariable UUID interestId,
-      @RequestParam UUID userId
+      @LoginUser UUID userId
   ) {
     interestService.subscribe(userId, interestId);
   }
 
   // 구독 취소
   @Operation(summary = "관심사 구독 취소", description = "관심사를 구독을 취소합니다.")
-  @DeleteMapping("/{interestId}/subscribe")
+  @DeleteMapping("/{interestId}/subscriptions")
   public void unsubscribe(
       @PathVariable UUID interestId,
-      @RequestParam UUID userId
+      @LoginUser UUID userId
   ) {
     interestService.unsubscribe(userId, interestId);
   }

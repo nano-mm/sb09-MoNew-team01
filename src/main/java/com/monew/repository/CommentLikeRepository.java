@@ -2,14 +2,19 @@ package com.monew.repository;
 
 import com.monew.entity.CommentLike;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import java.util.UUID;
 
 public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
+
+  @EntityGraph(attributePaths = {"comment", "comment.article", "comment.user"})
+  @Query("SELECT cl FROM CommentLike cl WHERE cl.user.id = :userId")
+  List<CommentLike> findTop10ByUserIdWithCommentAndUser(@Param("userId") UUID userId, Pageable pageable);
 
   boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
 
