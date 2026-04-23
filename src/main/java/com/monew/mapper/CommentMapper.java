@@ -2,7 +2,7 @@ package com.monew.mapper;
 
 import com.monew.dto.response.CommentActivityDto;
 import com.monew.dto.response.CommentLikeActivityDto;
-import com.monew.dto.response.CommentResponse;
+import com.monew.dto.response.CommentDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
 import com.monew.entity.User;
@@ -20,7 +20,7 @@ public interface CommentMapper {
   @Mapping(target = "likeCount", source = "comment.likeCount")
   @Mapping(target = "createdAt", source = "comment.createdAt")
   @Mapping(target = "likedByMe", constant = "false")
-  CommentResponse toResponse(Comment comment, User user);
+  CommentDto toResponse(Comment comment, User user);
 
   @Mapping(source = "article.id", target = "articleId")
   @Mapping(source = "article.title", target = "articleTitle")
