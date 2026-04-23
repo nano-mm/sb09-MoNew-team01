@@ -9,6 +9,6 @@ public record UserActivityDto(
     List<InterestDto> subscriptions,
     List<CommentResponse> comments,
     List<CommentResponse> commentLikes,
-    List<ArticleDto> articleViews
+    List<ArticleViewDto> articleViews
 ) {
 }

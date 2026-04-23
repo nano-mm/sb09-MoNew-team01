@@ -8,7 +8,7 @@ import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
-import com.monew.mapper.ArticleMapper;
+import com.monew.mapper.ArticleViewMapper;
 import com.monew.mapper.CommentMapper;
 import com.monew.mapper.InterestMapper;
 import com.monew.mapper.UserMapper;
@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
   private final ArticleViewRepository articleViewRepository;
 
   private final CommentMapper commentMapper;
-  private final ArticleMapper articleMapper;
+  private final ArticleViewMapper articleViewMapper;
 
   @Override
   public UserDto create(UserRegisterRequest request){
@@ -139,17 +139,17 @@ public class UserServiceImpl implements UserService {
 
     return UserActivityDto.builder()
         .user(userMapper.toDto(user))
-        .subscribedInterests(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
+        .subscriptions(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
             .map(s -> InterestMapper.toDto(s.getInterest(), true))
             .toList())
-        .recentComments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
+        .comments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
             .map(commentMapper::toResponse)
             .toList())
-        .recentLikedComments(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
+        .commentLikes(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
             .map(cl -> commentMapper.toResponse(cl.getComment()))
             .toList())
-        .recentViewedArticles(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
-            .map(av -> articleMapper.toDto(av.getArticle()))
+        .articleViews(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
+            .map(av -> articleViewMapper.toDto(av, av.getArticle()))
             .toList())
         .build();
   }

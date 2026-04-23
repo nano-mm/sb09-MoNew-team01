@@ -46,10 +46,10 @@ class UserActivityControllerTest {
     UUID userId = UUID.randomUUID();
     UserActivityDto response = UserActivityDto.builder()
         .user(new UserDto(userId, "test@test.com", "Tester", Instant.now()))
-        .subscribedInterests(Collections.emptyList())
-        .recentComments(Collections.emptyList())
-        .recentLikedComments(Collections.emptyList())
-        .recentViewedArticles(Collections.emptyList())
+        .subscriptions(Collections.emptyList())
+        .comments(Collections.emptyList())
+        .commentLikes(Collections.emptyList())
+        .articleViews(Collections.emptyList())
         .build();
 
     // SecurityContext에 인증 정보 설정 (LoginUserArgumentResolver가 사용함)
