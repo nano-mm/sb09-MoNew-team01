@@ -1,14 +1,21 @@
 package com.monew.entity;
 
 import com.monew.entity.base.BaseEntity;
-import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "comment_likes",
     uniqueConstraints = @UniqueConstraint(columnNames = {"comment_id", "user_id"}))
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CommentLike extends BaseEntity {
 
@@ -25,8 +32,6 @@ public class CommentLike extends BaseEntity {
     this.user = user;
   }
 
-  public Comment getComment() { return comment; }
-  public User getUser() { return user; }
   public UUID getCommentId() { return comment.getId(); }
   public UUID getUserId() { return user.getId(); }
 }

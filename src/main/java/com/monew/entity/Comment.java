@@ -1,12 +1,21 @@
 package com.monew.entity;
 
 import com.monew.entity.base.BaseEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -20,6 +29,7 @@ import org.hibernate.annotations.SQLRestriction;
     }
 )
 @SQLRestriction("is_deleted = false")
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
@@ -85,8 +95,4 @@ public class Comment extends BaseEntity {
   public UUID getUserId() {
     return user.getId();
   }
-
-  public String getContent() { return content; }
-
-  public int getLikeCount() { return likeCount; }
 }

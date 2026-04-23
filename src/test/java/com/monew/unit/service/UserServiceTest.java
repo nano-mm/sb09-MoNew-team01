@@ -1,20 +1,26 @@
 package com.monew.unit.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
-import com.monew.exception.user.*;
-import com.monew.mapper.ArticleMapper;
+import com.monew.exception.user.AlreadyExistEmailException;
+import com.monew.exception.user.PasswordPatternException;
+import com.monew.mapper.ArticleViewMapper;
 import com.monew.mapper.CommentMapper;
-import com.monew.mapper.InterestMapper;
+import com.monew.mapper.SubscriptionMapper;
 import com.monew.mapper.UserMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.CommentLikeRepository;
@@ -36,6 +42,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -50,9 +57,9 @@ class UserServiceTest {
   @Mock private CommentLikeRepository commentLikeRepository;
   @Mock private ArticleViewRepository articleViewRepository;
   
-  @Mock private InterestMapper interestMapper;
   @Mock private CommentMapper commentMapper;
-  @Mock private ArticleMapper articleMapper;
+  @Mock private ArticleViewMapper articleViewMapper;
+  @Mock private SubscriptionMapper subscriptionMapper;
 
   @InjectMocks
   private UserServiceImpl userService;
@@ -200,9 +207,9 @@ class UserServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     User user = User.of("test@test.com", "Tester", "pw");
+    ReflectionTestUtils.setField(user, "id", userId);
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "Tester", Instant.now()));
     when(subscriptionRepository.findAllByUserIdWithInterest(userId)).thenReturn(Collections.emptyList());
     when(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
     when(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(eq(userId), any())).thenReturn(Collections.emptyList());
@@ -213,7 +220,7 @@ class UserServiceTest {
 
     // then
     assertNotNull(result);
-    assertEquals(userId, result.user().id());
+    assertEquals(userId, result.id());
     verify(userRepository).findById(userId);
     verify(subscriptionRepository).findAllByUserIdWithInterest(userId);
     verify(commentRepository).findTop10ByUser_IdOrderByCreatedAtDesc(userId);
