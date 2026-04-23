@@ -16,8 +16,10 @@ import com.monew.service.impl.ArticleViewServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,7 +32,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ArticleController.class)
+@WebMvcTest(controllers = ArticleController.class)
 @Import(SecurityConfig.class)
 class ArticleControllerTest {
 
@@ -56,6 +58,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("출처 목록 조회 - 성공")
+  @WithMockUser
   void getSources_Success() throws Exception {
     List<String> mockSources = List.of("NAVER", "CHOSUN");
     given(articleService.getSources()).willReturn(mockSources);
@@ -68,6 +71,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 단건 조회 - 성공")
+  @WithMockUser
   void search_Success() throws Exception {
     ArticleDto mockDto = ArticleDto.builder().id(ARTICLE_ID).title("테스트 기사").build();
     given(articleService.find(ARTICLE_ID)).willReturn(mockDto);
@@ -79,6 +83,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 단건 조회 - 실패 (존재하지 않는 기사)")
+  @WithMockUser
   void search_Fail_NotFound() throws Exception {
     given(articleService.find(ARTICLE_ID)).willThrow(new ArticleNotFoundException(ARTICLE_ID));
 
@@ -88,6 +93,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("조회수 생성 - 성공")
+  @WithMockUser
   void createArticleView_Success() throws Exception {
     Article mockArticle = Article.builder().title("test").build();
     User mockUser = User.builder().nickname("test").build();
@@ -100,7 +106,7 @@ class ArticleControllerTest {
         .user(mockUser)
         .build();
 
-    ArticleViewDto mockResponse = articleViewMapper.toDto(articleView);
+    ArticleViewDto mockResponse = articleViewMapper.toDto(articleView, mockArticle);
     given(articleViewService.create(ARTICLE_ID, USER_ID)).willReturn(mockResponse);
 
     mockMvc.perform(post("/api/articles/{articleId}/article-views", ARTICLE_ID)
@@ -110,6 +116,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("조회수 생성 - 실패 (필수 헤더 누락)")
+  @WithMockUser
   void createArticleView_Fail_MissingHeader() throws Exception {
 
     mockMvc.perform(post("/api/articles/{articleId}/article-views", ARTICLE_ID))
@@ -118,6 +125,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 목록 페이징 조회 - 성공")
+  @WithMockUser
   void searchArticles_Success() throws Exception {
     ArticleDto dummyArticle1 = ArticleDto.builder().id(UUID.randomUUID()).title("first").build();
     ArticleDto dummyArticle2 = ArticleDto.builder().id(UUID.randomUUID()).title("second").build();
@@ -148,6 +156,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 목록 페이징 조회 - 실패 (잘못된 파라미터 타입)")
+  @WithMockUser
   void searchArticles_Fail_TypeMismatch() throws Exception {
     mockMvc.perform(get("/api/articles")
             .header(HEADER_USER_ID, USER_ID.toString())
@@ -158,6 +167,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 논리 삭제 - 성공")
+  @WithMockUser
   void softDelete_Success() throws Exception {
     mockMvc.perform(delete("/api/articles/{articleId}", ARTICLE_ID))
         .andExpect(status().isNoContent());
@@ -165,6 +175,7 @@ class ArticleControllerTest {
 
   @Test
   @DisplayName("기사 물리 삭제 - 성공")
+  @WithMockUser
   void hardDelete_Success() throws Exception {
     mockMvc.perform(delete("/api/articles/{articleId}/hard", ARTICLE_ID))
         .andExpect(status().isNoContent());

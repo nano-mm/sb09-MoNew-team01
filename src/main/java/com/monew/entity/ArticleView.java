@@ -16,7 +16,7 @@ import lombok.*;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class ArticleView extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
@@ -26,4 +26,6 @@ public class ArticleView extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
+
+
 }

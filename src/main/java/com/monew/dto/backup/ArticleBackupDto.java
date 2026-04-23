@@ -1,8 +1,9 @@
 package com.monew.dto.backup;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import lombok.Builder;
-import java.util.Set;
 
 @Builder
 public record ArticleBackupDto(
@@ -12,6 +13,6 @@ public record ArticleBackupDto(
     String source,
     Instant publishDate,
     Boolean isDeleted,
-    Set<String> interestNames
+    Map<String, List<String>> interestKeywords
 ) {
 }

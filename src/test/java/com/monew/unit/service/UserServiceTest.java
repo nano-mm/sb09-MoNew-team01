@@ -2,6 +2,8 @@ package com.monew.unit.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.monew.dto.request.UserLoginRequest;
@@ -10,11 +12,19 @@ import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.*;
+import com.monew.mapper.ArticleMapper;
+import com.monew.mapper.CommentMapper;
+import com.monew.mapper.InterestMapper;
 import com.monew.mapper.UserMapper;
+import com.monew.repository.ArticleViewRepository;
+import com.monew.repository.CommentLikeRepository;
+import com.monew.repository.CommentRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.impl.UserServiceImpl;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +44,15 @@ class UserServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private UserMapper userMapper;
   @Mock private EntityManager entityManager;
+  
+  @Mock private SubscriptionRepository subscriptionRepository;
+  @Mock private CommentRepository commentRepository;
+  @Mock private CommentLikeRepository commentLikeRepository;
+  @Mock private ArticleViewRepository articleViewRepository;
+  
+  @Mock private InterestMapper interestMapper;
+  @Mock private CommentMapper commentMapper;
+  @Mock private ArticleMapper articleMapper;
 
   @InjectMocks
   private UserServiceImpl userService;
@@ -173,5 +192,32 @@ class UserServiceTest {
       // when & then
       assertThrows(NoSuchElementException.class, () -> userService.hardDelete(userId));
     }
+  }
+
+  @Test
+  @DisplayName("사용자 활동 내역 조회 성공")
+  void getActivity_Success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.of("test@test.com", "Tester", "pw");
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "Tester", Instant.now()));
+    when(subscriptionRepository.findAllByUserIdWithInterest(userId)).thenReturn(Collections.emptyList());
+    when(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
+    when(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(eq(userId), any())).thenReturn(Collections.emptyList());
+    when(articleViewRepository.findTop10ByUserIdWithArticle(eq(userId), any())).thenReturn(Collections.emptyList());
+
+    // when
+    var result = userService.getActivity(userId);
+
+    // then
+    assertNotNull(result);
+    assertEquals(userId, result.user().id());
+    verify(userRepository).findById(userId);
+    verify(subscriptionRepository).findAllByUserIdWithInterest(userId);
+    verify(commentRepository).findTop10ByUser_IdOrderByCreatedAtDesc(userId);
+    verify(commentLikeRepository).findTop10ByUserIdWithCommentAndUser(eq(userId), any());
+    verify(articleViewRepository).findTop10ByUserIdWithArticle(eq(userId), any());
   }
 }

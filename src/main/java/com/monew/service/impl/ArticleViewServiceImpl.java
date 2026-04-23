@@ -9,15 +9,16 @@ import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleViewService;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-//@Slf4j
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ArticleViewServiceImpl implements ArticleViewService {
 
   private final ArticleViewRepository articleViewRepository;
@@ -26,9 +27,10 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   private final UserRepository userRepository;
 
   @Override
+  @Transactional
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
 
-    // 임시로 만듦. 수정 필요함
+    log.info("[뉴스 기사 뷰] 생성 시작. articleId: {}, requestUserId: {}", articleId, requestUserId);
     Article article = articleRepository.findById(articleId).orElseThrow();
     User user = userRepository.findById(requestUserId).orElseThrow();
 
@@ -36,17 +38,24 @@ public class ArticleViewServiceImpl implements ArticleViewService {
         .article(article)
         .user(user)
         .build();
-    return articleViewMapper.toDto(newArticleView);
+
+    articleViewRepository.saveAndFlush(newArticleView);
+
+    articleRepository.incrementViewCount(article.getId());
+
+    log.info("[뉴스 기사 뷰] 생성 완료. articleId: {}, requestUserId: {}", articleId, requestUserId);
+
+    return articleViewMapper.toDto(newArticleView, article);
   }
 
-  @Override
-  public ArticleViewDto findByArticleIdAndUserId(UUID articleId, UUID requestUserId) {
 
-    Article article = articleRepository.findById(articleId).orElseThrow();
-    User user = userRepository.findById(requestUserId).orElseThrow();
+  @Transactional(readOnly = true)
+  public List<ArticleViewDto> getRecentArticleViews(UUID userId) {
 
-    ArticleView targetArticleView = articleViewRepository.findByArticleAndUser(article, user);
+    List<ArticleView> views = articleViewRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
 
-    return articleViewMapper.toDto(targetArticleView);
+    return views.stream()
+        .map(view -> articleViewMapper.toDto(view, view.getArticle()))
+        .toList();
   }
 }
