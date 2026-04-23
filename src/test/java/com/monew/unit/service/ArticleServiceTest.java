@@ -97,24 +97,22 @@ class ArticleServiceTest {
   void findArticles_Success() {
     ArticleSearchCondition condition = ArticleSearchCondition.builder().build();
     CursorRequest cursorRequest = new CursorRequest(null, null, 10, "publishDate", "DESC");
-
     UUID userId = UUID.randomUUID();
 
-    Article mockArticle = Article.builder().title("entity").build();
-    ArticleDto mockDto = ArticleDto.builder().title("DTO").build();
+    ArticleDto mockArticle = ArticleDto.builder().title("test").build();
 
-    CursorPageResponseDto<Article> mockPage = CursorPageResponseDto.<Article>builder()
+    CursorPageResponseDto<ArticleDto> mockPage = CursorPageResponseDto.<ArticleDto>builder()
         .content(List.of(mockArticle))
         .hasNext(false)
         .build();
 
-    given(articleQueryRepository.searchArticlesByCursor(any(), any())).willReturn(mockPage);
-    given(articleMapper.toDto(any(Article.class))).willReturn(mockDto);
+    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any()))
+        .willReturn(mockPage);
 
     CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition, cursorRequest, userId);
 
     assertThat(result.content()).hasSize(1);
-    assertThat(result.content().get(0).title()).isEqualTo("DTO");
+    assertThat(result.content().get(0).title()).isEqualTo("test");
   }
 
   @Test
