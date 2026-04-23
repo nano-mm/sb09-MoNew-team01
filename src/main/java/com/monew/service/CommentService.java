@@ -75,7 +75,7 @@ public class CommentService {
     if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
-    comment.softDelete();  // isDeleted = true 플래그만 변경
+    comment.softDelete(true);  // isDeleted = true 플래그만 변경
   }
 
   @Transactional
