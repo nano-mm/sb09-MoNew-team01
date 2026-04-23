@@ -53,6 +53,9 @@ public class Comment extends BaseEntity {
   @Column(name = "deleted_at")
   private Instant deletedAt;  // LocalDateTime → Instant 통일
 
+  @Column(name = "is_deleted", nullable = false)
+  private boolean isDeleted = false;
+
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentLike> likes = new ArrayList<>();
 

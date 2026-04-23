@@ -2,6 +2,7 @@ package com.monew.service;
 
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
+import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CommentResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
@@ -44,46 +45,73 @@ public class CommentService {
   @Transactional
   public CommentResponse createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
-        .orElseThrow( () -> new ArticleNotFoundException(articleId));
+
+        .orElseThrow();
+
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
     commentRepository.save(comment);
 
-    // 뉴스 기사 댓글 수 갱신
-    articleRepository.incrementCommentCount(article.getId());
+    return commentMapper.toResponse(comment, user);
 
-    return commentMapper.toResponse(comment);
   }
 
   @Transactional
-  public void updateComment(UUID userId, UUID commentId, String content) {
+  public CommentResponse updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.getUserId().equals(userId)) {
+    if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
+    return commentMapper.toResponse(comment, user);
   }
 
   @Transactional
   public void deleteComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.getUserId().equals(userId)) {
+    if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
-    comment.softDelete(true);
+    comment.softDelete();  // isDeleted = true 플래그만 변경
   }
 
   @Transactional
-  public void likeComment(UUID userId, UUID commentId) {
+  public void hardDeleteComment(UUID userId, UUID commentId) {
+    Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
+        .orElseThrow(CommentNotFoundException::new);
+    if (!comment.isOwnedBy(userId)) {
+      throw new ForbiddenException();
+    }
+    commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
+  }
+
+  @Transactional
+  public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
     if (commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)) {
       throw new DuplicateLikeException();
     }
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
-    commentLikeRepository.save(new CommentLike(comment, user));
+    CommentLike commentLike = new CommentLike(comment, user);
+    commentLikeRepository.save(commentLike);
     comment.increaseLikeCount();
+
+    return new CommentLikeResponse(
+        commentLike.getId(),
+        userId,
+        commentLike.getCreatedAt(),
+        comment.getId(),
+        comment.getArticleId(),
+        comment.getUserId(),
+        user.getNickname(),
+        comment.getContent(),
+        comment.getLikeCount(),
+        comment.getCreatedAt()
+    );
   }
 
   @Transactional
