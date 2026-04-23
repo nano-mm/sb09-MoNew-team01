@@ -99,7 +99,15 @@ public class Comment extends BaseEntity {
     return article.getId();
   }
 
+  public String getArticleTitle() {
+    return article.getTitle();
+  }
+
   public UUID getUserId() {
     return user.getId();
+  }
+
+  public String getUserNickname() {
+    return user.getNickname();
   }
 }

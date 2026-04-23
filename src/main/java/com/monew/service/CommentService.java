@@ -53,7 +53,7 @@ public class CommentService {
     Comment comment = Comment.create(article, user, content);
     commentRepository.save(comment);
 
-    return commentMapper.toResponse(comment, user);
+    return commentMapper.toResponse(comment);
 
   }
 
@@ -63,9 +63,7 @@ public class CommentService {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
-    return commentMapper.toResponse(comment, user);
+    return commentMapper.toResponse(comment);
   }
 
   public void deleteComment(UUID userId, UUID commentId) {
