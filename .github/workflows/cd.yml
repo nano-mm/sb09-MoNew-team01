@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - test
+    pull_request:
+      branches:
+        - test
+
 
 jobs:
   deploy:
