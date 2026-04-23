@@ -40,7 +40,3 @@ monew:
       region: ${AWS_S3_REGION}
       bucket: ${AWS_S3_BUCKET}
       presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600}
-
-app:
-  backup:
-    dir: ${BACKUP_DIR:file:${monew.storage.local.root-path}/backups/}

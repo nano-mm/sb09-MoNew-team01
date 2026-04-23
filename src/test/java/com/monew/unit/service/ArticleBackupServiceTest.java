@@ -11,6 +11,7 @@ import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.impl.ArticleBackupServiceImpl;
+import com.monew.storage.backup.BackupStorage;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,14 +49,8 @@ class ArticleBackupServiceTest {
   @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ObjectMapper objectMapper;
   @Mock private ArticleBackupMapper articleBackupMapper;
-  @Mock private ResourcePatternResolver resourcePatternResolver;
 
-  private final String BACKUP_DIR = "file:/tmp/backups/";
-
-  @BeforeEach
-  void setUp() {
-    ReflectionTestUtils.setField(backupService, "backupDir", BACKUP_DIR);
-  }
+  @Mock private BackupStorage backupStorage;
 
   @Test
   @DisplayName("뉴스 기사 백업")
@@ -69,27 +64,22 @@ class ArticleBackupServiceTest {
         .build();
     given(articleBackupMapper.toDto(any(), any())).willReturn(mockDto);
 
-    WritableResource mockResource = mock(WritableResource.class);
-    given(resourcePatternResolver.getResource(anyString())).willReturn(mockResource);
-
-    given(mockResource.getURI()).willReturn(new java.net.URI("s3://dummy"));
-
-    OutputStream mockOutputStream = mock(OutputStream.class);
-    given(mockResource.getOutputStream()).willReturn(mockOutputStream);
+    String dummyJson = "[{\"title\":\"test\"}]";
+    given(objectMapper.writeValueAsString(any())).willReturn(dummyJson);
 
     backupService.export();
 
-    verify(objectMapper).writeValue(any(OutputStream.class), any(List.class));
+    verify(backupStorage).saveBackup(anyString(), anyString());
   }
 
   @Test
   @DisplayName("뉴스 기사 복구")
   void importBackup_success() throws Exception {
     Resource mockResource = mock(Resource.class);
-    given(resourcePatternResolver.getResources(anyString())).willReturn(new Resource[]{mockResource});
-
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
+
+    given(backupStorage.loadBackupResources()).willReturn(List.of(mockResource));
 
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .title("test")
