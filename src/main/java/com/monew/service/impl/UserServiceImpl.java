@@ -10,7 +10,7 @@ import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
 import com.monew.mapper.ArticleViewMapper;
 import com.monew.mapper.CommentMapper;
-import com.monew.mapper.InterestMapper;
+import com.monew.mapper.SubscriptionMapper;
 import com.monew.mapper.UserMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.CommentLikeRepository;
@@ -45,6 +45,7 @@ public class UserServiceImpl implements UserService {
 
   private final CommentMapper commentMapper;
   private final ArticleViewMapper articleViewMapper;
+  private final SubscriptionMapper subscriptionMapper;
 
   @Override
   public UserDto create(UserRegisterRequest request){
@@ -138,15 +139,18 @@ public class UserServiceImpl implements UserService {
         .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
     return UserActivityDto.builder()
-        .user(userMapper.toDto(user))
+        .id(user.getId())
+        .email(user.getEmail())
+        .nickname(user.getNickname())
+        .createdAt(user.getCreatedAt())
         .subscriptions(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
-            .map(s -> InterestMapper.toDto(s.getInterest(), true))
+            .map(subscriptionMapper::toDto)
             .toList())
         .comments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
-            .map(commentMapper::toResponse)
+            .map(commentMapper::toActivityDto)
             .toList())
         .commentLikes(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
-            .map(cl -> commentMapper.toResponse(cl.getComment()))
+            .map(commentMapper::toLikeActivityDto)
             .toList())
         .articleViews(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
             .map(av -> articleViewMapper.toDto(av, av.getArticle()))
