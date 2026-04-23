@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +27,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.WritableResource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
 @Service
 @RequiredArgsConstructor
@@ -45,11 +50,23 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
   private final ArticleInterestRepository articleInterestRepository;
   private final ObjectMapper objectMapper;
   private final ArticleBackupMapper articleBackupMapper;
-
+  private final ResourceLoader resourceLoader;
   private final ResourcePatternResolver resourcePatternResolver;
+
+  @Autowired(required = false)
+  private S3Client s3Client;
 
   @Value("${app.backup.dir}")
   private String backupDir;
+
+  @Value("${monew.storage.type}")
+  private String storageType;
+
+  @Value("${monew.storage.local.root-path}")
+  private String localRootPath;
+
+  @Value("${monew.storage.s3.bucket}")
+  private String s3Bucket;
   
   @Transactional(readOnly = true)
   public void export() throws IOException {
@@ -100,15 +117,32 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     }
   }
 
+  @Override
   @Transactional
   public void importBackup() throws IOException {
-    String dirPath = backupDir.endsWith("/") ? backupDir : backupDir + "/";
+    List<Resource> backupResources = new ArrayList<>();
+    if ("s3".equals(storageType)) {
+      ListObjectsV2Request request = ListObjectsV2Request.builder()
+          .bucket(s3Bucket)
+          .prefix("backups/")
+          .build();
 
-    String pattern = dirPath + "*.json";
-    Resource[] resources = resourcePatternResolver.getResources(pattern);
+      s3Client.listObjectsV2(request).contents().stream()
+          .filter(s3Object -> s3Object.key().endsWith(".json"))
+          .forEach(s3Object -> {
+            String fullPath = "s3://" + s3Bucket + "/" + s3Object.key();
+            backupResources.add(resourceLoader.getResource(fullPath));
+          });
+    } else {
+      String dirPath = localRootPath.endsWith("/") ? localRootPath : localRootPath + "/";
+      String pattern = "file:" + dirPath + "backups/*.json";
 
-    if (resources.length == 0) {
-      log.warn("[뉴스 기사] 백업 폴더에 파일이 없습니다: {}", dirPath);
+      Resource[] resources = resourcePatternResolver.getResources(pattern);
+      backupResources.addAll(Arrays.asList(resources));
+    }
+
+    if (backupResources.isEmpty()) {
+      log.warn("[뉴스 기사] 백업 경로에 파일이 없습니다. (storageType: {})", storageType);
       return;
     }
 
@@ -117,7 +151,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
 
     int totalImported = 0;
 
-    for (Resource resource : resources) {
+    for (Resource resource : backupResources) {
       try (InputStream is = resource.getInputStream()) {
         List<ArticleBackupDto> backupList = objectMapper.readValue(is,
             new TypeReference<List<ArticleBackupDto>>() {});
@@ -141,7 +175,6 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
             if (interest == null) {
               interest = new Interest(interestName, keywords);
               interestRepository.save(interest);
-
               interestMap.put(interestName, interest);
             }
 
