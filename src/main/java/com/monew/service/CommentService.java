@@ -2,8 +2,9 @@ package com.monew.service;
 
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
+import com.monew.dto.request.CommentResponseDto;
+import com.monew.dto.response.CommentDto;
 import com.monew.dto.response.CommentLikeResponse;
-import com.monew.dto.response.CommentResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
@@ -11,7 +12,6 @@ import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
-import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ import com.monew.repository.article.ArticleRepository;
 import com.monew.repository.UserRepository;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class CommentService {
 
@@ -42,11 +44,9 @@ public class CommentService {
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
 
-  @Transactional
-  public CommentResponse createComment(UUID userId, UUID articleId, String content) {
+  public CommentDto createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
-
-        .orElseThrow();
+        .orElseThrow(() -> new NoSuchElementException("해당 Article을 찾을 수 없습니다"));
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
@@ -57,8 +57,7 @@ public class CommentService {
 
   }
 
-  @Transactional
-  public CommentResponse updateComment(UUID userId, UUID commentId, String content) {
+  public CommentDto updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
     if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
@@ -69,7 +68,6 @@ public class CommentService {
     return commentMapper.toResponse(comment, user);
   }
 
-  @Transactional
   public void deleteComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
     if (!comment.isOwnedBy(userId)) {
@@ -78,7 +76,6 @@ public class CommentService {
     comment.softDelete(true);  // isDeleted = true 플래그만 변경
   }
 
-  @Transactional
   public void hardDeleteComment(UUID userId, UUID commentId) {
     Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
         .orElseThrow(CommentNotFoundException::new);
@@ -88,7 +85,6 @@ public class CommentService {
     commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
   }
 
-  @Transactional
   public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
     if (commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)) {
@@ -114,7 +110,6 @@ public class CommentService {
     );
   }
 
-  @Transactional
   public void unlikeComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
     int deleted = commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
@@ -125,18 +120,18 @@ public class CommentService {
   }
 
   @Transactional(readOnly = true)
-  public CursorPageResponseDto<CommentResponse> getComments(
-      UUID articleId,
-      UUID userId,
-      CommentSortType sortType,
-      String rawCursor,
-      int size
+  public CursorPageResponseDto<CommentDto> getComments(
+      CommentResponseDto requestDto, UUID userId
   ) {
-    CommentCursor cursor = parseCursor(sortType, rawCursor);
+    CommentSortType orderBy = requestDto.orderBy();
+    String rawCursor = requestDto.cursor();
+    int size = requestDto.limit();
+    UUID articleId = requestDto.articleId();
+
+    CommentCursor cursor = parseCursor(orderBy, rawCursor);
 
     List<Comment> comments = commentRepository.findByArticleIdWithCursor(
-        articleId, sortType, cursor, size + 1
-    );
+        requestDto.articleId(), orderBy, cursor, size+1);
 
     boolean hasNext = comments.size() > size;
     List<Comment> pageComments = hasNext ? comments.subList(0, size) : comments;
@@ -151,16 +146,16 @@ public class CommentService {
     Map<UUID, String> nicknameMap = userRepository.findAllById(userIds).stream()
         .collect(Collectors.toMap(User::getId, User::getNickname));
 
-    List<CommentResponse> content = pageComments.stream()
-        .map(c -> new CommentResponse(
-            c.getId(),
-            c.getArticleId(),
-            c.getUserId(),
-            nicknameMap.getOrDefault(c.getUserId(), ""),
-            c.getContent(),
-            c.getLikeCount(),
-            likedCommentIds.contains(c.getId()),
-            c.getCreatedAt()
+    List<CommentDto> content = pageComments.stream()
+        .map(comment -> new CommentDto(
+            comment.getId(),
+            comment.getArticleId(),
+            comment.getUserId(),
+            nicknameMap.getOrDefault(comment.getUserId(), ""),
+            comment.getContent(),
+            comment.getLikeCount(),
+            likedCommentIds.contains(comment.getId()),
+            comment.getCreatedAt()
         ))
         .toList();
 
@@ -169,7 +164,7 @@ public class CommentService {
 
     if (hasNext) {
       Comment last = pageComments.get(pageComments.size() - 1);
-      if (sortType == CommentSortType.LIKE_COUNT) {
+      if (requestDto.orderBy() == CommentSortType.LIKE_COUNT) {
         nextCursor = last.getId() + "," + last.getLikeCount();
       } else {
         nextAfter = last.getCreatedAt();
@@ -179,7 +174,7 @@ public class CommentService {
 
     long totalElements = commentRepository.countByArticleId(articleId);
 
-    return CursorPageResponseDto.<CommentResponse>builder()
+    return CursorPageResponseDto.<CommentDto>builder()
         .content(content)
         .nextCursor(nextCursor)
         .nextAfter(nextAfter)
