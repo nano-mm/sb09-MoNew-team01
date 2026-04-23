@@ -89,7 +89,7 @@ public class InterestController {
   @Operation(summary = "관심사 구독", description = "관심사를 구독합니다.")
   @PostMapping("/{interestId}/subscribe")
   public void subscribe(
-      @RequestParam UUID interestId,
+      @PathVariable UUID interestId,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     interestService.subscribe(userId, interestId);
@@ -99,7 +99,7 @@ public class InterestController {
   @Operation(summary = "관심사 구독 취소", description = "관심사를 구독을 취소합니다.")
   @DeleteMapping("/{interestId}/subscribe")
   public void unsubscribe(
-      @RequestParam UUID interestId,
+      @PathVariable UUID interestId,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     interestService.unsubscribe(userId, interestId);
