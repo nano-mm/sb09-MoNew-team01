@@ -2,12 +2,9 @@ name: CD Pipeline
 
 on:
   push:
-    branches:
-      - test
-    pull_request:
-      branches:
-        - test
-
+    branches: [ main, master, '**' ]
+  pull_request:
+    branches: [ main, master, '**' ]
 
 jobs:
   deploy:
