@@ -79,6 +79,7 @@ public class InterestServiceImpl implements InterestService {
     String cursor = request.cursor();
     Instant after = request.after();
     int size = request.getSizeOrDefault();
+    User user = userRepository.findById(request.userId()).orElseThrow();
 
     Pageable pageable = PageRequest.of(0, size + 1);
 
@@ -131,7 +132,7 @@ public class InterestServiceImpl implements InterestService {
     }
 
     List<InterestDto> content = results.stream()
-        .map(i -> InterestMapper.toDto(i, false))
+        .map(i -> InterestMapper.toDto(i, subscriptionRepository.existsByUserAndInterest(user, i)))
         .toList();
 
     return CursorPageResponseDto.<InterestDto>builder()

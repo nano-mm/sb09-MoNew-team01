@@ -2,19 +2,25 @@ package com.monew.mapper;
 
 import com.monew.dto.response.CommentActivityDto;
 import com.monew.dto.response.CommentLikeActivityDto;
-import com.monew.dto.response.CommentResponse;
+import com.monew.dto.response.CommentDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
+import com.monew.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
+  @Mapping(target = "id", source = "comment.id")
+  @Mapping(target = "articleId", source = "comment.article.id")
+  @Mapping(target = "userId", source = "user.id")
   @Mapping(target = "userNickname", source = "user.nickname")
-  @Mapping(target = "likedByMe", ignore = true)
-  @Mapping(target = "likeCount", source = "likeCount")
-  CommentResponse toResponse(Comment comment);
+  @Mapping(target = "content", source = "comment.content")
+  @Mapping(target = "likeCount", source = "comment.likeCount")
+  @Mapping(target = "createdAt", source = "comment.createdAt")
+  @Mapping(target = "likedByMe", constant = "false")
+  CommentDto toResponse(Comment comment, User user);
 
   @Mapping(source = "article.id", target = "articleId")
   @Mapping(source = "article.title", target = "articleTitle")

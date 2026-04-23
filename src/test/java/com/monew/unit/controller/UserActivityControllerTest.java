@@ -9,7 +9,6 @@ import com.monew.config.LoginUserArgumentResolver;
 import com.monew.config.WebConfig;
 import com.monew.controller.UserActivityController;
 import com.monew.dto.response.UserActivityDto;
-import com.monew.dto.response.UserDto;
 import com.monew.exception.GlobalExceptionHandler;
 import com.monew.repository.UserRepository;
 import com.monew.service.UserService;
@@ -45,7 +44,10 @@ class UserActivityControllerTest {
   void getActivity() throws Exception {
     UUID userId = UUID.randomUUID();
     UserActivityDto response = UserActivityDto.builder()
-        .user(new UserDto(userId, "test@test.com", "Tester", Instant.now()))
+        .id(userId)
+        .email("test@test.com")
+        .nickname("Tester")
+        .createdAt(Instant.now())
         .subscriptions(Collections.emptyList())
         .comments(Collections.emptyList())
         .commentLikes(Collections.emptyList())
@@ -62,6 +64,6 @@ class UserActivityControllerTest {
     mockMvc.perform(get("/api/user-activities/{userId}", userId)
             .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.user.id").value(userId.toString()));
+        .andExpect(jsonPath("$.id").value(userId.toString()));
   }
 }

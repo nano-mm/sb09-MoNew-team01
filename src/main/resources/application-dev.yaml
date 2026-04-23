@@ -8,3 +8,23 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+    # ↓ 커넥션 풀 즉시 초기화 (첫 요청 지연 방지)
+    hikari:
+      initialization-fail-timeout: 0
+      connection-timeout: 3000
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true  # Hibernate 테이블 생성 후 SQL 실행 보장
+    open-in-view: false                    # 트랜잭션 범위 최소화
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  sql:
+    init:
+      mode: always  # data.sql 자동 실행
