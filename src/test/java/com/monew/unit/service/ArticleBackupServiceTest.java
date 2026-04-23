@@ -11,11 +11,12 @@ import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.impl.ArticleBackupServiceImpl;
-import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,7 +87,6 @@ class ArticleBackupServiceTest {
   void importBackup_success() throws Exception {
     Resource mockResource = mock(Resource.class);
     given(resourcePatternResolver.getResources(anyString())).willReturn(new Resource[]{mockResource});
-    given(mockResource.getFilename()).willReturn("backup_2077-12-31.json");
 
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
@@ -94,16 +94,17 @@ class ArticleBackupServiceTest {
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .title("test")
         .sourceUrl("http://test.com")
-        .interestNames(java.util.Set.of("IT"))
+        .interestKeywords(Map.of("IT", List.of("인공지능", "출시", "반도체")))
         .build();
-    given(objectMapper.readValue(any(InputStream.class), any(TypeReference.class)))
+    given(objectMapper.readValue(any(InputStream.class), ArgumentMatchers.<TypeReference<List<ArticleBackupDto>>>any()))
         .willReturn(List.of(mockDto));
 
-    given(articleRepository.existsBySourceUrl(mockDto.sourceUrl())).willReturn(false);
+    given(articleRepository.existsBySourceUrl("http://test.com")).willReturn(false);
+
     Article mockArticle = Article.builder().title("test").build();
     given(articleBackupMapper.toEntity(mockDto)).willReturn(mockArticle);
 
-    Interest mockInterest = new Interest("IT", Collections.singletonList("IT"));
+    Interest mockInterest = new Interest("IT", List.of("인공지능", "출시", "반도체"));
     given(interestRepository.findAll()).willReturn(List.of(mockInterest));
 
     backupService.importBackup();
