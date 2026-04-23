@@ -1,4 +1,6 @@
+
 package com.monew.service.impl;
+import java.time.temporal.ChronoUnit;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
@@ -31,6 +33,15 @@ public class NotificationServiceImpl implements NotificationService {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final NotificationMapper notificationMapper;
+
+  @Override
+  @Transactional
+  public long deleteOldConfirmedNotifications() {
+    Instant threshold = Instant.now().minus(7, ChronoUnit.DAYS);
+    long deleted = notificationRepository.deleteByConfirmedIsTrueAndCreatedAtBefore(threshold);
+    log.info("[알림] 1주일 경과 확인 알림 삭제. 삭제 건수={}", deleted);
+    return deleted;
+  }
 
   @Override
   public CursorPageResponseDto<NotificationDto> getNotifications(
