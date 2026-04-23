@@ -1,15 +1,17 @@
 package com.monew.repository;
 
 import com.monew.entity.Comment;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
-import java.util.UUID;
-
 public interface CommentRepository extends JpaRepository<Comment, UUID>, CommentRepositoryCustom {
+
+  List<Comment> findTop10ByUser_IdOrderByCreatedAtDesc(UUID userId);
 
   // 물리 삭제 전용 - 테스트에서만 사용, @SQLRestriction 우회하여 삭제된 것도 포함
   @Query(value = "SELECT * FROM comments WHERE id = :id", nativeQuery = true)

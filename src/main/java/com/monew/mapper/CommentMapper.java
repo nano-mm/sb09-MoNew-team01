@@ -11,9 +11,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
+  @Mapping(target = "articleId", source = "article.id")
+  @Mapping(target = "userId", source = "user.id")
   @Mapping(target = "userNickname", source = "user.nickname")
-  @Mapping(target = "likedByMe", ignore = true)
-  @Mapping(target = "likeCount", source = "likeCount")
+  @Mapping(target = "likedByMe", constant = "false")
   CommentResponse toResponse(Comment comment);
 
   @Mapping(source = "article.id", target = "articleId")
