@@ -17,8 +17,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID>, Comment
   @Query(value = "SELECT * FROM comments WHERE id = :id", nativeQuery = true)
   Optional<Comment> findByIdIncludeDeleted(@Param("id") UUID id);
 
-  List<Comment> findTop10ByUser_IdOrderByCreatedAtDesc(UUID userId);
-
   // 특정 기사의 댓글 수 (논리 삭제 제외, @SQLRestriction 자동 적용)
   @Query("SELECT COUNT(c) FROM Comment c WHERE c.article.id = :articleId")
   long countByArticleId(@Param("articleId") UUID articleId);
