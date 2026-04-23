@@ -1,6 +1,7 @@
 package com.monew.dto.request;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record InterestSearchRequest(
     String keyword,
@@ -9,7 +10,7 @@ public record InterestSearchRequest(
     String cursor,
     Instant after,
     Integer size,
-    String userId
+    UUID userId
 ) {
 
   public String getOrderByOrDefault() {
