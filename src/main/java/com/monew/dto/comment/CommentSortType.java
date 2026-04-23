@@ -5,9 +5,10 @@ public enum CommentSortType {
   LIKE_COUNT;
 
   public static CommentSortType from(String value) {
-    return switch (value.toUpperCase()) {
-      case "createdat" -> CREATED_AT;
-      case "likecount" -> LIKE_COUNT;
+    if (value == null) return null;
+    return switch (value.toLowerCase()) {
+      case "createdat", "created_at" -> CREATED_AT;
+      case "likecount", "like_count" -> LIKE_COUNT;
       default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준: " + value);
     };
   }
