@@ -1,14 +1,19 @@
 package com.monew.dto.response;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import lombok.Builder;
 
 @Builder
 public record UserActivityDto(
-    UserDto user,
-    List<InterestDto> subscriptions,
-    List<CommentResponse> comments,
-    List<CommentResponse> commentLikes,
+    UUID id,
+    String email,
+    String nickname,
+    Instant createdAt,
+    List<SubscriptionDto> subscriptions,
+    List<CommentActivityDto> comments,
+    List<CommentLikeActivityDto> commentLikes,
     List<ArticleViewDto> articleViews
 ) {
 }
