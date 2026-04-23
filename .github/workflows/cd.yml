@@ -1,0 +1,74 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ release ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 17
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # 🔥 ECR 로그인
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ vars.ECR_REPOSITORY_URI }}
+
+      # 🐳 Docker build
+      - name: Build Docker image
+        run: |
+          docker build -t monew .
+
+      # 🏷 태그
+      - name: Tag image
+        run: |
+          docker tag monew:latest ${{ vars.ECR_REPOSITORY_URI }}:latest
+          docker tag monew:latest ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
+
+      # 📤 Push
+      - name: Push image
+        run: |
+          docker push ${{ vars.ECR_REPOSITORY_URI }}:latest
+          docker push ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
+
+      # 📦 ECS task definition 가져오기
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-definition.json
+
+      # 🔄 이미지 교체
+      - name: Render task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: my-springboot-container
+          image: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
+
+      # 🚀 ECS 배포
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ vars.ECS_SERVICE }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          wait-for-service-stability: true
