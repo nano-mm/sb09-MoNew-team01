@@ -6,9 +6,9 @@ import lombok.Builder;
 @Builder
 public record UserActivityDto(
     UserDto user,
-    List<InterestDto> subscribedInterests,
-    List<CommentResponse> recentComments,
-    List<CommentResponse> recentLikedComments,
-    List<ArticleDto> recentViewedArticles
+    List<InterestDto> subscriptions,
+    List<CommentResponse> comments,
+    List<CommentResponse> commentLikes,
+    List<ArticleDto> articleViews
 ) {
 }
