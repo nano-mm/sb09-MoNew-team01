@@ -11,9 +11,8 @@ import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.impl.ArticleBackupServiceImpl;
-import com.monew.storage.backup.BackupStorage;
+import com.monew.storage.backup.ArticleBackupStorage;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,13 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.WritableResource;
-import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.Instant;
 import java.util.List;
 
@@ -50,7 +45,7 @@ class ArticleBackupServiceTest {
   @Mock private ObjectMapper objectMapper;
   @Mock private ArticleBackupMapper articleBackupMapper;
 
-  @Mock private BackupStorage backupStorage;
+  @Mock private ArticleBackupStorage articleBackupStorage;
 
   @Test
   @DisplayName("뉴스 기사 백업")
@@ -69,7 +64,7 @@ class ArticleBackupServiceTest {
 
     backupService.export();
 
-    verify(backupStorage).saveBackup(anyString(), anyString());
+    verify(articleBackupStorage).saveBackup(anyString(), anyString());
   }
 
   @Test
@@ -79,7 +74,7 @@ class ArticleBackupServiceTest {
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
 
-    given(backupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
 
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .title("test")

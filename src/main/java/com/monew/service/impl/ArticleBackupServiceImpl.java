@@ -11,7 +11,7 @@ import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleBackupService;
-import com.monew.storage.backup.BackupStorage;
+import com.monew.storage.backup.ArticleBackupStorage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -41,7 +41,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
   private final ObjectMapper objectMapper;
   private final ArticleBackupMapper articleBackupMapper;
   
-  private final BackupStorage backupStorage;
+  private final ArticleBackupStorage articleBackupStorage;
 
   @Override
   @Transactional(readOnly = true)
@@ -84,7 +84,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
       String fileName = "backup_" + date.toString() + ".json";
       String jsonData = objectMapper.writeValueAsString(data); // DTO를 JSON 문자열로 변환
       
-      backupStorage.saveBackup(fileName, jsonData);
+      articleBackupStorage.saveBackup(fileName, jsonData);
       log.info("[뉴스 기사] 백업 완료: {}", fileName);
     }
   }
@@ -93,7 +93,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
   @Transactional
   public void importBackup() throws IOException {
 
-    List<Resource> backupResources = backupStorage.loadBackupResources();
+    List<Resource> backupResources = articleBackupStorage.loadBackupResources();
 
     if (backupResources.isEmpty()) {
       log.warn("[뉴스 기사] 백업 경로에 파일이 없습니다.");

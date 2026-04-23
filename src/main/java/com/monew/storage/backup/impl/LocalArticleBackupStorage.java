@@ -1,6 +1,6 @@
 package com.monew.storage.backup.impl;
 
-import com.monew.storage.backup.BackupStorage;
+import com.monew.storage.backup.ArticleBackupStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ import java.util.List;
 @Component
 @ConditionalOnProperty(name = "monew.storage.type", havingValue = "local", matchIfMissing = true)
 @RequiredArgsConstructor
-public class LocalBackupStorage implements BackupStorage {
+public class LocalArticleBackupStorage implements ArticleBackupStorage {
 
   private final ResourcePatternResolver resourcePatternResolver;
 

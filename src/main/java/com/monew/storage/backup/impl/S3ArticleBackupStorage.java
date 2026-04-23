@@ -1,6 +1,6 @@
 package com.monew.storage.backup.impl;
 
-import com.monew.storage.backup.BackupStorage;
+import com.monew.storage.backup.ArticleBackupStorage;
 import java.io.InputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import java.util.List;
 @Component
 @ConditionalOnProperty(name = "monew.storage.type", havingValue = "s3")
 @RequiredArgsConstructor
-public class S3BackupStorage implements BackupStorage {
+public class S3ArticleBackupStorage implements ArticleBackupStorage {
 
   private final S3Client s3Client;
   private final ResourceLoader resourceLoader;

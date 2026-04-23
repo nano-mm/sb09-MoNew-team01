@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import org.springframework.core.io.Resource;
 
-public interface BackupStorage {
+public interface ArticleBackupStorage {
 
   void saveBackup(String fileName, String jsonData) throws IOException;
 
