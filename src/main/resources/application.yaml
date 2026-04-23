@@ -30,6 +30,13 @@ monew:
     notification-cleanup:
       cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * *}
 
-app:
-  backup:
-    dir: ${BACKUP_DIR:file:./backups/}
+  storage:
+    type: ${STORAGE_TYPE:local}
+    local:
+      root-path: ${STORAGE_LOCAL_ROOT_PATH:./storage}
+    s3:
+      access-key: ${AWS_S3_ACCESS_KEY}
+      secret-key: ${AWS_S3_SECRET_KEY}
+      region: ${AWS_S3_REGION}
+      bucket: ${AWS_S3_BUCKET}
+      presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:600}
