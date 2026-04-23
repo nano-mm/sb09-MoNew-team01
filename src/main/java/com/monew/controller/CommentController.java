@@ -1,13 +1,16 @@
 package com.monew.controller;
 
+import com.monew.config.LoginUser;
 import com.monew.dto.comment.CommentSortType;
+import com.monew.dto.request.CommentResponseDto;
 import com.monew.dto.request.CreateCommentRequest;
 import com.monew.dto.request.UpdateCommentRequest;
+import com.monew.dto.response.CommentDto;
 import com.monew.dto.response.CommentLikeResponse;
-import com.monew.dto.response.CommentResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.service.CommentService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,27 +27,39 @@ public class CommentController {
   private final CommentService commentService;
 
   @PostMapping
-  public ResponseEntity<CommentResponse> createComment(
+  public ResponseEntity<CommentDto> createComment(
       @RequestBody @Valid CreateCommentRequest request
   ) {
     log.info("댓글 생성 요청 수신: userId={}", request.userId());
-    CommentResponse commentResponse = commentService.createComment(request.userId(),
-        request.articleId(), request.content());
-    log.debug("댓글 생성 요청 처리 완료: commentId={}", commentResponse.id());
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentResponse);
+    CommentDto commentDto =
+        commentService.createComment(request.userId(), request.articleId(), request.content());
+    log.debug("댓글 생성 요청 처리 완료: commentId={}", commentDto.id());
+    return ResponseEntity.status(HttpStatus.CREATED).body(commentDto);
+  }
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponseDto<CommentDto>> getComments(
+      @LoginUser UUID userId,
+      @ModelAttribute CommentResponseDto requestDto
+  ) {
+    UUID articleId = requestDto.articleId();
+    log.info("댓글 목록 조회 요청 수신: userId={}, articleId={}", userId, articleId);
+    CursorPageResponseDto<CommentDto> responseDto = commentService.getComments(requestDto, userId);
+    log.debug("댓글 목록 조회 요청 처리 완료: articleId={}", articleId);
+    return ResponseEntity.ok(responseDto);
   }
 
   @PatchMapping("/{commentId}")
-  public ResponseEntity<CommentResponse> updateComment(
+  public ResponseEntity<CommentDto> updateComment(
       @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID commentId,
       @RequestBody @Valid UpdateCommentRequest request
   ) {
     log.info("댓글 수정 요청 수신: userId={}, commentId={}", userId, commentId);
-    CommentResponse commentResponse = commentService.updateComment(userId, commentId,
+    CommentDto commentDto = commentService.updateComment(userId, commentId,
         request.content());
     log.debug("댓글 수정 요청 처리 완료: commentId={}", commentId);
-    return ResponseEntity.ok(commentResponse);
+    return ResponseEntity.ok(commentDto);
   }
 
   // 논리 삭제 (Soft Delete) — isDeleted 플래그만 true로 변경
@@ -91,20 +106,5 @@ public class CommentController {
     commentService.unlikeComment(userId, commentId);
     log.debug("댓글 좋아요 취소 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
-  }
-
-  @GetMapping
-  public ResponseEntity<CursorPageResponseDto<CommentResponse>> getComments(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
-      @RequestParam UUID articleId,
-      @RequestParam CommentSortType sortType,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(defaultValue = "10") int size
-  ) {
-    log.info("댓글 목록 조회 요청 수신: userId={}, articleId={}", userId, articleId);
-    CursorPageResponseDto<CommentResponse> response =
-        commentService.getComments(articleId, userId, sortType, cursor, size);
-    log.debug("댓글 목록 조회 요청 처리 완료: articleId={}", articleId);
-    return ResponseEntity.ok(response);
   }
 }
