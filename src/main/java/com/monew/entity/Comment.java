@@ -47,6 +47,9 @@ public class Comment extends BaseEntity {
   @Column(name = "like_count", nullable = false)
   private int likeCount = 0;
 
+  @Column(name = "is_deleted", nullable = false)
+  private boolean isDeleted = false;
+
   @Column(name = "deleted_at")
   private Instant deletedAt;  // LocalDateTime → Instant 통일
 
@@ -57,6 +60,7 @@ public class Comment extends BaseEntity {
     this.article = article;
     this.user = user;
     this.content = content;
+    this.isDeleted = false;
   }
 
   public static Comment create(Article article, User user, String content) {
@@ -73,8 +77,11 @@ public class Comment extends BaseEntity {
 
   // isDeleted() + softDelete() → 하나로 통합
   public void softDelete(boolean isDelete) {
+    this.isDeleted = isDelete;
     if (isDelete) {
       this.deletedAt = Instant.now();
+    } else {
+      this.deletedAt = null;
     }
   }
 
