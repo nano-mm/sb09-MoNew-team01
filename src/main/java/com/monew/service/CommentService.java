@@ -51,7 +51,9 @@ public class CommentService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
-    commentRepository.save(comment);
+    commentRepository.saveAndFlush(comment);
+
+    articleRepository.incrementCommentCount(article.getId());
 
     return commentMapper.toResponse(comment);
 
@@ -73,7 +75,8 @@ public class CommentService {
 
   public void deleteComment(UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    comment.softDelete(Instant.now());  // isDeleted = true 플래그만 변경
+    comment.softDelete(Instant.now());
+    articleRepository.decrementCommentCount(comment.getArticleId());
   }
 
   public void hardDeleteComment(UUID userId, UUID commentId) {
