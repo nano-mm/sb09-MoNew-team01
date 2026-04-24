@@ -3,6 +3,7 @@ package com.monew.unit.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
+import com.monew.config.JpaAuditConfig;
 import com.monew.config.TestQueryDslConfig;
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
@@ -24,7 +25,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import(TestQueryDslConfig.class)
+@Import({TestQueryDslConfig.class, JpaAuditConfig.class})
 class CommentRepositoryTest {
 
   @Autowired
