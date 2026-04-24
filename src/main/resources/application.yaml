@@ -20,6 +20,8 @@ naver:
     secret: ${NAVER_CLIENT_SECRET:temp}
 
 monew:
+  mongodb:
+    enabled: ${MONGODB_ENABLED:false}
   batch:
     news:
       cron: ${NEWS_CRON_TIME:0 0 * * * *}
