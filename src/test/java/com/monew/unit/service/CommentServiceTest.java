@@ -83,7 +83,7 @@ class CommentServiceTest {
       when(userRepository.findById(userId)).thenReturn(Optional.of(user));
       
       CommentDto responseDto = new CommentDto(UUID.randomUUID(), articleId, userId, "tester", content, 0, false, Instant.now());
-      when(commentMapper.toResponse(any(Comment.class), eq(user))).thenReturn(responseDto);
+      when(commentMapper.toResponse(any(Comment.class))).thenReturn(responseDto);
 
       // when
       CommentDto result = commentService.createComment(userId, articleId, content);
@@ -173,10 +173,9 @@ class CommentServiceTest {
       when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
       // when
-      commentService.deleteComment(userId, commentId);
+      commentService.deleteComment(commentId);
 
       // then
-      assertThat(comment.isDeleted()).isTrue();
       assertThat(comment.getDeletedAt()).isNotNull();
     }
 
@@ -189,7 +188,7 @@ class CommentServiceTest {
       Comment comment = Comment.create(article, otherUser, "content");
       when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
-      assertThatThrownBy(() -> commentService.deleteComment(userId, commentId))
+      assertThatThrownBy(() -> commentService.deleteComment(commentId))
           .isInstanceOf(ForbiddenException.class);
     }
 
