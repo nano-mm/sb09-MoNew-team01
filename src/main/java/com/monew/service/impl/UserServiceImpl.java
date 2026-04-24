@@ -146,7 +146,7 @@ public class UserServiceImpl implements UserService {
         .subscriptions(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
             .map(subscriptionMapper::toDto)
             .toList())
-        .comments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
+        .comments(commentRepository.findTop10ByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId).stream()
             .map(commentMapper::toActivityDto)
             .toList())
         .commentLikes(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
