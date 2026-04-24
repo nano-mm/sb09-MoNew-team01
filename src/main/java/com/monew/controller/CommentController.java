@@ -51,7 +51,7 @@ public class CommentController {
 
   @PatchMapping("/{commentId}")
   public ResponseEntity<CommentDto> updateComment(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @LoginUser UUID userId,
       @PathVariable UUID commentId,
       @RequestBody @Valid UpdateCommentRequest request
   ) {
@@ -65,11 +65,10 @@ public class CommentController {
   // 논리 삭제 (Soft Delete) — isDeleted 플래그만 true로 변경
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
       @PathVariable UUID commentId
   ) {
-    log.info("댓글 논리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
-    commentService.deleteComment(userId, commentId);
+    log.info("댓글 논리 삭제 요청 수신: commentId={}", commentId);
+    commentService.deleteComment(commentId);
     log.debug("댓글 논리 삭제 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
   }
@@ -77,7 +76,7 @@ public class CommentController {
   // 물리 삭제 (Hard Delete) — DB에서 실제로 제거
   @DeleteMapping("/{commentId}/hard")
   public ResponseEntity<Void> hardDeleteComment(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
     log.info("댓글 물리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
@@ -88,7 +87,7 @@ public class CommentController {
 
   @PostMapping("/{commentId}/comment-likes")
   public ResponseEntity<CommentLikeResponse> like(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
     log.info("댓글 좋아요 요청 수신: userId={}, commentId={}", userId, commentId);
@@ -99,7 +98,7 @@ public class CommentController {
 
   @DeleteMapping("/{commentId}/comment-likes")
   public ResponseEntity<Void> unlike(
-      @RequestHeader("Monew-Request-User-ID") UUID userId,
+      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
     log.info("댓글 좋아요 취소 요청 수신: userId={}, commentId={}", userId, commentId);
