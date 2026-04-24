@@ -180,7 +180,7 @@ public class ArticleQueryRepository {
   }
 
   // 읽은 기사 조회
-  // 조회한 기사를 요청자 읽었는지 판별하기 위한 메서드
+  // 조회한 기사를 요청자가 읽었는지 판별하기 위한 메서드
   private Set<UUID> getViewedArticleIds(UUID userId, List<UUID> articleIds) {
     if (userId == null || articleIds.isEmpty()) {
       return Collections.emptySet();

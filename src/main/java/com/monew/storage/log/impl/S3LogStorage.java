@@ -34,6 +34,6 @@ public class S3LogStorage implements LogStorage {
         .build();
 
     s3Client.putObject(putObjectRequest, RequestBody.fromFile(logFile));
-    log.info("S3 버킷에 로그 적재 완료: s3://{}/{}", s3Bucket, key);
+    log.info("[로그 백업] S3 버킷에 로그 적재 완료: s3://{}/{}", s3Bucket, key);
   }
 }

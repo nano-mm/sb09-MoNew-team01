@@ -11,8 +11,9 @@
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${LOG_PATH}/monew.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_PATH}/monew.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
-      <maxHistory>720</maxHistory> </rollingPolicy>
+      <fileNamePattern>${LOG_PATH}/%d{yyyy-MM-dd, aux}/monew.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+      <maxHistory>720</maxHistory>
+    </rollingPolicy>
     <encoder><pattern>${MDC_PATTERN}</pattern></encoder>
   </appender>
 
