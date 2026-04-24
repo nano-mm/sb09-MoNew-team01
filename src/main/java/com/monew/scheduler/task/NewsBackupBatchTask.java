@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class NewsBackupBatchTask implements BatchTask {
   private final ArticleBackupService articleBackupService;
 
-  @Value("${monew.batch.newsbackup.cron}")
+  @Value("${monew.batch.news-backup.cron}")
   private String cron;
 
   @Override
