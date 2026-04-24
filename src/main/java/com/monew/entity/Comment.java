@@ -51,7 +51,7 @@ public class Comment extends BaseEntity {
   private boolean isDeleted = false;
 
   @Column(name = "deleted_at")
-  private Instant deletedAt;  // LocalDateTime → Instant 통일
+  private Instant deletedAt;
 
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentLike> likes = new ArrayList<>();
@@ -102,4 +102,8 @@ public class Comment extends BaseEntity {
   public UUID getUserId() {
     return user.getId();
   }
+
+  public String getUserNickname() { return user.getNickname(); }
+
+  public String getArticleTitle() { return article.getTitle(); }
 }
