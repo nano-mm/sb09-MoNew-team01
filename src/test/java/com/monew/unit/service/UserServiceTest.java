@@ -1,26 +1,28 @@
 package com.monew.unit.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
+import com.monew.dto.response.UserActivityDto;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
-import com.monew.exception.user.*;
-import com.monew.mapper.ArticleMapper;
-import com.monew.mapper.CommentMapper;
-import com.monew.mapper.InterestMapper;
+import com.monew.exception.user.AlreadyExistEmailException;
+import com.monew.exception.user.PasswordPatternException;
 import com.monew.mapper.UserMapper;
-import com.monew.repository.ArticleViewRepository;
-import com.monew.repository.CommentLikeRepository;
-import com.monew.repository.CommentRepository;
-import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
+import com.monew.service.UserActivityDtoBuilder;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.service.impl.UserServiceImpl;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
@@ -36,6 +38,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -44,15 +47,9 @@ class UserServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private UserMapper userMapper;
   @Mock private EntityManager entityManager;
-  
-  @Mock private SubscriptionRepository subscriptionRepository;
-  @Mock private CommentRepository commentRepository;
-  @Mock private CommentLikeRepository commentLikeRepository;
-  @Mock private ArticleViewRepository articleViewRepository;
-  
-  @Mock private InterestMapper interestMapper;
-  @Mock private CommentMapper commentMapper;
-  @Mock private ArticleMapper articleMapper;
+
+  @Mock private UserActivityDtoBuilder userActivityDtoBuilder;
+  @Mock private UserActivityReadModelService userActivityReadModelService;
 
   @InjectMocks
   private UserServiceImpl userService;
@@ -148,6 +145,7 @@ class UserServiceTest {
 
     UserDto result = userService.update(userId, request);
     assertEquals("NewNick", result.nickname());
+    verify(userActivityReadModelService).refreshSnapshot(userId);
   }
 
   @Nested
@@ -179,6 +177,7 @@ class UserServiceTest {
       // then
       verify(entityManager, times(1)).flush();
       verify(entityManager, times(1)).clear();
+      verify(userActivityReadModelService).deleteSnapshot(userId);
       verify(userRepository, times(1)).deleteByIdPhysical(userId);
     }
 
@@ -199,25 +198,28 @@ class UserServiceTest {
   void getActivity_Success() {
     // given
     UUID userId = UUID.randomUUID();
-    User user = User.of("test@test.com", "Tester", "pw");
+    UserActivityDto dto = UserActivityDto.builder()
+        .id(userId)
+        .email("test@test.com")
+        .nickname("Tester")
+        .createdAt(Instant.now())
+        .subscriptions(Collections.emptyList())
+        .comments(Collections.emptyList())
+        .commentLikes(Collections.emptyList())
+        .articleViews(Collections.emptyList())
+        .build();
 
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "Tester", Instant.now()));
-    when(subscriptionRepository.findAllByUserIdWithInterest(userId)).thenReturn(Collections.emptyList());
-    when(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
-    when(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(eq(userId), any())).thenReturn(Collections.emptyList());
-    when(articleViewRepository.findTop10ByUserIdWithArticle(eq(userId), any())).thenReturn(Collections.emptyList());
+    when(userRepository.existsById(userId)).thenReturn(true);
+    when(userActivityReadModelService.isEnabled()).thenReturn(false);
+    when(userActivityDtoBuilder.build(userId)).thenReturn(dto);
 
     // when
     var result = userService.getActivity(userId);
 
     // then
     assertNotNull(result);
-    assertEquals(userId, result.user().id());
-    verify(userRepository).findById(userId);
-    verify(subscriptionRepository).findAllByUserIdWithInterest(userId);
-    verify(commentRepository).findTop10ByUser_IdOrderByCreatedAtDesc(userId);
-    verify(commentLikeRepository).findTop10ByUserIdWithCommentAndUser(eq(userId), any());
-    verify(articleViewRepository).findTop10ByUserIdWithArticle(eq(userId), any());
+    assertEquals(userId, result.id());
+    verify(userRepository).existsById(userId);
+    verify(userActivityDtoBuilder).build(userId);
   }
 }
