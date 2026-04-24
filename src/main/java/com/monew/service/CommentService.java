@@ -58,7 +58,7 @@ public class CommentService {
 
     userActivityReadModelService.refreshSnapshot(userId);
 
-    return commentMapper.toResponse(comment, user);
+    return commentMapper.toResponse(comment);
 
   }
 
@@ -76,7 +76,7 @@ public class CommentService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     userActivityReadModelService.refreshSnapshot(userId);
-    return commentMapper.toResponse(comment, user);
+    return commentMapper.toResponse(comment);
   }
 
   public void deleteComment(UUID userId, UUID commentId) {

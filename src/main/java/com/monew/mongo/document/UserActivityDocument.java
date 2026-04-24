@@ -12,9 +12,6 @@ import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-/**
- * 사용자 활동 내역 조회 전용 역정규화 문서. 사용자당 1건으로 {@code userId} 기준 단일 조회를 목표로 합니다.
- */
 @Document(collection = "user_activities")
 @Getter
 @Setter
@@ -67,6 +64,7 @@ public class UserActivityDocument {
     private String articleTitle;
     private UUID userId;
     private String userNickname;
+    private String content;
     private long likeCount;
     private Instant createdAt;
   }

@@ -89,6 +89,7 @@ public class UserActivityReadModelService {
                 c.getArticleTitle(),
                 c.getUserId(),
                 c.getUserNickname(),
+                c.getContent(),
                 c.getLikeCount(),
                 c.getCreatedAt()))
             .toList())
@@ -146,6 +147,7 @@ public class UserActivityReadModelService {
                 .articleTitle(c.articleTitle())
                 .userId(c.userId())
                 .userNickname(c.userNickname())
+                .content(c.content())
                 .likeCount(c.likeCount())
                 .createdAt(c.createdAt())
                 .build())
