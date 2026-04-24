@@ -15,15 +15,15 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
   boolean existsBySourceUrl(String url);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Article a SET a.viewCount = a.viewCount + 1 WHERE a.id = :articleId")
   void incrementViewCount(@Param("articleId") UUID articleId);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Article a SET a.commentCount = a.commentCount + 1 WHERE a.id = :articleId")
   void incrementCommentCount(@Param("articleId") UUID articleId);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE Article a SET a.commentCount = a.commentCount - 1 WHERE a.id = :articleId AND a.commentCount > 0")
   void decrementCommentCount(@Param("articleId") UUID articleId);
 }
