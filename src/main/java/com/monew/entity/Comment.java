@@ -17,7 +17,6 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(
@@ -28,7 +27,6 @@ import org.hibernate.annotations.SQLRestriction;
         @Index(name = "idx_comment_like_count", columnList = "like_count")
     }
 )
-@SQLRestriction("is_deleted = false")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
@@ -47,11 +45,8 @@ public class Comment extends BaseEntity {
   @Column(name = "like_count", nullable = false)
   private int likeCount = 0;
 
-  @Column(name = "is_deleted", nullable = false)
-  private boolean isDeleted = false;
-
   @Column(name = "deleted_at")
-  private Instant deletedAt;  // LocalDateTime → Instant 통일
+  private Instant deletedAt;
 
   @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentLike> likes = new ArrayList<>();
@@ -60,7 +55,6 @@ public class Comment extends BaseEntity {
     this.article = article;
     this.user = user;
     this.content = content;
-    this.isDeleted = false;
   }
 
   public static Comment create(Article article, User user, String content) {
@@ -75,14 +69,8 @@ public class Comment extends BaseEntity {
     this.content = newContent;
   }
 
-  // isDeleted() + softDelete() → 하나로 통합
-  public void softDelete(boolean isDelete) {
-    this.isDeleted = isDelete;
-    if (isDelete) {
-      this.deletedAt = Instant.now();
-    } else {
-      this.deletedAt = null;
-    }
+  public void softDelete(Instant time) {
+    this.deletedAt = time;
   }
 
   public void increaseLikeCount() {
