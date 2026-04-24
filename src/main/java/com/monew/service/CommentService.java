@@ -59,6 +59,11 @@ public class CommentService {
 
   public CommentDto updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
+
+    if(userRepository.findById(userId).isEmpty()) {
+      throw new UserNotFoundException("사용자를 찾을 수 없습니다");
+    }
+
     if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
@@ -66,12 +71,9 @@ public class CommentService {
     return commentMapper.toResponse(comment);
   }
 
-  public void deleteComment(UUID userId, UUID commentId) {
+  public void deleteComment(UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
-    comment.softDelete(true);  // isDeleted = true 플래그만 변경
+    comment.softDelete(Instant.now());  // isDeleted = true 플래그만 변경
   }
 
   public void hardDeleteComment(UUID userId, UUID commentId) {
@@ -170,7 +172,7 @@ public class CommentService {
       }
     }
 
-    long totalElements = commentRepository.countByArticleId(articleId);
+    long totalElements = commentRepository.countByArticle_IdAndDeletedAtIsNull(articleId);
 
     return CursorPageResponseDto.<CommentDto>builder()
         .content(content)
