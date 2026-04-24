@@ -80,7 +80,7 @@ class ArticleViewServiceTest {
   @DisplayName("기사 조회 내역 생성 - 성공")
   void create_Success() {
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+//    given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     given(articleViewRepository.saveAndFlush(any(ArticleView.class))).willReturn(articleView);
     given(articleViewMapper.toDto(any(ArticleView.class), eq(article))).willReturn(articleViewDto);
