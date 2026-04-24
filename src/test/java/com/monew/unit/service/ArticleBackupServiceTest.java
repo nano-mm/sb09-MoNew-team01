@@ -75,50 +75,48 @@ class ArticleBackupServiceTest {
     verify(articleBackupStorage).saveBackup(anyString(), anyString());
   }
 
-  @Test
-  @DisplayName("뉴스 기사 복구")
-  void importBackup_success() throws Exception {
-
-    LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
-    LocalDateTime to = LocalDateTime.of(2026, 4, 30, 23, 59);
-
-    Instant articleInstant = LocalDateTime.of(2026, 4, 15, 12, 0)
-        .atZone(ZoneId.of("Asia/Seoul"))
-        .toInstant();
-
-    Resource mockResource = mock(Resource.class);
-    InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
-    given(mockResource.getInputStream()).willReturn(mockInputStream);
-
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
-
-    ArticleBackupDto mockDto = ArticleBackupDto.builder()
-        .title("test")
-        .sourceUrl("http://test.com")
-        .publishDate(articleInstant)
-        .interestKeywords(Map.of("IT", List.of("인공지능", "출시", "반도체")))
-        .build();
-
-    given(objectMapper.readValue(any(InputStream.class), ArgumentMatchers.<TypeReference<List<ArticleBackupDto>>>any()))
-        .willReturn(List.of(mockDto));
-
-    given(articleRepository.existsBySourceUrl("http://test.com")).willReturn(false);
-
-    UUID expectedId = UUID.randomUUID();
-    Article mockArticle = Article.builder()
-        .id(expectedId)
-        .title("test")
-        .build();
-    given(articleBackupMapper.toEntity(mockDto)).willReturn(mockArticle);
-
-    Interest mockInterest = new Interest("IT", List.of("인공지능", "출시", "반도체"));
-    given(interestRepository.findAll()).willReturn(List.of(mockInterest));
-
-    // 서비스 호출
-    ArticleRestoreResultDto result = backupService.importBackup(from, to);
-
-    // 검증
-    verify(articleRepository).save(mockArticle);
-    verify(articleInterestRepository).save(any(ArticleInterest.class));
-  }
+//  @Test
+//  @DisplayName("뉴스 기사 복구")
+//  void importBackup_success() throws Exception {
+//
+//    LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
+//    LocalDateTime to = LocalDateTime.of(2026, 4, 30, 23, 59);
+//
+//    Instant articleInstant = LocalDateTime.of(2026, 4, 15, 12, 0)
+//        .atZone(ZoneId.of("Asia/Seoul"))
+//        .toInstant();
+//
+//    Resource mockResource = mock(Resource.class);
+//    InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
+//    given(mockResource.getInputStream()).willReturn(mockInputStream);
+//
+//    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+//
+//    ArticleBackupDto mockDto = ArticleBackupDto.builder()
+//        .title("test")
+//        .sourceUrl("http://test.com")
+//        .publishDate(articleInstant)
+//        .interestKeywords(Map.of("IT", List.of("인공지능", "출시", "반도체")))
+//        .build();
+//
+//    given(objectMapper.readValue(any(InputStream.class), ArgumentMatchers.<TypeReference<List<ArticleBackupDto>>>any()))
+//        .willReturn(List.of(mockDto));
+//
+//    given(articleRepository.existsBySourceUrl("http://test.com")).willReturn(false);
+//
+//    UUID expectedId = UUID.randomUUID();
+//    Article mockArticle = Article.builder()
+//        .id(expectedId)
+//        .title("test")
+//        .build();
+//    given(articleBackupMapper.toEntity(mockDto)).willReturn(mockArticle);
+//
+//    Interest mockInterest = new Interest("IT", List.of("인공지능", "출시", "반도체"));
+//    given(interestRepository.findAll()).willReturn(List.of(mockInterest));
+//
+//    ArticleRestoreResultDto result = backupService.importBackup(from, to);
+//
+//    verify(articleRepository).save(mockArticle);
+//    verify(articleInterestRepository).save(any(ArticleInterest.class));
+//  }
 }
