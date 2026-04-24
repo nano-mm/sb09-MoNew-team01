@@ -103,4 +103,5 @@ public class InterestController {
   ) {
     interestService.unsubscribe(userId, interestId);
   }
+
 }

@@ -211,7 +211,7 @@ class UserServiceTest {
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(subscriptionRepository.findAllByUserIdWithInterest(userId)).thenReturn(Collections.emptyList());
-    when(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
+    when(commentRepository.findTop10ByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
     when(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(eq(userId), any())).thenReturn(Collections.emptyList());
     when(articleViewRepository.findTop10ByUserIdWithArticle(eq(userId), any())).thenReturn(Collections.emptyList());
 
@@ -223,7 +223,7 @@ class UserServiceTest {
     assertEquals(userId, result.id());
     verify(userRepository).findById(userId);
     verify(subscriptionRepository).findAllByUserIdWithInterest(userId);
-    verify(commentRepository).findTop10ByUser_IdOrderByCreatedAtDesc(userId);
+    verify(commentRepository).findTop10ByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
     verify(commentLikeRepository).findTop10ByUserIdWithCommentAndUser(eq(userId), any());
     verify(articleViewRepository).findTop10ByUserIdWithArticle(eq(userId), any());
   }

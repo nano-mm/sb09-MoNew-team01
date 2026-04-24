@@ -9,6 +9,7 @@ public record CommentActivityDto(
     String articleTitle,
     UUID userId,
     String userNickname,
+    String content,
     long likeCount,
     Instant createdAt
 ) {
