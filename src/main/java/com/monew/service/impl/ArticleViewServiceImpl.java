@@ -10,6 +10,7 @@ import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleViewService;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,14 +30,23 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   @Override
   @Transactional
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {
+    Optional<ArticleView> existingView = articleViewRepository.findByArticleIdAndUserId(articleId, requestUserId);
+
+    if (existingView.isPresent()) {
+      log.info("[뉴스 기사 뷰] 이미 조회한 기사입니다.");
+      Article articleProxy = articleRepository.getReferenceById(articleId);
+      return articleViewMapper.toDto(existingView.get(), articleProxy);
+    }
+
+
+    Article article = articleRepository.findById(articleId).orElseThrow();
+    User userProxy = userRepository.getReferenceById(requestUserId);
 
     log.info("[뉴스 기사 뷰] 생성 시작. articleId: {}, requestUserId: {}", articleId, requestUserId);
-    Article article = articleRepository.findById(articleId).orElseThrow();
-    User user = userRepository.findById(requestUserId).orElseThrow();
 
     ArticleView newArticleView = ArticleView.builder()
         .article(article)
-        .user(user)
+        .user(userProxy)
         .build();
 
     articleViewRepository.saveAndFlush(newArticleView);
