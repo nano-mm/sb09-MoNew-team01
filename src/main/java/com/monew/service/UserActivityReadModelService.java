@@ -36,7 +36,9 @@ public class UserActivityReadModelService {
     if (repo == null) {
       return Optional.empty();
     }
-    return repo.findById(userId.toString()).map(this::toDto);
+
+    return repo.findById(userId)
+        .map(this::toDto);
   }
 
   public void refreshSnapshot(UUID userId) {
@@ -44,6 +46,7 @@ public class UserActivityReadModelService {
     if (repo == null) {
       return;
     }
+
     UserActivityDto dto = activityDtoBuilder.build(userId);
     repo.save(fromDto(dto));
   }
@@ -53,7 +56,8 @@ public class UserActivityReadModelService {
     if (repo == null) {
       return;
     }
-    repo.deleteById(userId.toString());
+
+    repo.deleteById(userId);
   }
 
   public void refreshSnapshotsForInterestSubscribers(UUID interestId) {
@@ -61,7 +65,9 @@ public class UserActivityReadModelService {
     if (repo == null) {
       return;
     }
+
     List<UUID> userIds = subscriptionRepository.findDistinctUserIdsByInterestId(interestId);
+
     for (UUID userId : userIds) {
       refreshSnapshot(userId);
     }
@@ -69,7 +75,7 @@ public class UserActivityReadModelService {
 
   private UserActivityDto toDto(UserActivityDocument doc) {
     return UserActivityDto.builder()
-        .id(UUID.fromString(doc.getId()))
+        .id(doc.getUserId())
         .email(doc.getEmail())
         .nickname(doc.getNickname())
         .createdAt(doc.getUserCreatedAt())
@@ -80,7 +86,8 @@ public class UserActivityReadModelService {
                 s.getInterestName(),
                 s.getInterestKeywords() != null ? List.copyOf(s.getInterestKeywords()) : List.of(),
                 s.getInterestSubscriberCount(),
-                s.getCreatedAt()))
+                s.getCreatedAt()
+            ))
             .toList())
         .comments(doc.getComments().stream()
             .map(c -> new CommentActivityDto(
@@ -91,7 +98,8 @@ public class UserActivityReadModelService {
                 c.getUserNickname(),
                 c.getContent(),
                 c.getLikeCount(),
-                c.getCreatedAt()))
+                c.getCreatedAt()
+            ))
             .toList())
         .commentLikes(doc.getCommentLikes().stream()
             .map(cl -> new CommentLikeActivityDto(
@@ -104,7 +112,8 @@ public class UserActivityReadModelService {
                 cl.getCommentUserNickname(),
                 cl.getCommentContent(),
                 cl.getCommentLikeCount(),
-                cl.getCommentCreatedAt()))
+                cl.getCommentCreatedAt()
+            ))
             .toList())
         .articleViews(doc.getArticleViews().stream()
             .map(av -> ArticleViewDto.builder()
@@ -119,14 +128,15 @@ public class UserActivityReadModelService {
                 .articleSummary(av.getArticleSummary())
                 .articleCommentCount(av.getArticleCommentCount())
                 .articleViewCount(av.getArticleViewCount())
-                .build())
+                .build()
+            )
             .toList())
         .build();
   }
 
   private UserActivityDocument fromDto(UserActivityDto dto) {
     return UserActivityDocument.builder()
-        .id(dto.id().toString())
+        .userId(dto.id())
         .email(dto.email())
         .nickname(dto.nickname())
         .userCreatedAt(dto.createdAt())
@@ -138,7 +148,8 @@ public class UserActivityReadModelService {
                 .interestKeywords(s.interestKeywords() != null ? List.copyOf(s.interestKeywords()) : List.of())
                 .interestSubscriberCount(s.interestSubscriberCount())
                 .createdAt(s.createdAt())
-                .build())
+                .build()
+            )
             .toList())
         .comments(dto.comments().stream()
             .map(c -> CommentActivityEntry.builder()
@@ -150,7 +161,8 @@ public class UserActivityReadModelService {
                 .content(c.content())
                 .likeCount(c.likeCount())
                 .createdAt(c.createdAt())
-                .build())
+                .build()
+            )
             .toList())
         .commentLikes(dto.commentLikes().stream()
             .map(cl -> CommentLikeActivityEntry.builder()
@@ -164,7 +176,8 @@ public class UserActivityReadModelService {
                 .commentContent(cl.commentContent())
                 .commentLikeCount(cl.commentLikeCount())
                 .commentCreatedAt(cl.commentCreatedAt())
-                .build())
+                .build()
+            )
             .toList())
         .articleViews(dto.articleViews().stream()
             .map(av -> ArticleViewEntry.builder()
@@ -179,7 +192,8 @@ public class UserActivityReadModelService {
                 .articleSummary(av.articleSummary())
                 .articleCommentCount(av.articleCommentCount())
                 .articleViewCount(av.articleViewCount())
-                .build())
+                .build()
+            )
             .toList())
         .build();
   }

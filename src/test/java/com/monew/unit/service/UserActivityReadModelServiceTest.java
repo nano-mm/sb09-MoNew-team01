@@ -111,7 +111,7 @@ class UserActivityReadModelServiceTest {
   void findByUserId_ReturnsDto_WhenDocumentExists() {
     UUID userId = UUID.randomUUID();
     UserActivityDocument document = UserActivityDocument.builder()
-        .id(userId.toString())
+        .userId(String.valueOf(userId))
         .email("test@test.com")
         .nickname("Tester")
         .userCreatedAt(Instant.now())
@@ -122,7 +122,7 @@ class UserActivityReadModelServiceTest {
         .build();
 
     when(documentRepositoryProvider.getIfAvailable()).thenReturn(documentRepository);
-    when(documentRepository.findById(userId.toString())).thenReturn(Optional.of(document));
+    when(documentRepository.findById(userId)).thenReturn(Optional.of(document));
 
     Optional<UserActivityDto> result = userActivityReadModelService.findByUserId(userId);
 
