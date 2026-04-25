@@ -1,4 +1,8 @@
 spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:}
+      auto-index-creation: true
   h2:
     console:
       enabled: true
@@ -28,3 +32,7 @@ spring:
   sql:
     init:
       mode: always  # data.sql 자동 실행
+
+monew:
+  mongodb:
+    enabled: ${MONGODB_ENABLED:true}

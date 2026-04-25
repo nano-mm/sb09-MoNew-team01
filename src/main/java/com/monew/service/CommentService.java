@@ -43,6 +43,7 @@ public class CommentService {
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
+  private final UserActivityReadModelService userActivityReadModelService;
 
   public CommentDto createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
@@ -54,6 +55,8 @@ public class CommentService {
     commentRepository.saveAndFlush(comment);
 
     articleRepository.incrementCommentCount(article.getId());
+
+    userActivityReadModelService.refreshSnapshot(userId);
 
     return commentMapper.toResponse(comment);
 
@@ -70,13 +73,20 @@ public class CommentService {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
+    userActivityReadModelService.refreshSnapshot(userId);
     return commentMapper.toResponse(comment);
   }
 
-  public void deleteComment(UUID commentId) {
+  public void deleteComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
+    if (!comment.isOwnedBy(userId)) {
+      throw new ForbiddenException();
+    }
     comment.softDelete(Instant.now());
     articleRepository.decrementCommentCount(comment.getArticleId());
+    userActivityReadModelService.refreshSnapshot(userId);
   }
 
   public void hardDeleteComment(UUID userId, UUID commentId) {
@@ -86,6 +96,7 @@ public class CommentService {
       throw new ForbiddenException();
     }
     commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
+    userActivityReadModelService.refreshSnapshot(userId);
   }
 
   public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
@@ -98,6 +109,9 @@ public class CommentService {
     CommentLike commentLike = new CommentLike(comment, user);
     commentLikeRepository.save(commentLike);
     comment.increaseLikeCount();
+
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
 
     return new CommentLikeResponse(
         commentLike.getId(),
@@ -120,6 +134,8 @@ public class CommentService {
       throw new LikeNotFoundException();
     }
     comment.decreaseLikeCount();
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
   @Transactional(readOnly = true)

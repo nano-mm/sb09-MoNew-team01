@@ -25,6 +25,7 @@ import com.monew.repository.CommentRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.CommentService;
+import com.monew.service.UserActivityReadModelService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +54,7 @@ class CommentServiceTest {
   @Mock private ArticleRepository articleRepository;
   @Mock private UserRepository userRepository;
   @Mock private CommentMapper commentMapper;
+  @Mock private UserActivityReadModelService userActivityReadModelService;
 
   private User user;
   private Article article;
@@ -157,7 +159,7 @@ class CommentServiceTest {
       when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
       // when
-      commentService.deleteComment(commentId);
+      commentService.deleteComment(user.getId(), commentId);
 
       // then
       assertThat(comment.getDeletedAt()).isNotNull();

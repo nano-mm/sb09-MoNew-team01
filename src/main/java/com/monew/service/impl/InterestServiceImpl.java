@@ -15,6 +15,7 @@ import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.InterestService;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
@@ -33,6 +34,7 @@ public class InterestServiceImpl implements InterestService {
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserRepository userRepository;
+  private final UserActivityReadModelService userActivityReadModelService;
 
   @Override
   public Interest create(InterestRegisterRequest request) {
@@ -63,6 +65,7 @@ public class InterestServiceImpl implements InterestService {
         .orElseThrow();
 
     interest.updateKeywords(request.keywords());
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(id);
   }
 
   @Override
@@ -157,6 +160,7 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.save(subscription);
 
     interest.increaseSubscriber();
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
   }
 
   @Override
@@ -175,6 +179,7 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.delete(subscription);
 
     interest.decreaseSubscriber();
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
   }
 
 }
