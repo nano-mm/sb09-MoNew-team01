@@ -23,7 +23,7 @@ spring:
       ddl-auto: create-drop
     defer-datasource-initialization: true  # Hibernate 테이블 생성 후 SQL 실행 보장
     open-in-view: false                    # 트랜잭션 범위 최소화
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
