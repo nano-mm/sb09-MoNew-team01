@@ -33,7 +33,7 @@ public class SecurityConfig {
         .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
 
         // 커스텀 필터: Monew-Request-User-ID 헤더를 검증하는 필터
-        .addFilterBefore(new PreAuthenticatedUserFilter(userRepository), UsernamePasswordAuthenticationFilter.class)
+//        .addFilterBefore(new PreAuthenticatedUserFilter(userRepository), UsernamePasswordAuthenticationFilter.class)
 
         .authorizeHttpRequests(auth -> auth
             // 정적 리소스 및 인덱스

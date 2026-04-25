@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class PreAuthenticatedUserFilter extends OncePerRequestFilter {
 
     private final UserRepository userRepository;
-    private static final String USER_ID_HEADER = "MoNew-Request-User-ID";
+    private static final String USER_ID_HEADER = "Monew-Request-User-ID";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
