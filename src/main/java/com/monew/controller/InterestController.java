@@ -87,7 +87,7 @@ public class InterestController {
   @PostMapping("/{interestId}/subscriptions")
   public ResponseEntity<SubscriptionDto> subscribe(
       @PathVariable UUID interestId,
-      @LoginUser UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     SubscriptionDto result = interestService.subscribe(userId, interestId);
 
@@ -102,10 +102,10 @@ public class InterestController {
   @DeleteMapping("/{interestId}/subscriptions")
   public ResponseEntity<Void> unsubscribe(
       @PathVariable UUID interestId,
-      @LoginUser UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     interestService.unsubscribe(userId, interestId);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok().build();
   }
 
 }
