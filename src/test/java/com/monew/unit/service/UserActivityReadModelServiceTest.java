@@ -111,7 +111,7 @@ class UserActivityReadModelServiceTest {
   void findByUserId_ReturnsDto_WhenDocumentExists() {
     UUID userId = UUID.randomUUID();
     UserActivityDocument document = UserActivityDocument.builder()
-        .userId(String.valueOf(userId))
+        .userId(userId)
         .email("test@test.com")
         .nickname("Tester")
         .userCreatedAt(Instant.now())
