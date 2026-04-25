@@ -74,8 +74,10 @@ public class InterestServiceImpl implements InterestService {
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(id);
   }
 
+  // 삭제 시 구독 정보도 삭제하도록 수정 했습니다.
   @Override
   public void delete(UUID id) {
+    subscriptionRepository.deleteByInterestId(id);
     interestRepository.deleteById(id);
   }
 
