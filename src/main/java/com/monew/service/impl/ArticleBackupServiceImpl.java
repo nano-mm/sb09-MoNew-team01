@@ -3,6 +3,7 @@ package com.monew.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monew.dto.backup.ArticleBackupDto;
+import com.monew.dto.response.ArticleRestoreResultDto;
 import com.monew.entity.Article;
 import com.monew.entity.ArticleInterest;
 import com.monew.entity.Interest;
@@ -14,7 +15,9 @@ import com.monew.service.ArticleBackupService;
 import com.monew.storage.backup.ArticleBackupStorage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,19 +94,28 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
 
   @Override
   @Transactional
-  public void importBackup() throws IOException {
+  public ArticleRestoreResultDto importBackup(LocalDateTime from, LocalDateTime to) throws IOException {
 
     List<Resource> backupResources = articleBackupStorage.loadBackupResources();
 
     if (backupResources.isEmpty()) {
       log.warn("[뉴스 기사] 백업 경로에 파일이 없습니다.");
-      return;
+      return ArticleRestoreResultDto.builder()
+          .restoreDate(Instant.now())
+          .restoreArticlesIds(Collections.emptyList())
+          .restoredArticleCount(0L)
+          .build();
     }
+
+    Instant fromInstant = from.atZone(ZoneId.of("Asia/Seoul")).toInstant();
+    Instant toInstant = to.atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
     Map<String, Interest> interestMap = interestRepository.findAll().stream()
         .collect(Collectors.toMap(Interest::getName, i -> i));
 
-    int totalImported = 0;
+    List<Article> articlesToSave = new ArrayList<>();
+    List<Interest> newInterestsToSave = new ArrayList<>();
+    List<ArticleInterest> articleInterestsToSave = new ArrayList<>();
 
     for (Resource resource : backupResources) {
       try (InputStream is = resource.getInputStream()) {
@@ -111,10 +123,17 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
             new TypeReference<List<ArticleBackupDto>>() {});
 
         for (ArticleBackupDto dto : backupList) {
+
+          Instant articleDate = dto.publishDate();
+          if (articleDate == null || articleDate.isBefore(fromInstant) || articleDate.isAfter(toInstant)) {
+            continue;
+          }
+
           if (articleRepository.existsBySourceUrl(dto.sourceUrl())) continue;
 
           Article article = articleBackupMapper.toEntity(dto);
-          articleRepository.save(article);
+          // 💡 2. 즉시 save() 하지 않고 장바구니에 담기
+          articlesToSave.add(article);
 
           Map<String, List<String>> keywordsMap = dto.interestKeywords() != null
               ? dto.interestKeywords()
@@ -128,26 +147,44 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
 
             if (interest == null) {
               interest = new Interest(interestName, keywords);
-              interestRepository.save(interest);
+              newInterestsToSave.add(interest);
               interestMap.put(interestName, interest);
             }
-            articleInterestRepository.save(ArticleInterest.of(article, interest));
+            articleInterestsToSave.add(ArticleInterest.of(article, interest));
           }
-          totalImported++;
         }
       }
     }
-    log.info("[뉴스 기사] 데이터 복구 성공: 총 {}개의 기사가 처리되었습니다.", totalImported);
+
+    if (!newInterestsToSave.isEmpty()) {
+      interestRepository.saveAll(newInterestsToSave);
+    }
+    if (!articlesToSave.isEmpty()) {
+      articleRepository.saveAll(articlesToSave);
+      articleInterestRepository.saveAll(articleInterestsToSave);
+    }
+
+    List<UUID> restoredIds = articlesToSave.stream()
+        .map(Article::getId)
+        .toList();
+
+    log.info("[뉴스 기사] 데이터 복구 성공: 총 {}개의 기사가 처리되었습니다.", restoredIds.size());
+
+    return ArticleRestoreResultDto.builder()
+        .restoreDate(Instant.now())
+        .restoreArticlesIds(restoredIds)
+        .restoredArticleCount((long) restoredIds.size())
+        .build();
   }
 
-  // 프로그램 실행 시 바로 복구. 필요한지는 모르겠는데 일단 만듦
-  @EventListener(ApplicationReadyEvent.class)
-  public void onApplicationReady() {
-    log.info("[뉴스 기사] 백업 데이터 복구 시작");
-    try {
-      this.importBackup();
-    } catch (IOException e) {
-      log.error("[뉴스 기사] 데이터 복구 중 에러 발생", e);
-    }
-  }
+//  // 프로그램 실행 시 바로 복구. 필요한지는 모르겠는데 일단 만듦
+//  @EventListener(ApplicationReadyEvent.class)
+//  public void onApplicationReady() {
+//    log.info("[뉴스 기사] 백업 데이터 복구 시작");
+//    try {
+//      this.importBackup();
+//    } catch (IOException e) {
+//      log.error("[뉴스 기사] 데이터 복구 중 에러 발생", e);
+//    }
+//  }
 }

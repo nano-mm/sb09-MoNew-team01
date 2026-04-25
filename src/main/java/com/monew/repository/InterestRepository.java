@@ -13,7 +13,7 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
 
   @Query("""
 select distinct i from Interest i
-left join i.keywords k
+left join fetch i.keywords k
 where (:keyword is null 
    or i.name like concat('%', :keyword, '%')
    or k like concat('%', :keyword, '%')
@@ -33,7 +33,7 @@ order by i.name asc, i.createdAt asc
 
   @Query("""
 select distinct i from Interest i
-left join i.keywords k
+left join fetch i.keywords k
 where (:keyword is null 
    or i.name like concat('%', :keyword, '%')
    or k like concat('%', :keyword, '%')
@@ -53,7 +53,7 @@ order by i.name desc, i.createdAt asc
 
   @Query("""
 select distinct i from Interest i
-left join i.keywords k
+left join fetch i.keywords k
 where (:keyword is null 
    or i.name like concat('%', :keyword, '%')
    or k like concat('%', :keyword, '%')
@@ -73,7 +73,7 @@ order by i.subscriberCount asc, i.createdAt asc
 
   @Query("""
 select distinct i from Interest i
-left join i.keywords k
+left join fetch i.keywords k
 where (:keyword is null 
    or i.name like concat('%', :keyword, '%')
    or k like concat('%', :keyword, '%')
