@@ -25,4 +25,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   Optional<Subscription> findByUserAndInterest(User user, Interest interest);
 
   long countByInterest(Interest interest);
+
+  void deleteByInterestId(UUID interestId);
 }
