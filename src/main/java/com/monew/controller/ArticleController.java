@@ -68,7 +68,9 @@ public class ArticleController {
   }
 
   @GetMapping("/{articleId}")
-  public ResponseEntity<ArticleDto> search(@Valid @PathVariable UUID articleId){
+  public ResponseEntity<ArticleDto> search(@Valid @PathVariable UUID articleId,
+      @RequestHeader("Monew-Request-User-ID") UUID userId
+  ){
     log.info("[뉴스 기사] 단건 조회 요청 수신: articleId={}", articleId);
     ArticleDto result = articleService.find(articleId);
     log.debug("[뉴스 기사] 단건 조회 요청 처리 완료: articleId={}", articleId);
