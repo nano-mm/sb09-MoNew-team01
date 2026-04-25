@@ -79,24 +79,16 @@ public class CommentService {
     return commentMapper.toResponse(comment);
   }
 
-  public void deleteComment(UUID userId, UUID commentId) {
+  public void deleteComment(UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
     comment.softDelete(Instant.now());
     articleRepository.decrementCommentCount(comment.getArticleId());
-    userActivityReadModelService.refreshSnapshot(userId);
   }
 
-  public void hardDeleteComment(UUID userId, UUID commentId) {
+  public void hardDeleteComment(UUID commentId) {
     Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
         .orElseThrow(CommentNotFoundException::new);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
-    commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
-    userActivityReadModelService.refreshSnapshot(userId);
+    commentRepository.delete(comment);
   }
 
   public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
