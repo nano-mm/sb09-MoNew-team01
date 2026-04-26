@@ -6,6 +6,7 @@ import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
+import com.monew.entity.enums.ArticleSource;
 import com.monew.service.ArticleBackupService;
 import com.monew.service.ArticleService;
 import com.monew.service.ArticleViewService;
@@ -58,11 +59,12 @@ public class ArticleController {
   @GetMapping
   public ResponseEntity<CursorPageResponseDto<ArticleDto>> searchArticles(
       @ModelAttribute ArticleSearchCondition searchRequest,
+      @RequestParam(name = "sourceIn", required = false) List<ArticleSource> sourceIn,
       @Valid @ModelAttribute CursorRequest cursorRequest,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ){
     log.info("[뉴스 기사] 조회 요청 수신: userId={}", userId);
-    CursorPageResponseDto<ArticleDto> responseDto = articleService.findArticles(searchRequest, cursorRequest, userId);
+    CursorPageResponseDto<ArticleDto> responseDto = articleService.findArticles(searchRequest, sourceIn, cursorRequest, userId);
     log.debug("[뉴스 기사] 조회 요청 처리 완료: userId={}", userId);
     return ResponseEntity.ok(responseDto);
   }

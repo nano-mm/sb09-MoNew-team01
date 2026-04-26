@@ -39,35 +39,47 @@ public class ArticleQueryRepository {
   // 커서기반 조회 용
   public CursorPageResponseDto<ArticleDto> searchArticlesByCursor(
       ArticleSearchCondition condition,
+      List<ArticleSource> sourceIn,
       CursorRequest cursorRequest,
       UUID userId
   ) {
-
     int limit = cursorRequest.limit();
     String orderBy = cursorRequest.orderBy();
     String direction = cursorRequest.direction();
+
+    Article referenceArticle = null;
+    if (cursorRequest.cursor() != null && !cursorRequest.cursor().isBlank()) {
+      referenceArticle = queryFactory
+          .selectFrom(article)
+          .where(article.id.eq(UUID.fromString(cursorRequest.cursor())))
+          .fetchOne();
+    }
 
     List<Article> content = queryFactory
         .selectFrom(article)
         .where(
             keywordContains(condition.keyword()),
             interestId(condition.interestId()),
-            sourceIn(condition.sourceIn()),
+            sourceIn(sourceIn),
             publishDateBetween(condition.publishDateFrom(), condition.publishDateTo()),
-            cursorCondition(cursorRequest.after(), cursorRequest.cursor(), orderBy, direction)
+            cursorCondition(referenceArticle, orderBy, direction)
         )
         .orderBy(getOrderSpecifiers(orderBy, direction))
         .limit(limit + 1)
         .fetch();
 
     boolean hasNext = content.size() > limit;
-    if (hasNext) content.remove(limit);
+    if (hasNext) {
+      content.remove(limit);
+    }
 
     String nextCursor = null;
     Instant nextAfter = null;
+
     if (!content.isEmpty()) {
       Article last = content.get(content.size() - 1);
       nextCursor = last.getId().toString();
+      // 🌟 [명세서 충족] nextAfter는 무조건 날짜($date-time)로 내려줍니다.
       nextAfter = last.getPublishDate();
     }
 
@@ -75,14 +87,13 @@ public class ArticleQueryRepository {
     Set<UUID> viewedArticleIds = getViewedArticleIds(userId, articleIds);
 
     List<ArticleDto> dtoList = content.stream()
-        .map(article -> {
-          ArticleDto dto = articleMapper.toDto(article);
+        .map(a -> {
+          ArticleDto dto = articleMapper.toDto(a);
           return dto.toBuilder()
-              .viewedByMe(viewedArticleIds.contains(article.getId()))
+              .viewedByMe(viewedArticleIds.contains(a.getId()))
               .build();
         })
         .toList();
-
 
     Long totalElements = queryFactory
         .select(article.count())
@@ -90,7 +101,7 @@ public class ArticleQueryRepository {
         .where(
             keywordContains(condition.keyword()),
             interestId(condition.interestId()),
-            sourceIn(condition.sourceIn()),
+            sourceIn(sourceIn),
             publishDateBetween(condition.publishDateFrom(), condition.publishDateTo())
         )
         .fetchOne();
@@ -105,10 +116,12 @@ public class ArticleQueryRepository {
         .build();
   }
 
-
   private BooleanExpression keywordContains(String keyword) {
-    return (keyword == null || keyword.isBlank()) ? null :
-        article.title.contains(keyword).or(article.summary.contains(keyword));
+    if (keyword == null || keyword.isBlank()) {
+      return null;
+    }
+    return article.title.containsIgnoreCase(keyword)
+        .or(article.summary.containsIgnoreCase(keyword));
   }
 
   private BooleanExpression interestId(UUID interestId) {
@@ -139,35 +152,68 @@ public class ArticleQueryRepository {
     return null;
   }
 
-  private BooleanExpression cursorCondition(LocalDateTime after, String cursorId, String orderBy, String dir) {
-    if (after == null || cursorId == null || cursorId.isBlank()) return null;
+  private BooleanExpression cursorCondition(Article reference, String orderBy, String direction) {
+    // 첫 페이지 조회 시 (기준 기사가 없을 때)
+    if (reference == null) {
+      return null;
+    }
 
-    boolean asc = "ASC".equalsIgnoreCase(dir);
-    UUID uuid = UUID.fromString(cursorId);
-    Instant afterInstant = after.atZone(ZoneId.of("Asia/Seoul")).toInstant();
+    UUID refId = reference.getId();
 
-    return switch (orderBy) {
-      case "commentCount" -> {
-        yield asc ?
-            article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
-            article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
-      }
-      case "viewCount" -> asc ?
-          article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
-          article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
-      default -> asc ? // publishDate 기준 정렬
-          article.publishDate.gt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.gt(uuid))) :
-          article.publishDate.lt(afterInstant).or(article.publishDate.eq(afterInstant).and(article.id.lt(uuid)));
-    };
+    Instant refDate = reference.getPublishDate();
+    boolean isAsc = "ASC".equalsIgnoreCase(direction);
+
+    switch (orderBy) {
+      case "viewCount":
+        long refView = reference.getViewCount();
+        return isAsc ?
+            article.viewCount.gt(refView)
+                .or(article.viewCount.eq(refView).and(article.publishDate.after(refDate)))
+                .or(article.viewCount.eq(refView).and(article.publishDate.eq(refDate)).and(article.id.gt(refId))) :
+            article.viewCount.lt(refView)
+                .or(article.viewCount.eq(refView).and(article.publishDate.before(refDate)))
+                .or(article.viewCount.eq(refView).and(article.publishDate.eq(refDate)).and(article.id.lt(refId)));
+
+      case "commentCount":
+        long refComment = reference.getCommentCount();
+        return isAsc ?
+            article.commentCount.gt(refComment)
+                .or(article.commentCount.eq(refComment).and(article.publishDate.after(refDate)))
+                .or(article.commentCount.eq(refComment).and(article.publishDate.eq(refDate)).and(article.id.gt(refId))) :
+            article.commentCount.lt(refComment)
+                .or(article.commentCount.eq(refComment).and(article.publishDate.before(refDate)))
+                .or(article.commentCount.eq(refComment).and(article.publishDate.eq(refDate)).and(article.id.lt(refId)));
+
+      default:
+        return isAsc ?
+            article.publishDate.after(refDate)
+                .or(article.publishDate.eq(refDate).and(article.id.gt(refId))) :
+            article.publishDate.before(refDate)
+                .or(article.publishDate.eq(refDate).and(article.id.lt(refId)));
+    }
   }
 
-  private OrderSpecifier<?>[] getOrderSpecifiers(String orderBy, String dir) {
-    Order order = "ASC".equalsIgnoreCase(dir) ? Order.ASC : Order.DESC;
-    return switch (orderBy) {
-      case "commentCount" -> new OrderSpecifier[]{new OrderSpecifier<>(order, article.commentCount), new OrderSpecifier<>(order, article.id)};
-      case "viewCount" -> new OrderSpecifier[]{new OrderSpecifier<>(order, article.viewCount), new OrderSpecifier<>(order, article.id)};
-      default -> new OrderSpecifier[]{new OrderSpecifier<>(order, article.publishDate), new OrderSpecifier<>(order, article.id)};
-    };
+  private OrderSpecifier<?>[] getOrderSpecifiers(String orderBy, String direction) {
+    Order order = "ASC".equalsIgnoreCase(direction) ? Order.ASC : Order.DESC;
+
+    if ("viewCount".equals(orderBy)) {
+      return new OrderSpecifier<?>[]{
+          new OrderSpecifier<>(order, article.viewCount),
+          new OrderSpecifier<>(order, article.publishDate),
+          new OrderSpecifier<>(order, article.id)
+      };
+    } else if ("commentCount".equals(orderBy)) {
+      return new OrderSpecifier<?>[]{
+          new OrderSpecifier<>(order, article.commentCount),
+          new OrderSpecifier<>(order, article.publishDate),
+          new OrderSpecifier<>(order, article.id)
+      };
+    } else {
+      return new OrderSpecifier<?>[]{
+          new OrderSpecifier<>(order, article.publishDate),
+          new OrderSpecifier<>(order, article.id)
+      };
+    }
   }
 
   // 출처 조회

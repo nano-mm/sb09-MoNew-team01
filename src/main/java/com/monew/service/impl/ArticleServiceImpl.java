@@ -19,6 +19,7 @@ import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -126,13 +127,14 @@ public class ArticleServiceImpl implements ArticleService {
   @Transactional(readOnly = true)
   public CursorPageResponseDto<ArticleDto> findArticles(
       ArticleSearchCondition condition,
+      List<ArticleSource> sourceIn,
       CursorRequest cursorRequest,
       UUID userId) {
 
-    log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}", userId, condition);
+    log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}, 커서={}", userId, condition, cursorRequest);
 
     CursorPageResponseDto<ArticleDto> result =
-        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest, userId);
+        articleQueryRepository.searchArticlesByCursor(condition, sourceIn, cursorRequest, userId);
 
     log.info("[뉴스 기사] 조회 완료: userId={}", userId);
 
