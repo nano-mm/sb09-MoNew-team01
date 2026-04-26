@@ -36,7 +36,7 @@ class UserActivityMongoIntegrationTest {
   @AfterEach
   void cleanUp() {
     if (savedUserId != null) {
-      userActivityDocumentRepository.deleteById(savedUserId.toString());
+      userActivityDocumentRepository.deleteById(savedUserId);
       userRepository.deleteById(savedUserId);
     }
   }
@@ -53,6 +53,6 @@ class UserActivityMongoIntegrationTest {
     assertTrue(result.isPresent());
     assertEquals(savedUserId, result.get().id());
     assertEquals("mongo-test@monew.com", result.get().email());
-    assertTrue(userActivityDocumentRepository.existsById(savedUserId.toString()));
+    assertTrue(userActivityDocumentRepository.existsById(savedUserId));
   }
 }

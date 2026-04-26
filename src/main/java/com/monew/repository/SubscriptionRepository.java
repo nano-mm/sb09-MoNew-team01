@@ -1,5 +1,7 @@
 package com.monew.repository;
 
+import static com.monew.entity.QInterest.interest;
+
 import com.monew.entity.Interest;
 import com.monew.entity.Subscription;
 import com.monew.entity.User;
@@ -27,4 +29,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   long countByInterest(Interest interest);
 
   void deleteByInterestId(UUID interestId);
+
+  @Query("select s.user.id from Subscription s where s.interest.id = :interestId")
+  List<UUID> findUserIdsByInterestId(@Param("interestId") UUID interestId);
 }

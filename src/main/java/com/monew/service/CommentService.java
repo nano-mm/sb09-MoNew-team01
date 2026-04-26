@@ -8,6 +8,7 @@ import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
@@ -44,6 +45,7 @@ public class CommentService {
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
   private final UserActivityReadModelService userActivityReadModelService;
+  private final NotificationService notificationService;
 
   public CommentDto createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
@@ -104,6 +106,16 @@ public class CommentService {
 
     userActivityReadModelService.refreshSnapshot(userId);
     userActivityReadModelService.refreshSnapshot(comment.getUserId());
+
+    if (!comment.getUserId().equals(userId)) {
+
+      notificationService.createNotification(
+          comment.getUserId(),
+          user.getNickname() + "님이 나의 댓글을 좋아합니다.",
+          ResourceType.COMMENT,
+          comment.getId()
+      );
+    }
 
     return new CommentLikeResponse(
         commentLike.getId(),
