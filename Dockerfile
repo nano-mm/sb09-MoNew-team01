@@ -18,9 +18,10 @@ WORKDIR /app
 
 # 보안을 위해 root가 아닌 일반 사용자 계정 사용
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
+RUN mkdir -p /app/logs && chown -R spring:spring /app
 COPY --from=build /app/build/libs/*.jar app.jar
+
+USER spring:spring
 
 # JVM 메모리 최적화 옵션 유지
 ENTRYPOINT ["java","-Xms256m","-Xmx512m","-jar","app.jar"]

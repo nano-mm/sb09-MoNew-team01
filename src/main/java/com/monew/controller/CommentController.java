@@ -65,11 +65,10 @@ public class CommentController {
   // 논리 삭제 (Soft Delete) — isDeleted 플래그만 true로 변경
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
-      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
-    log.info("댓글 논리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
-    commentService.deleteComment(userId, commentId);
+    log.info("댓글 논리 삭제 요청 수신: commentId={}", commentId);
+    commentService.deleteComment(commentId);
     log.debug("댓글 논리 삭제 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
   }
@@ -77,11 +76,10 @@ public class CommentController {
   // 물리 삭제 (Hard Delete) — DB에서 실제로 제거
   @DeleteMapping("/{commentId}/hard")
   public ResponseEntity<Void> hardDeleteComment(
-      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
-    log.info("댓글 물리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
-    commentService.hardDeleteComment(userId, commentId);
+    log.info("댓글 물리 삭제 요청 수신: commentId={}", commentId);
+    commentService.hardDeleteComment(commentId);
     log.debug("댓글 물리 삭제 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
   }

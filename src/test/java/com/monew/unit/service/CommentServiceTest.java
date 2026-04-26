@@ -159,7 +159,7 @@ class CommentServiceTest {
       when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
       // when
-      commentService.deleteComment(user.getId(), commentId);
+      commentService.deleteComment(commentId);
 
       // then
       assertThat(comment.getDeletedAt()).isNotNull();
@@ -174,23 +174,10 @@ class CommentServiceTest {
       when(commentRepository.findByIdIncludeDeleted(commentId)).thenReturn(Optional.of(comment));
 
       // when
-      commentService.hardDeleteComment(userId, commentId);
+      commentService.hardDeleteComment(commentId);
 
       // then
       verify(commentRepository, times(1)).delete(comment);
-    }
-
-    @Test
-    @DisplayName("타인의 댓글은 물리 삭제할 수 없다")
-    void hardDeleteForbidden() {
-      UUID commentId = UUID.randomUUID();
-      User otherUser = mock(User.class);
-      when(otherUser.getId()).thenReturn(UUID.randomUUID());
-      Comment comment = Comment.create(article, otherUser, "content");
-      when(commentRepository.findByIdIncludeDeleted(commentId)).thenReturn(Optional.of(comment));
-
-      assertThatThrownBy(() -> commentService.hardDeleteComment(userId, commentId))
-          .isInstanceOf(ForbiddenException.class);
     }
 
     @Test
@@ -199,7 +186,7 @@ class CommentServiceTest {
       UUID commentId = UUID.randomUUID();
       when(commentRepository.findByIdIncludeDeleted(commentId)).thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> commentService.hardDeleteComment(userId, commentId))
+      assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
           .isInstanceOf(CommentNotFoundException.class);
     }
   }
