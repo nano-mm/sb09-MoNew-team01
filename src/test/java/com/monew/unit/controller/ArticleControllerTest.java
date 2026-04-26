@@ -147,7 +147,7 @@ class ArticleControllerTest {
         true
     );
 
-    given(articleService.findArticles(any(), any(), any())).willReturn(mockResponse);
+    given(articleService.findArticles(any(), any(), any(),any())).willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
             .header(HEADER_USER_ID, USER_ID.toString())

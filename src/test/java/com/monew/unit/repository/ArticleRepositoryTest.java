@@ -16,6 +16,7 @@ import com.monew.entity.enums.ArticleSource;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,10 +104,12 @@ class ArticleRepositoryTest {
         .keyword("it")
         .build();
 
+    ArticleSource source = ArticleSource.CHOSUN;
+
     CursorRequest cursorRequest = new CursorRequest(null, null, 10, "publishDate", "DESC");
 
     CursorPageResponseDto<ArticleDto> response =
-        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest, testUser.getId());
+        articleQueryRepository.searchArticlesByCursor(condition, Collections.singletonList(source), cursorRequest, testUser.getId());
 
     assertThat(response.content()).hasSize(1);
 
