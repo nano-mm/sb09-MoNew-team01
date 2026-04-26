@@ -21,8 +21,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -117,23 +119,38 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
     List<Interest> newInterestsToSave = new ArrayList<>();
     List<ArticleInterest> articleInterestsToSave = new ArrayList<>();
 
+    Set<String> urlsAddedInThisBatch = new HashSet<>();
+
     for (Resource resource : backupResources) {
       try (InputStream is = resource.getInputStream()) {
         List<ArticleBackupDto> backupList = objectMapper.readValue(is,
             new TypeReference<List<ArticleBackupDto>>() {});
 
-        for (ArticleBackupDto dto : backupList) {
+        List<String> backupUrls = backupList.stream()
+            .map(ArticleBackupDto::sourceUrl)
+            .toList();
 
+        // DB에 이미 존재하는 URL 조회
+        Set<String> existingInDbUrls = backupUrls.isEmpty() ?
+            Collections.emptySet() :
+            articleRepository.findExistingUrls(backupUrls);
+
+        for (ArticleBackupDto dto : backupList) {
           Instant articleDate = dto.publishDate();
           if (articleDate == null || articleDate.isBefore(fromInstant) || articleDate.isAfter(toInstant)) {
             continue;
           }
 
-          if (articleRepository.existsBySourceUrl(dto.sourceUrl())) continue;
+          String currentUrl = dto.sourceUrl();
+
+          if (existingInDbUrls.contains(currentUrl) || urlsAddedInThisBatch.contains(currentUrl)) {
+            continue;
+          }
 
           Article article = articleBackupMapper.toEntity(dto);
-          // 💡 2. 즉시 save() 하지 않고 장바구니에 담기
           articlesToSave.add(article);
+          
+          urlsAddedInThisBatch.add(currentUrl);
 
           Map<String, List<String>> keywordsMap = dto.interestKeywords() != null
               ? dto.interestKeywords()

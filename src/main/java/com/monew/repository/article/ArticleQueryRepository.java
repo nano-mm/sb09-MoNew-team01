@@ -56,7 +56,8 @@ public class ArticleQueryRepository {
     }
 
     List<Article> content = queryFactory
-        .selectFrom(article)
+        .selectDistinct(article)
+        .from(article)
         .where(
             keywordContains(condition.keyword()),
             interestId(condition.interestId()),
@@ -79,7 +80,6 @@ public class ArticleQueryRepository {
     if (!content.isEmpty()) {
       Article last = content.get(content.size() - 1);
       nextCursor = last.getId().toString();
-      // 🌟 [명세서 충족] nextAfter는 무조건 날짜($date-time)로 내려줍니다.
       nextAfter = last.getPublishDate();
     }
 
@@ -96,7 +96,7 @@ public class ArticleQueryRepository {
         .toList();
 
     Long totalElements = queryFactory
-        .select(article.count())
+        .select(article.countDistinct())
         .from(article)
         .where(
             keywordContains(condition.keyword()),
@@ -153,7 +153,6 @@ public class ArticleQueryRepository {
   }
 
   private BooleanExpression cursorCondition(Article reference, String orderBy, String direction) {
-    // 첫 페이지 조회 시 (기준 기사가 없을 때)
     if (reference == null) {
       return null;
     }
