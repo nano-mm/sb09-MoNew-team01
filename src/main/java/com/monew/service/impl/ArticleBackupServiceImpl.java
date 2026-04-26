@@ -149,7 +149,7 @@ public class ArticleBackupServiceImpl implements ArticleBackupService {
 
           Article article = articleBackupMapper.toEntity(dto);
           articlesToSave.add(article);
-          
+
           urlsAddedInThisBatch.add(currentUrl);
 
           Map<String, List<String>> keywordsMap = dto.interestKeywords() != null
