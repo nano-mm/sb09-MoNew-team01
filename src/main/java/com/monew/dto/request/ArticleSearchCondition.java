@@ -11,7 +11,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 public record ArticleSearchCondition(
   String keyword,
   UUID interestId,
-  List<ArticleSource> sourceIn,
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   LocalDateTime publishDateFrom,
 
