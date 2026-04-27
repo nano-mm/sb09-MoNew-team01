@@ -1,10 +1,14 @@
 package com.monew.controller;
 
+import com.monew.config.LoginUser;
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
+import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
+import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import com.monew.mapper.InterestMapper;
 import com.monew.service.InterestService;
@@ -12,13 +16,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,47 +66,46 @@ public class InterestController {
     return ResponseEntity.ok().build();
   }
 
+  // 요청 파라미터와 헤더가 안맞아서 수정했습니다.
   @Operation(summary = "관심사 목록 조회", description = "조건에 맞는 관심사 목록을 조회합니다.")
   @GetMapping
   public CursorPageResponseDto<InterestDto> find(
       @RequestParam(required = false) String keyword,
-      @RequestParam(defaultValue = "name") String orderBy,
-      @RequestParam(defaultValue = "ASC") String direction,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) Instant after,
-      @RequestParam(defaultValue = "10") int size,
+      @Valid @ModelAttribute CursorRequest cursorRequest,
       @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    InterestSearchRequest request = new InterestSearchRequest(
-        keyword,
-        orderBy,
-        direction,
-        cursor,
-        after,
-        size,
-        userId.toString()
-    );
 
-    return interestService.find(request);
+    // 로그 추가해야합니다
+
+    CursorPageResponseDto<InterestDto> result = interestService.find(keyword, cursorRequest, userId);
+
+    return result;
   }
 
+  // 응답으로 SubscriptionDto을 반환해야 하는데 아무것도 반환하지 않아서 이부분 수정했습니다
   @Operation(summary = "관심사 구독", description = "관심사를 구독합니다.")
-  @PostMapping("/{interestId}/subscribe")
-  public void subscribe(
+  @PostMapping("/{interestId}/subscriptions")
+  public ResponseEntity<SubscriptionDto> subscribe(
       @PathVariable UUID interestId,
-      @RequestParam UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
-    interestService.subscribe(userId, interestId);
+    SubscriptionDto result = interestService.subscribe(userId, interestId);
+
+    return ResponseEntity.ok(result);
   }
+
+
+  // 구독 취소 후 결과 반환 추가 했습니다
 
   // 구독 취소
   @Operation(summary = "관심사 구독 취소", description = "관심사를 구독을 취소합니다.")
-  @DeleteMapping("/{interestId}/subscribe")
-  public void unsubscribe(
+  @DeleteMapping("/{interestId}/subscriptions")
+  public ResponseEntity<Void> unsubscribe(
       @PathVariable UUID interestId,
-      @RequestParam UUID userId
+      @RequestHeader("Monew-Request-User-ID") UUID userId
   ) {
     interestService.unsubscribe(userId, interestId);
+    return ResponseEntity.ok().build();
   }
 
 }

@@ -16,6 +16,7 @@ import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.service.impl.ArticleViewServiceImpl;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -44,6 +45,8 @@ class ArticleViewServiceTest {
   private ArticleRepository articleRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private UserActivityReadModelService userActivityReadModelService;
 
   private UUID articleId;
   private UUID userId;
@@ -80,7 +83,6 @@ class ArticleViewServiceTest {
   @DisplayName("기사 조회 내역 생성 - 성공")
   void create_Success() {
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     given(articleViewRepository.saveAndFlush(any(ArticleView.class))).willReturn(articleView);
     given(articleViewMapper.toDto(any(ArticleView.class), eq(article))).willReturn(articleViewDto);
@@ -92,6 +94,7 @@ class ArticleViewServiceTest {
 
     verify(articleViewRepository).saveAndFlush(any(ArticleView.class));
     verify(articleRepository).incrementViewCount(articleId);
+    verify(userActivityReadModelService).refreshSnapshot(userId);
   }
 
   @Test

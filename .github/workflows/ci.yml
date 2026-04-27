@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ develop, release ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle' # Gradle 캐시 자동 적용
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Tests
+        env:
+          # AWS SDK 오류 방지를 위한 가짜 값 주입
+          AWS_ACCESS_KEY_ID: dummy
+          AWS_SECRET_ACCESS_KEY: dummy
+          AWS_REGION: ap-northeast-2
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_SQL_INIT_MODE: never
+        run: ./gradlew --no-daemon test
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test/**

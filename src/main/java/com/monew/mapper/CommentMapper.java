@@ -2,7 +2,7 @@ package com.monew.mapper;
 
 import com.monew.dto.response.CommentActivityDto;
 import com.monew.dto.response.CommentLikeActivityDto;
-import com.monew.dto.response.CommentResponse;
+import com.monew.dto.response.CommentDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
 import org.mapstruct.Mapper;
@@ -11,25 +11,18 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
-  @Mapping(target = "articleId", source = "article.id")
-  @Mapping(target = "userId", source = "user.id")
-  @Mapping(target = "userNickname", source = "user.nickname")
   @Mapping(target = "likedByMe", constant = "false")
-  CommentResponse toResponse(Comment comment);
+  CommentDto toResponse(Comment comment);
 
-  @Mapping(source = "article.id", target = "articleId")
-  @Mapping(source = "article.title", target = "articleTitle")
-  @Mapping(source = "user.id", target = "userId")
-  @Mapping(source = "user.nickname", target = "userNickname")
   CommentActivityDto toActivityDto(Comment comment);
 
-  @Mapping(source = "comment.id", target = "commentId")
-  @Mapping(source = "comment.article.id", target = "articleId")
-  @Mapping(source = "comment.article.title", target = "articleTitle")
-  @Mapping(source = "comment.user.id", target = "commentUserId")
-  @Mapping(source = "comment.user.nickname", target = "commentUserNickname")
-  @Mapping(source = "comment.content", target = "commentContent")
-  @Mapping(source = "comment.likeCount", target = "commentLikeCount")
-  @Mapping(source = "comment.createdAt", target = "commentCreatedAt")
+  @Mapping(target = "commentId", source = "comment.id")
+  @Mapping(target = "commentUserId", source = "comment.user.id")
+  @Mapping(target = "commentUserNickname", source = "comment.user.nickname")
+  @Mapping(target = "commentContent", source = "comment.content")
+  @Mapping(target = "commentLikeCount", source = "comment.likeCount")
+  @Mapping(target = "commentCreatedAt", source = "comment.createdAt")
+  @Mapping(target = "articleId", source = "comment.article.id")
+  @Mapping(target = "articleTitle", source = "comment.article.title")
   CommentLikeActivityDto toLikeActivityDto(CommentLike commentLike);
 }

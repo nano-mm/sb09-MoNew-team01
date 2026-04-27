@@ -4,7 +4,7 @@ package com.monew.dto.response;
 import java.util.UUID;
 import java.time.Instant;
 
-public record CommentResponse(
+public record CommentDto(
     UUID id,
     UUID articleId,
     UUID userId,

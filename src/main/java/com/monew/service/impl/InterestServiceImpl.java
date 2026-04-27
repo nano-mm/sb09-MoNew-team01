@@ -1,22 +1,27 @@
 package com.monew.service.impl;
 
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
+import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import com.monew.entity.Subscription;
 import com.monew.entity.User;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.InterestMapper;
+import com.monew.mapper.SubscriptionMapper;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.InterestService;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +39,8 @@ public class InterestServiceImpl implements InterestService {
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserRepository userRepository;
+  private final UserActivityReadModelService userActivityReadModelService;
+  private final SubscriptionMapper subscriptionMapper;
 
   @Override
   public Interest create(InterestRegisterRequest request) {
@@ -63,22 +71,25 @@ public class InterestServiceImpl implements InterestService {
         .orElseThrow();
 
     interest.updateKeywords(request.keywords());
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(id);
   }
 
+  // 삭제 시 구독 정보도 삭제하도록 수정 했습니다.
   @Override
   public void delete(UUID id) {
+    subscriptionRepository.deleteByInterestId(id);
     interestRepository.deleteById(id);
   }
 
   @Override
-  public CursorPageResponseDto<InterestDto> find(InterestSearchRequest request) {
+  public CursorPageResponseDto<InterestDto> find(String keyword, CursorRequest cursorRequest, UUID userId) {
 
-    String keyword = request.keyword();
-    String orderBy = request.getOrderByOrDefault();
-    String direction = request.getDirectionOrDefault();
-    String cursor = request.cursor();
-    Instant after = request.after();
-    int size = request.getSizeOrDefault();
+    String orderBy = cursorRequest.orderBy();
+    String direction = cursorRequest.direction();
+    String cursor = cursorRequest.cursor();
+    Instant after = (cursorRequest.after() != null) ? Instant.from(cursorRequest.after()) : null;
+    int size = cursorRequest.limit();
+    User user = userRepository.findById(userId).orElseThrow();
 
     Pageable pageable = PageRequest.of(0, size + 1);
 
@@ -126,7 +137,7 @@ public class InterestServiceImpl implements InterestService {
     }
 
     List<InterestDto> content = results.stream()
-        .map(i -> InterestMapper.toDto(i, false))
+        .map(i -> InterestMapper.toDto(i, subscriptionRepository.existsByUserAndInterest(user, i)))
         .toList();
 
     return CursorPageResponseDto.<InterestDto>builder()
@@ -140,7 +151,7 @@ public class InterestServiceImpl implements InterestService {
   }
 
   @Override
-  public void subscribe(UUID userId, UUID interestId) {
+  public SubscriptionDto subscribe(UUID userId, UUID interestId) {
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new RuntimeException("유저 없음"));
@@ -156,6 +167,9 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.save(subscription);
 
     interest.increaseSubscriber();
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+
+    return subscriptionMapper.toDto(subscription);
   }
 
   @Override
@@ -174,6 +188,7 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.delete(subscription);
 
     interest.decreaseSubscriber();
+    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
   }
 
 }

@@ -3,7 +3,7 @@ package com.monew.dto.response;
 import java.time.Instant;
 import java.util.UUID;
 
-public record CommentLikeDto(
+public record CommentLikeResponse(
     UUID id,
     UUID likedBy,
     Instant createdAt,
@@ -14,6 +14,4 @@ public record CommentLikeDto(
     String commentContent,
     long commentLikeCount,
     Instant commentCreatedAt
-) {
-
-}
+) {}

@@ -35,7 +35,7 @@ public class Article {
   @Column(name = "source", nullable = false)
   private ArticleSource source;
 
-  @Column(name = "source_url", nullable = false, length = 500)
+  @Column(name = "source_url", nullable = false, length = 500, unique = true)
   private String sourceUrl;
 
   @Column(nullable = false, length = 255)
