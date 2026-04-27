@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,7 +60,7 @@ class UserServiceTest {
     void create_Success() {
       // given
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Tester", "Password123!");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
+      when(userRepository.existsByEmail(anyString())).thenReturn(false);
       when(passwordEncoder.encode(any())).thenReturn("encoded_pw");
       when(userRepository.save(any())).thenReturn(User.of(request.email(), request.nickname(), "encoded_pw"));
       when(userMapper.toDto(any())).thenReturn(new UserDto(UUID.randomUUID(), request.email(), request.nickname(), Instant.now()));
@@ -79,7 +77,8 @@ class UserServiceTest {
     @DisplayName("실패: 이메일 중복")
     void create_DuplicateEmail() {
       UserRegisterRequest request = new UserRegisterRequest("exist@test.com", "Nick", "Pass123!");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(true);
+      // existsInAllUsers -> existsByEmail로 수정
+      when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
       assertThrows(AlreadyExistEmailException.class, () -> userService.create(request));
     }
@@ -88,7 +87,7 @@ class UserServiceTest {
     @DisplayName("실패: 비밀번호 패턴 부적합")
     void create_InvalidPasswordPattern() {
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Nick", "123");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
+      when(userRepository.existsByEmail(anyString())).thenReturn(false);
 
       assertThrows(PasswordPatternException.class, () -> userService.create(request));
     }
@@ -103,7 +102,7 @@ class UserServiceTest {
       UserLoginRequest request = new UserLoginRequest("test@test.com", "Pass123!");
       User user = User.of("test@test.com", "Tester", "encoded_pw");
 
-      when(userRepository.findByEmail(any())).thenReturn(Optional.of(user));
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.of(user));
       when(passwordEncoder.matches(any(), any())).thenReturn(true);
       when(userMapper.toDto(any())).thenReturn(new UserDto(UUID.randomUUID(), "test@test.com", "Tester", Instant.now()));
 
@@ -117,7 +116,7 @@ class UserServiceTest {
       UserLoginRequest request = new UserLoginRequest("test@test.com", "WrongPass");
       User user = User.of("test@test.com", "Tester", "encoded_pw");
 
-      when(userRepository.findByEmail(any())).thenReturn(Optional.of(user));
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.of(user));
       when(passwordEncoder.matches(any(), any())).thenReturn(false);
 
       assertThrows(IllegalArgumentException.class, () -> userService.login(request));
@@ -127,7 +126,7 @@ class UserServiceTest {
     @DisplayName("로그인 실패: 존재하지 않는 이메일")
     void login_UserNotFound() {
       UserLoginRequest request = new UserLoginRequest("non-exist@test.com", "Pass123!");
-      when(userRepository.findByEmail(any())).thenReturn(Optional.empty());
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.empty());
 
       assertThrows(IllegalArgumentException.class, () -> userService.login(request));
     }
@@ -140,7 +139,8 @@ class UserServiceTest {
     UserUpdateRequest request = new UserUpdateRequest("NewNick");
     User user = User.of("test@test.com", "OldNick", "pw");
 
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    // findById -> findByIdAndDeletedAtIsNull로 수정
+    when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
     when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "NewNick", Instant.now()));
 
     UserDto result = userService.update(userId, request);
@@ -155,13 +155,16 @@ class UserServiceTest {
     @Test
     @DisplayName("Soft Delete 성공")
     void softDelete_Success() {
+      // given
       UUID userId = UUID.randomUUID();
-      User user = spy(User.of("test@test.com", "Tester", "pw"));
-      when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+      User user = User.of("test@test.com", "Tester", "pw");
+      when(userRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).thenReturn(Optional.of(user));
 
+      // when
       userService.softDelete(userId);
 
-      verify(user).markAsDeleted(true);
+      // then
+      assertNotNull(user.getDeletedAt());
     }
 
     @Test
@@ -169,7 +172,7 @@ class UserServiceTest {
     void hardDelete_Success() {
       // given
       UUID userId = UUID.randomUUID();
-      when(userRepository.existsByIdPhysical(userId)).thenReturn(true);
+      when(userRepository.existsById(userId)).thenReturn(true);
 
       // when
       userService.hardDelete(userId);
@@ -178,7 +181,7 @@ class UserServiceTest {
       verify(entityManager, times(1)).flush();
       verify(entityManager, times(1)).clear();
       verify(userActivityReadModelService).deleteSnapshot(userId);
-      verify(userRepository, times(1)).deleteByIdPhysical(userId);
+      verify(userRepository, times(1)).deleteById(userId);
     }
 
     @Test
@@ -186,7 +189,7 @@ class UserServiceTest {
     void hardDelete_Fail_NotFound() {
       // given
       UUID userId = UUID.randomUUID();
-      when(userRepository.existsByIdPhysical(userId)).thenReturn(false);
+      when(userRepository.existsById(userId)).thenReturn(false);
 
       // when & then
       assertThrows(NoSuchElementException.class, () -> userService.hardDelete(userId));
