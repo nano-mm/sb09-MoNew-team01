@@ -110,24 +110,33 @@ public class ArticleServiceImpl implements ArticleService {
 
     articleInterestRepository.saveAll(mappingList);
 
+    // 관심사별로 새로 등록된 기사 수를 집계한 뒤 구독자에게 요약 알림을 한 건만 생성합니다.
+    Map<UUID, Integer> interestToCount = new HashMap<>();
     for (Article article : articleList) {
-
       Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
       if (interests == null) continue;
-
       for (Interest interest : interests) {
+        interestToCount.merge(interest.getId(), 1, Integer::sum);
+      }
+    }
 
-        // 구독자 조회
-        List<UUID> subscriberIds =
-            subscriptionRepository.findUserIdsByInterestId(interest.getId());
+    if (!interestToCount.isEmpty()) {
+      for (Map.Entry<UUID, Integer> e : interestToCount.entrySet()) {
+        UUID interestId = e.getKey();
+        int count = e.getValue();
+        if (count <= 0) continue;
+
+        Interest interest = interestRepository.findById(interestId).orElse(null);
+        String interestName = interest != null ? interest.getName() : "";
+
+        List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestId(interestId);
 
         for (UUID userId : subscriberIds) {
-
           notificationService.createNotification(
               userId,
-              "[" + interest.getName() + "]와 관련된 기사가 등록되었습니다.",
+              "[" + interestName + "]와 관련된 기사가 " + count + "건 등록되었습니다.",
               com.monew.entity.enums.ResourceType.INTEREST,
-              interest.getId()
+              interestId
           );
         }
       }
