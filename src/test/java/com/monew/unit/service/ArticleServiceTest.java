@@ -23,8 +23,10 @@ import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.service.NotificationService;
 import com.monew.service.impl.ArticleServiceImpl;
 import java.time.Instant;
 import java.util.Collections;
@@ -52,6 +54,8 @@ class ArticleServiceTest {
   @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private ArticleFetcher mockFetcher;
+  @Mock private NotificationService notificationService;
+  @Mock private SubscriptionRepository subscriptionRepository;
 
   private ArticleServiceImpl articleService;
 
@@ -69,7 +73,9 @@ class ArticleServiceTest {
         interestRepository,
         articleMapper,
         List.of(mockFetcher),
-        articleInterestRepository
+        articleInterestRepository,
+        notificationService,
+        subscriptionRepository
     );
   }
 

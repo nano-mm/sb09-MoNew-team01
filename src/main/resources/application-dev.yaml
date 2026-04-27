@@ -1,4 +1,9 @@
 spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb+srv://monew-user:<password>@monew.griyiof.mongodb.net/monew?appName=Monew}
+      database: monew
+      auto-index-creation: true
   h2:
     console:
       enabled: true
@@ -28,3 +33,7 @@ spring:
   sql:
     init:
       mode: always  # data.sql 자동 실행
+
+monew:
+  mongodb:
+    enabled: ${MONGODB_ENABLED:true}

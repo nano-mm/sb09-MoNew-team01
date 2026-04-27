@@ -14,10 +14,12 @@ import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
 import java.time.Instant;
+import com.monew.service.NotificationService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,24 +52,12 @@ public class ArticleServiceImpl implements ArticleService {
   private final List<ArticleFetcher> articleFetchers;
 
   private final ArticleInterestRepository articleInterestRepository;
+  private final NotificationService notificationService;
+  private final SubscriptionRepository subscriptionRepository;
+
 
   @Override
   public void collect() {
-
-    if (interestRepository.count() == 0) {
-      // 💡 1. 경제 카테고리 (키워드: 시장, 금리, 물가, 반도체)
-      Interest economy = new Interest("경제", List.of("시장", "금리", "물가", "반도체"));
-
-      // 💡 2. IT/기술 카테고리 (키워드: 인공지능, 출시, 반도체)
-      Interest it = new Interest("IT", List.of("인공지능", "출시", "반도체"));
-
-      // 💡 3. 부동산 카테고리 (키워드: 정부, 부동산, 상승, 하락)
-      Interest realEstate = new Interest("부동산", List.of("정부", "부동산", "상승", "하락"));
-
-      interestRepository.saveAll(List.of(economy, it, realEstate));
-    }
-
-
     List<Interest> allInterests = interestRepository.findAllWithKeywords();
 
     Map<String, Set<Interest>> keywordToInterestsMap = new HashMap<>();
@@ -120,6 +110,29 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     articleInterestRepository.saveAll(mappingList);
+
+    for (Article article : articleList) {
+
+      Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
+      if (interests == null) continue;
+
+      for (Interest interest : interests) {
+
+        // 구독자 조회
+        List<UUID> subscriberIds =
+            subscriptionRepository.findUserIdsByInterestId(interest.getId());
+
+        for (UUID userId : subscriberIds) {
+
+          notificationService.createNotification(
+              userId,
+              "[" + interest.getName() + "]와 관련된 기사가 등록되었습니다.",
+              com.monew.entity.enums.ResourceType.INTEREST,
+              interest.getId()
+          );
+        }
+      }
+    }
 
     log.info("[뉴스 기사] 수집 완료.  {}개 저장.", articleList.size());
   }

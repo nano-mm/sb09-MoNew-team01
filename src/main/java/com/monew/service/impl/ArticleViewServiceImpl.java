@@ -9,6 +9,7 @@ import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleViewService;
+import com.monew.service.UserActivityReadModelService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class ArticleViewServiceImpl implements ArticleViewService {
   private final ArticleViewMapper articleViewMapper;
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
+  private final UserActivityReadModelService userActivityReadModelService;
 
   @Override
   @Transactional
@@ -54,6 +56,8 @@ public class ArticleViewServiceImpl implements ArticleViewService {
     articleRepository.incrementViewCount(article.getId());
 
     log.info("[뉴스 기사 뷰] 생성 완료. articleId: {}, requestUserId: {}", articleId, requestUserId);
+
+    userActivityReadModelService.refreshSnapshot(requestUserId);
 
     return articleViewMapper.toDto(newArticleView, article);
   }
