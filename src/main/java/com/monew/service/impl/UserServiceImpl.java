@@ -74,6 +74,7 @@ public class UserServiceImpl implements UserService {
           return new NoSuchElementException("User not found with id: " + userId);
         });
     user.update(request.nickname());
+    userActivityReadModelService.refreshSnapshot(userId);
     log.info("사용자 닉네임 변경 성공. 사용자 id: {}", user.getId());
     return userMapper.toDto(user);
   }
