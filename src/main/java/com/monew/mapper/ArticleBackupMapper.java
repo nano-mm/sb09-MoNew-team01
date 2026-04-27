@@ -15,7 +15,7 @@ public interface ArticleBackupMapper {
   @Mapping(source = "article.sourceUrl", target = "sourceUrl")
   @Mapping(source = "article.source", target = "source")
   @Mapping(source = "article.publishDate", target = "publishDate")
-  @Mapping(source = "article.isDeleted", target = "isDeleted")
+  @Mapping(source = "article.deletedAt", target = "deletedAt")
   @Mapping(source = "interestKeywords", target = "interestKeywords")
   ArticleBackupDto toDto(Article article, Map<String, List<String>> interestKeywords);
 

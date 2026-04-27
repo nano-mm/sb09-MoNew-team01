@@ -17,6 +17,7 @@ import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,6 +53,21 @@ public class ArticleServiceImpl implements ArticleService {
 
   @Override
   public void collect() {
+
+    if (interestRepository.count() == 0) {
+      // 💡 1. 경제 카테고리 (키워드: 시장, 금리, 물가, 반도체)
+      Interest economy = new Interest("경제", List.of("시장", "금리", "물가", "반도체"));
+
+      // 💡 2. IT/기술 카테고리 (키워드: 인공지능, 출시, 반도체)
+      Interest it = new Interest("IT", List.of("인공지능", "출시", "반도체"));
+
+      // 💡 3. 부동산 카테고리 (키워드: 정부, 부동산, 상승, 하락)
+      Interest realEstate = new Interest("부동산", List.of("정부", "부동산", "상승", "하락"));
+
+      interestRepository.saveAll(List.of(economy, it, realEstate));
+    }
+
+
     List<Interest> allInterests = interestRepository.findAllWithKeywords();
 
     Map<String, Set<Interest>> keywordToInterestsMap = new HashMap<>();
@@ -142,9 +158,10 @@ public class ArticleServiceImpl implements ArticleService {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public ArticleDto find(UUID articleId) {
     log.info("[뉴스 기사] 단건 조회 시도: articleId={}", articleId);
-    Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
+    Article targetArticle = articleRepository.findByIdAndDeletedAtIsNull(articleId).orElseThrow(()
             -> {
           log.warn("[뉴스 기사] 단건 조회 실패: 존재하지 않는 기사 ID={}", articleId);
           return new ArticleNotFoundException(articleId);
@@ -155,6 +172,7 @@ public class ArticleServiceImpl implements ArticleService {
   }
 
   @Override
+  @Transactional
   public void softDelete(UUID articleId) {
     log.info("[뉴스 기사] 논리 삭제 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
@@ -163,11 +181,12 @@ public class ArticleServiceImpl implements ArticleService {
           return new ArticleNotFoundException(articleId);
         }
     );
-    targetArticle.markAsDeleted();
+    targetArticle.updateDeletedAt(Instant.now());
     log.info("[뉴스 기사] 논리 삭제 완료: articleId={}", articleId);
   }
 
   @Override
+  @Transactional
   public void hardDelete(UUID articleId) {
     log.info("[뉴스 기사] 물리 삭제 시도: articleId={}", articleId);
     Article targetArticle = articleRepository.findById(articleId).orElseThrow(()
