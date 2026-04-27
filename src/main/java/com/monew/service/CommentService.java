@@ -81,10 +81,16 @@ public class CommentService {
     return commentMapper.toResponse(comment);
   }
 
-  public void deleteComment(UUID commentId) {
+  public void deleteComment(UUID userId, UUID commentId) {
     Comment comment = getActiveComment(commentId);
+
+    if (!comment.isOwnedBy(userId)) {
+      throw new ForbiddenException();
+    }
+
     comment.softDelete(Instant.now());
     articleRepository.decrementCommentCount(comment.getArticleId());
+    userActivityReadModelService.refreshSnapshot(userId);
   }
 
   public void hardDeleteComment(UUID commentId) {
@@ -160,7 +166,7 @@ public class CommentService {
     List<Comment> pageComments = hasNext ? comments.subList(0, size) : comments;
 
     // N+1 방지: 한 번에 likedByMe 조회
-    List<UUID> commentIds = pageComments.stream().map(Comment::getId).toList();
+    List<UUID> commentIds = pageComments.stream().map(Comment::getId).distinct().toList();
     Set<UUID> likedCommentIds = new HashSet<>(
         commentLikeRepository.findCommentIdsByUserIdAndCommentIdIn(userId, commentIds)
     );

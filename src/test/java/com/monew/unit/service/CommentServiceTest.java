@@ -159,7 +159,7 @@ class CommentServiceTest {
       when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
       // when
-      commentService.deleteComment(commentId);
+      commentService.deleteComment(userId,commentId);
 
       // then
       assertThat(comment.getDeletedAt()).isNotNull();

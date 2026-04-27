@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -28,11 +29,12 @@ public class CommentController {
 
   @PostMapping
   public ResponseEntity<CommentDto> createComment(
+      @LoginUser UUID userId,
       @RequestBody @Valid CreateCommentRequest request
   ) {
     log.info("댓글 생성 요청 수신: userId={}", request.userId());
     CommentDto commentDto =
-        commentService.createComment(request.userId(), request.articleId(), request.content());
+        commentService.createComment(userId, request.articleId(), request.content());
     log.debug("댓글 생성 요청 처리 완료: commentId={}", commentDto.id());
     return ResponseEntity.status(HttpStatus.CREATED).body(commentDto);
   }
@@ -65,16 +67,18 @@ public class CommentController {
   // 논리 삭제 (Soft Delete) — isDeleted 플래그만 true로 변경
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
+      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
     log.info("댓글 논리 삭제 요청 수신: commentId={}", commentId);
-    commentService.deleteComment(commentId);
+    commentService.deleteComment(userId, commentId);
     log.debug("댓글 논리 삭제 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
   }
 
   // 물리 삭제 (Hard Delete) — DB에서 실제로 제거
   @DeleteMapping("/{commentId}/hard")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<Void> hardDeleteComment(
       @PathVariable UUID commentId
   ) {
