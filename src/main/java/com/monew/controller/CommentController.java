@@ -76,11 +76,10 @@ public class CommentController {
   // 물리 삭제 (Hard Delete) — DB에서 실제로 제거
   @DeleteMapping("/{commentId}/hard")
   public ResponseEntity<Void> hardDeleteComment(
-      @LoginUser UUID userId,
       @PathVariable UUID commentId
   ) {
-    log.info("댓글 물리 삭제 요청 수신: userId={}, commentId={}", userId, commentId);
-    commentService.hardDeleteComment(userId, commentId);
+    log.info("댓글 물리 삭제 요청 수신: commentId={}", commentId);
+    commentService.hardDeleteComment(commentId);
     log.debug("댓글 물리 삭제 요청 처리 완료: commentId={}", commentId);
     return ResponseEntity.noContent().build();
   }
