@@ -8,11 +8,18 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @Component
@@ -21,59 +28,39 @@ import org.springframework.stereotype.Component;
 public class LogBackupTask implements BatchTask {
 
   private final LogStorage logStorage;
+  private final JobRepository jobRepository;
+  private final PlatformTransactionManager transactionManager;
 
   @Value("${monew.batch.log-backup.cron}")
   private String cron;
 
   @Override
-  public void execute() {
-    LocalDate yesterday = LocalDate.now().minusDays(1);
-    process(yesterday);
-  }
-
-//  // 테스트 목적으로 1분 간격 백업하도록 만든 것
-//  // <fileNamePattern>${LOG_PATH}/%d{yyyy-MM-dd, aux}/monew.%d{yyyy-MM-dd_HHmm}.log</fileNamePattern> <- logback-spring.xml 수정해야함
-//  @Override
-//  public void execute() {
-//    log.info("[테스트 로그 백업] Logback 롤링 강제 트리거용 로그입니다.");
-//
-//    try {
-//      Thread.sleep(1000);
-//    } catch (InterruptedException e) {
-//      Thread.currentThread().interrupt();
-//    }
-//    LocalDateTime lastMinute = LocalDateTime.now().minusMinutes(1);
-//    processTest(lastMinute);
-//  }
-
-//  private void processTest(LocalDateTime targetTime) {
-//    String dateFolder = targetTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-//
-//    String timeString = targetTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmm"));
-//    String fileName = "monew." + timeString + ".log";
-//
-//    String folderPath = "./logs/" + dateFolder + "/";
-//    File logFile = new File(folderPath + fileName);
-//
-//    log.info("[테스트 로그 백업] {} 파일 확인 중...", folderPath + fileName);
-//
-//    if (logFile.exists() && logFile.isFile()) {
-//      try {
-//        String s3Key = dateFolder + "/" + fileName;
-//        logStorage.backup(logFile, s3Key);
-//
-//        log.info("[테스트 로그 백업] S3 경로 [{}] 적재 완료!", s3Key);
-//      } catch (Exception e) {
-//        log.error("[테스트 로그 백업] {} 적재 실패", fileName, e);
-//      }
-//    } else {
-//      log.warn("[테스트 로그 백업] 파일을 찾을 수 없습니다. 경로 오류 의심: {}", logFile.getAbsolutePath());
-//    }
-//  }
-
-  @Override
   public String getCron() {
     return this.cron;
+  }
+
+  @Override
+  public String getJobName() {
+    return "logBackupJob";
+  }
+
+  @Override
+  public Job getJob() {
+    return new JobBuilder(this.getJobName(), jobRepository)
+        .start(logBackupStep())
+        .build();
+  }
+
+  private Step logBackupStep() {
+    return new StepBuilder("logBackupStep", jobRepository)
+        .tasklet((contribution, chunkContext) -> {
+
+          LocalDate yesterday = LocalDate.now().minusDays(1);
+          process(yesterday);
+
+          return RepeatStatus.FINISHED;
+        }, transactionManager)
+        .build();
   }
 
   private void process(LocalDate targetDate) {
