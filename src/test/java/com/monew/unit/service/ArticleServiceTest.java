@@ -23,9 +23,12 @@ import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.service.NotificationService;
 import com.monew.service.impl.ArticleServiceImpl;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -50,6 +53,8 @@ class ArticleServiceTest {
   @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private ArticleFetcher mockFetcher;
+  @Mock private NotificationService notificationService;
+  @Mock private SubscriptionRepository subscriptionRepository;
 
   private ArticleServiceImpl articleService;
 
@@ -67,7 +72,9 @@ class ArticleServiceTest {
         interestRepository,
         articleMapper,
         List.of(mockFetcher),
-        articleInterestRepository
+        articleInterestRepository,
+        notificationService,
+        subscriptionRepository
     );
   }
 
@@ -96,6 +103,7 @@ class ArticleServiceTest {
   @DisplayName("기사 목록 페이징 조회 - 성공")
   void findArticles_Success() {
     ArticleSearchCondition condition = ArticleSearchCondition.builder().build();
+    ArticleSource source = ArticleSource.NAVER;
     CursorRequest cursorRequest = new CursorRequest(null, null, 10, "publishDate", "DESC");
     UUID userId = UUID.randomUUID();
 
@@ -106,10 +114,11 @@ class ArticleServiceTest {
         .hasNext(false)
         .build();
 
-    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any()))
+    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any(), any()))
         .willReturn(mockPage);
 
-    CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition, cursorRequest, userId);
+    CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition,
+        Collections.singletonList(source),cursorRequest, userId);
 
     assertThat(result.content()).hasSize(1);
     assertThat(result.content().get(0).title()).isEqualTo("test");

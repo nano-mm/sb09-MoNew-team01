@@ -14,11 +14,14 @@ import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.ArticleService;
+import com.monew.service.NotificationService;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +51,9 @@ public class ArticleServiceImpl implements ArticleService {
   private final List<ArticleFetcher> articleFetchers;
 
   private final ArticleInterestRepository articleInterestRepository;
+  private final NotificationService notificationService;
+  private final SubscriptionRepository subscriptionRepository;
+
 
   @Override
   public void collect() {
@@ -104,6 +110,29 @@ public class ArticleServiceImpl implements ArticleService {
 
     articleInterestRepository.saveAll(mappingList);
 
+    for (Article article : articleList) {
+
+      Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
+      if (interests == null) continue;
+
+      for (Interest interest : interests) {
+
+        // 구독자 조회
+        List<UUID> subscriberIds =
+            subscriptionRepository.findUserIdsByInterestId(interest.getId());
+
+        for (UUID userId : subscriberIds) {
+
+          notificationService.createNotification(
+              userId,
+              "[" + interest.getName() + "]와 관련된 기사가 등록되었습니다.",
+              com.monew.entity.enums.ResourceType.INTEREST,
+              interest.getId()
+          );
+        }
+      }
+    }
+
     log.info("[뉴스 기사] 수집 완료.  {}개 저장.", articleList.size());
   }
 
@@ -126,13 +155,14 @@ public class ArticleServiceImpl implements ArticleService {
   @Transactional(readOnly = true)
   public CursorPageResponseDto<ArticleDto> findArticles(
       ArticleSearchCondition condition,
+      List<ArticleSource> sourceIn,
       CursorRequest cursorRequest,
       UUID userId) {
 
-    log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}", userId, condition);
+    log.info("[뉴스 기사] 조회 시도: userId={}, 검색조건={}, 커서={}", userId, condition, cursorRequest);
 
     CursorPageResponseDto<ArticleDto> result =
-        articleQueryRepository.searchArticlesByCursor(condition, cursorRequest, userId);
+        articleQueryRepository.searchArticlesByCursor(condition, sourceIn, cursorRequest, userId);
 
     log.info("[뉴스 기사] 조회 완료: userId={}", userId);
 

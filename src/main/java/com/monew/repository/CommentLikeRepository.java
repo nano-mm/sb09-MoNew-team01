@@ -18,9 +18,8 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
 
   boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
 
-
   // 특정 사용자의 좋아요 삭제 (좋아요 취소) - 삭제 건수 반환
-  @Modifying(clearAutomatically = true)
+  @Modifying
   @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.user.id = :userId")
   int deleteByComment_IdAndUser_Id(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
 

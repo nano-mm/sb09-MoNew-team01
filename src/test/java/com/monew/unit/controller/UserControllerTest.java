@@ -54,7 +54,7 @@ class UserControllerTest {
   private final UUID DIFFERENT_USER_ID = UUID.randomUUID();
 
   @BeforeEach
-  void setUp() throws BadRequestException {
+  void setUp() {
     when(loginUserArgumentResolver.supportsParameter(any())).thenReturn(true);
     when(loginUserArgumentResolver.resolveArgument(any(), any(), any(), any()))
         .thenReturn(SAME_USER_ID);

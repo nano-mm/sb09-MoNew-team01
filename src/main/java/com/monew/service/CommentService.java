@@ -8,6 +8,7 @@ import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
@@ -43,6 +44,8 @@ public class CommentService {
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
+  private final UserActivityReadModelService userActivityReadModelService;
+  private final NotificationService notificationService;
 
   public CommentDto createComment(UUID userId, UUID articleId, String content) {
     Article article = articleRepository.findById(articleId)
@@ -54,6 +57,8 @@ public class CommentService {
     commentRepository.saveAndFlush(comment);
 
     articleRepository.incrementCommentCount(article.getId());
+
+    userActivityReadModelService.refreshSnapshot(userId);
 
     return commentMapper.toResponse(comment);
 
@@ -70,6 +75,9 @@ public class CommentService {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
+    userActivityReadModelService.refreshSnapshot(userId);
     return commentMapper.toResponse(comment);
   }
 
@@ -79,13 +87,10 @@ public class CommentService {
     articleRepository.decrementCommentCount(comment.getArticleId());
   }
 
-  public void hardDeleteComment(UUID userId, UUID commentId) {
+  public void hardDeleteComment(UUID commentId) {
     Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
         .orElseThrow(CommentNotFoundException::new);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
-    commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
+    commentRepository.delete(comment);
   }
 
   public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
@@ -98,6 +103,19 @@ public class CommentService {
     CommentLike commentLike = new CommentLike(comment, user);
     commentLikeRepository.save(commentLike);
     comment.increaseLikeCount();
+
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
+
+    if (!comment.getUserId().equals(userId)) {
+
+      notificationService.createNotification(
+          comment.getUserId(),
+          user.getNickname() + "님이 나의 댓글을 좋아합니다.",
+          ResourceType.COMMENT,
+          comment.getId()
+      );
+    }
 
     return new CommentLikeResponse(
         commentLike.getId(),
@@ -120,6 +138,8 @@ public class CommentService {
       throw new LikeNotFoundException();
     }
     comment.decreaseLikeCount();
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
   @Transactional(readOnly = true)

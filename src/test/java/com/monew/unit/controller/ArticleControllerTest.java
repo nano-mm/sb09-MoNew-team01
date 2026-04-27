@@ -11,6 +11,8 @@ import com.monew.entity.User;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.UserRepository;
+import com.monew.service.ArticleBackupService;
+import com.monew.service.impl.ArticleBackupServiceImpl;
 import com.monew.service.impl.ArticleServiceImpl;
 import com.monew.service.impl.ArticleViewServiceImpl;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +48,9 @@ class ArticleControllerTest {
   private ArticleViewServiceImpl articleViewService;
 
   @MockitoBean
+  private ArticleBackupServiceImpl articleBackupService;
+
+  @MockitoBean
   private ArticleViewMapper articleViewMapper;
 
   // LoginUserArgumentResolver때문에 추가...
@@ -76,7 +81,8 @@ class ArticleControllerTest {
     ArticleDto mockDto = ArticleDto.builder().id(ARTICLE_ID).title("테스트 기사").build();
     given(articleService.find(ARTICLE_ID)).willReturn(mockDto);
 
-    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID))
+    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID)
+          .header("Monew-Request-User-ID", USER_ID.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("테스트 기사"));
   }
@@ -87,7 +93,8 @@ class ArticleControllerTest {
   void search_Fail_NotFound() throws Exception {
     given(articleService.find(ARTICLE_ID)).willThrow(new ArticleNotFoundException(ARTICLE_ID));
 
-    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID))
+    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID)
+        .header("Monew-Request-User-ID", USER_ID.toString()))
         .andExpect(status().isNotFound());
   }
 
@@ -140,7 +147,7 @@ class ArticleControllerTest {
         true
     );
 
-    given(articleService.findArticles(any(), any(), any())).willReturn(mockResponse);
+    given(articleService.findArticles(any(), any(), any(),any())).willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
             .header(HEADER_USER_ID, USER_ID.toString())
