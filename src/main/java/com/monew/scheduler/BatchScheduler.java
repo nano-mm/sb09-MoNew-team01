@@ -4,7 +4,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
@@ -14,6 +16,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.scheduling.support.CronTrigger;
@@ -25,13 +28,12 @@ import java.util.List;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@EnableScheduling
 public class BatchScheduler implements SchedulingConfigurer {
 
   private final List<BatchTask> batchTaskList;
 
   private final JobLauncher jobLauncher;
-  private final JobRepository jobRepository;
-  private final PlatformTransactionManager transactionManager;
   private final MeterRegistry meterRegistry;
 
   @Override
@@ -45,44 +47,34 @@ public class BatchScheduler implements SchedulingConfigurer {
   }
 
   private void executeAsSpringBatchJob(BatchTask task) {
-    String taskName = task.getClass().getSimpleName();
-    String jobName = taskName + "Job";
+    String jobName = task.getJobName();
 
     Timer timer = Timer.builder("monew.batch.execution.time")
         .description("배치 작업 소요 시간")
-        .tag("taskName", taskName)
+        .tag("jobName", jobName)
         .register(meterRegistry);
 
     try {
-      // 지금은 step 하나씩만 만들어서 각 BatchTask 하나씩 실행
-      Step step = new StepBuilder(taskName + "Step", jobRepository)
-          .tasklet((contribution, chunkContext) -> {
-
-            // 시간 측정
-            timer.record(() -> task.execute());
-
-            meterRegistry.counter("monew.batch.execution.status", "taskName", taskName, "status", "SUCCESS")
-                .increment();
-
-            return RepeatStatus.FINISHED;
-
-          }, transactionManager)
-          .build();
-
-      Job job = new JobBuilder(jobName, jobRepository)
-          .start(step)
-          .build();
+      Job job = task.getJob();
 
       JobParameters params = new JobParametersBuilder()
           .addLong("runTime", System.currentTimeMillis())
           .toJobParameters();
 
-      jobLauncher.run(job, params);
+      JobExecution execution = timer.recordCallable(() -> jobLauncher.run(job, params));
+
+      if (execution != null && execution.getStatus() == BatchStatus.COMPLETED) {
+        meterRegistry.counter("monew.batch.execution.status", "jobName", jobName, "status", "SUCCESS").increment();
+        log.info("[Spring Batch] 실행 성공 JobName: {}", jobName);
+      } else {
+        // Step 중 하나라도 실패해서 Job이 FAILED 상태로 끝난 경우
+        meterRegistry.counter("monew.batch.execution.status", "jobName", jobName, "status", "FAIL").increment();
+        log.warn("[Spring Batch] 실행 실패 또는 중단 JobName: {}", jobName);
+      }
 
     } catch (Exception e) {
-      meterRegistry.counter("monew.batch.execution.status", "taskName", taskName, "status", "FAIL")
-          .increment();
-      log.error("[Spring Batch] 런칭 실패 JobName: {}", jobName, e);
+      meterRegistry.counter("monew.batch.execution.status", "jobName", jobName, "status", "FAIL").increment();
+      log.error("[Spring Batch] 실행 중 예외 발생 JobName: {}", jobName, e);
     }
   }
 }

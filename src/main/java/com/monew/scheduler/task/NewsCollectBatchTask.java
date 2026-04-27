@@ -1,8 +1,7 @@
 package com.monew.scheduler.task;
 
 import com.monew.scheduler.BatchTask;
-import com.monew.service.ArticleBackupService;
-import java.io.IOException;
+import com.monew.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -18,12 +17,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class NewsBackupBatchTask implements BatchTask {
-  private final ArticleBackupService articleBackupService;
+public class NewsCollectBatchTask implements BatchTask {
+
+  private final ArticleService articleService;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
 
-  @Value("${monew.batch.news-backup.cron}")
+  @Value("${monew.batch.news.cron}")
   private String cron;
 
   @Override
@@ -33,25 +33,20 @@ public class NewsBackupBatchTask implements BatchTask {
 
   @Override
   public String getJobName() {
-    return "newsBackupJob";
+    return "newsCollectJob";
   }
 
   @Override
   public Job getJob() {
     return new JobBuilder(this.getJobName(), jobRepository)
-        .start(articleBackupStep())
+        .start(collectNewsStep())
         .build();
   }
 
-
-  private Step articleBackupStep() {
-    return new StepBuilder("articleBackupStep", jobRepository)
+  private Step collectNewsStep() {
+    return new StepBuilder("collectNewsStep", jobRepository)
         .tasklet((contribution, chunkContext) -> {
-          try {
-            articleBackupService.export();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+          articleService.collect();
           return RepeatStatus.FINISHED;
         }, transactionManager)
         .build();
