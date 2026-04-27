@@ -138,6 +138,7 @@ class UserServiceTest {
     UUID userId = UUID.randomUUID();
     UserUpdateRequest request = new UserUpdateRequest("NewNick");
     User user = User.of("test@test.com", "OldNick", "pw");
+    ReflectionTestUtils.setField(user, "id", userId);
 
     // findById -> findByIdAndDeletedAtIsNull로 수정
     when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
