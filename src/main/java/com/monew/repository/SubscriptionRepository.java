@@ -1,7 +1,5 @@
 package com.monew.repository;
 
-import static com.monew.entity.QInterest.interest;
-
 import com.monew.entity.Interest;
 import com.monew.entity.Subscription;
 import com.monew.entity.User;
@@ -26,7 +24,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
   Optional<Subscription> findByUserAndInterest(User user, Interest interest);
 
-  // 모든 매칭 구독을 조회(중복 가능성 대비)
   List<Subscription> findAllByUserAndInterest(User user, Interest interest);
 
   long countByInterest(Interest interest);

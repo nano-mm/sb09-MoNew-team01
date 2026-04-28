@@ -24,6 +24,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -167,8 +169,26 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.save(subscription);
 
     interest.increaseSubscriber();
-    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    userActivityReadModelService.refreshSnapshot(userId);
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          try {
+            userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+            userActivityReadModelService.refreshSnapshot(userId);
+          } catch (Exception ex) {
+            // ignore
+          }
+        }
+      });
+    } else {
+      try {
+        userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+        userActivityReadModelService.refreshSnapshot(userId);
+      } catch (Exception ex) {
+        // ignore
+      }
+    }
 
     return subscriptionMapper.toDto(subscription);
   }
@@ -205,16 +225,25 @@ public class InterestServiceImpl implements InterestService {
       }
     }
 
-    try {
-      userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    } catch (Exception ex) {
-      log.warn("읽기 모델(구독자) 갱신 실패(무시). interestId={}, error={}", interestId, ex.toString());
-    }
-
-    try {
-      userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
-    } catch (Exception ex) {
-      log.warn("읽기 모델(사용자) 구독 제거 실패(무시). userId={}, interestId={}, error={}", userId, interestId, ex.toString());
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          try {
+            userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+            userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+          } catch (Exception ex) {
+            // ignore
+          }
+        }
+      });
+    } else {
+      try {
+        userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+        userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+      } catch (Exception ex) {
+        // ignore
+      }
     }
   }
 
