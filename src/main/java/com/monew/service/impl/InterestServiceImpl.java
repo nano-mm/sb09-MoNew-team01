@@ -20,9 +20,9 @@ import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -75,7 +75,6 @@ public class InterestServiceImpl implements InterestService {
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(id);
   }
 
-  // 삭제 시 구독 정보도 삭제하도록 수정 했습니다.
   @Override
   public void delete(UUID id) {
     subscriptionRepository.deleteByInterestId(id);
@@ -183,40 +182,26 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-<<<<<<< Updated upstream
-    Subscription subscription = subscriptionRepository
-        .findByUserAndInterest(user, interest)
-        .orElseThrow(() -> new RuntimeException("구독 정보 없음"));
-
-    subscriptionRepository.delete(subscription);
-=======
-    Optional<Subscription> subscription = subscriptionRepository.findByUserAndInterest(user, interest);
-    if (subscription.isEmpty()) {
-      // 이미 구독이 없는 상태이면 무시 (멱등성)
+    Optional<Subscription> opt = subscriptionRepository.findByUserAndInterest(user, interest);
+    if (opt.isEmpty()) {
       log.debug("구독이 존재하지 않아 무시합니다. userId={}, interestId={}", userId, interestId);
       return;
     }
 
-    // 삭제를 시도하되, 다른 동시 요청에 의해 이미 삭제된 경우 발생할 수 있는 예외는 무시
+    Subscription subscription = opt.get();
     try {
-      subscriptionRepository.delete(subscription.get());
-    } catch (EmptyResultDataAccessException | DataAccessException ex) {
+      subscriptionRepository.delete(subscription);
+    } catch (DataAccessException ex) {
       log.warn("구독 삭제 중 예외 발생(무시). userId={}, interestId={}, error={}", userId, interestId, ex.toString());
     }
->>>>>>> Stashed changes
 
-    // 구독자 수 감소는 안전하게 수행
     try {
       interest.decreaseSubscriber();
     } catch (Exception ex) {
       log.warn("구독자 수 감소 중 예외 발생(무시). interestId={}, error={}", interestId, ex.toString());
     }
 
-<<<<<<< Updated upstream
-    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
-=======
-    // 읽기 모델 갱신도 실패 시 전체 요청을 실패시키지 않도록 예외를 잡아 로그로 남김
+
     try {
       userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
     } catch (Exception ex) {
@@ -224,11 +209,10 @@ public class InterestServiceImpl implements InterestService {
     }
 
     try {
-      userActivityReadModelService.removeSubscriptionFromUserSnapshot(userId, interestId);
+      userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
     } catch (Exception ex) {
       log.warn("읽기 모델(사용자) 구독 제거 실패(무시). userId={}, interestId={}, error={}", userId, interestId, ex.toString());
     }
->>>>>>> Stashed changes
   }
 
 }
