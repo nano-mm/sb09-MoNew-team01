@@ -2,7 +2,6 @@ package com.monew.service.impl;
 
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
-import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
@@ -21,7 +20,6 @@ import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ModelAttribute;
 
 @Service
 @RequiredArgsConstructor
@@ -189,6 +186,7 @@ public class InterestServiceImpl implements InterestService {
 
     interest.decreaseSubscriber();
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+    userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
   }
 
 }
