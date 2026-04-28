@@ -51,6 +51,42 @@ public class UserActivityReadModelService {
     repo.save(fromDto(dto));
   }
 
+  public void addSubscriptionToUserSnapshot(UUID userId, SubscriptionDto s) {
+    UserActivityDocumentRepository repo = documentRepository.getIfAvailable();
+    if (repo == null) return;
+
+    repo.findById(userId).ifPresentOrElse(doc -> {
+      boolean exists = doc.getSubscriptions().stream()
+          .anyMatch(e -> e.getInterestId().equals(s.interestId()));
+      if (!exists) {
+        SubscriptionEntry entry = SubscriptionEntry.builder()
+            .id(s.id())
+            .interestId(s.interestId())
+            .interestName(s.interestName())
+            .interestKeywords(s.interestKeywords() != null ? List.copyOf(s.interestKeywords()) : List.of())
+            .interestSubscriberCount(s.interestSubscriberCount())
+            .createdAt(s.createdAt())
+            .build();
+        doc.getSubscriptions().add(entry);
+        repo.save(doc);
+      }
+    }, () -> {
+      refreshSnapshot(userId);
+    });
+  }
+
+  public void removeSubscriptionFromUserSnapshot(UUID userId, UUID interestId) {
+    UserActivityDocumentRepository repo = documentRepository.getIfAvailable();
+    if (repo == null) return;
+
+    repo.findById(userId).ifPresent(doc -> {
+      boolean removed = doc.getSubscriptions().removeIf(e -> e.getInterestId().equals(interestId));
+      if (removed) {
+        repo.save(doc);
+      }
+    });
+  }
+
   public void deleteSnapshot(UUID userId) {
     UserActivityDocumentRepository repo = documentRepository.getIfAvailable();
     if (repo == null) {

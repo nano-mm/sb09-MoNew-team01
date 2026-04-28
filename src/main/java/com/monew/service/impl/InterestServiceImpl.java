@@ -22,8 +22,10 @@ import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -156,16 +158,33 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-    if (subscriptionRepository.existsByUserAndInterest(user, interest)) {
-      throw new RuntimeException("이미 구독 중입니다.");
+    Optional<Subscription> existing = subscriptionRepository.findByUserAndInterest(user, interest);
+    if (existing.isPresent()) {
+      return subscriptionMapper.toDto(existing.get());
     }
 
     Subscription subscription = new Subscription(user, interest);
-    subscriptionRepository.save(subscription);
+    try {
+      subscriptionRepository.save(subscription);
+    } catch (DataIntegrityViolationException e) {
+      Subscription saved = subscriptionRepository.findByUserAndInterest(user, interest)
+          .orElseThrow(() -> new RuntimeException("구독 생성 중 오류가 발생했습니다."));
+      return subscriptionMapper.toDto(saved);
+    }
 
     interest.increaseSubscriber();
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
     userActivityReadModelService.refreshSnapshot(userId);
+
+    SubscriptionDto entry = new SubscriptionDto(
+        null,
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords(),
+        interest.getSubscriberCount(),
+        null
+    );
+    userActivityReadModelService.addSubscriptionToUserSnapshot(userId, entry);
 
     return subscriptionMapper.toDto(subscription);
   }
@@ -179,16 +198,18 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-    Subscription subscription = subscriptionRepository
-        .findByUserAndInterest(user, interest)
-        .orElseThrow(() -> new RuntimeException("구독 정보 없음"));
+    Optional<Subscription> subscription = subscriptionRepository.findByUserAndInterest(user, interest);
+    if (subscription.isEmpty()) {
+      // 이미 구독이 없는 상태이면 무시하도록 처리 (idempotent)
+      return;
+    }
 
-    subscriptionRepository.delete(subscription);
+    subscriptionRepository.delete(subscription.get());
 
     interest.decreaseSubscriber();
 
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+    userActivityReadModelService.removeSubscriptionFromUserSnapshot(userId, interestId);
   }
 
 }

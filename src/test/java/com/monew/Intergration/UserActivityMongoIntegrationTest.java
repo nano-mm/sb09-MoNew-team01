@@ -1,4 +1,4 @@
-package com.monew.service;
+package com.monew.Intergration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,6 +7,7 @@ import com.monew.dto.response.UserActivityDto;
 import com.monew.entity.User;
 import com.monew.mongo.repository.UserActivityDocumentRepository;
 import com.monew.repository.UserRepository;
+import com.monew.service.UserActivityReadModelService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
