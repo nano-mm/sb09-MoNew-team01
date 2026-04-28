@@ -6,8 +6,5 @@ public class CommentNotFoundException extends BaseException {
     super(ErrorCode.COMMENT_NOT_FOUND);
   }
 
-  public CommentNotFoundException(String id) {
-    super(ErrorCode.COMMENT_NOT_FOUND);
-  }
 }
 
