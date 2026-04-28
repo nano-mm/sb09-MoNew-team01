@@ -60,6 +60,15 @@ public class UserActivityReadModelService {
     repo.deleteById(userId);
   }
 
+  public void removeSubscriptionSnapshot(UUID userId, UUID interestId) {
+    UserActivityDocumentRepository repo = documentRepository.getIfAvailable();
+    if (repo == null) {
+      return;
+    }
+
+    repo.removeSubscription(userId, interestId);
+  }
+
   public void refreshSnapshotsForInterestSubscribers(UUID interestId) {
     UserActivityDocumentRepository repo = documentRepository.getIfAvailable();
     if (repo == null) {

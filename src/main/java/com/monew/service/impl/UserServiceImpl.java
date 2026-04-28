@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
   public UserDto create(UserRegisterRequest request){
     if(userRepository.existsByEmail(request.email())) {
       log.warn("중복된 이메일 오류: {}", request.email());
-      throw new AlreadyExistEmailException("Email already exists");
+      throw new AlreadyExistEmailException();
     }
 
     String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{6,20}$";
