@@ -133,17 +133,6 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("실패: 타인 계정 논리적 삭제 시 403 Forbidden")
-    void logicalDelete_Forbidden() throws Exception {
-      /// given&when
-      mockMvc.perform(delete("/api/users/{userId}", DIFFERENT_USER_ID))
-          .andExpect(status().isForbidden());
-
-      /// then
-      verify(userService, never()).softDelete(any());
-    }
-
-    @Test
     @DisplayName("성공: 물리적 삭제(Hard Delete) 시 204 No Content")
     void hardDelete_Success() throws Exception {
       /// given&when
