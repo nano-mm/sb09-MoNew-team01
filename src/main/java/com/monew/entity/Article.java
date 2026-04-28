@@ -25,7 +25,6 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@SQLRestriction("is_deleted = false")
 public class Article {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -58,12 +57,12 @@ public class Article {
   private Long viewCount = 0L;
 
   @Builder.Default
-  @ColumnDefault("false")
-  @Column(name = "is_deleted", nullable = false)
-  private Boolean isDeleted = false;
+  @ColumnDefault("null")
+  @Column(name = "deleted_at")
+  private Instant deletedAt = null;
 
-  public void markAsDeleted() {
-    this.isDeleted = true;
+  public void updateDeletedAt(Instant time) {
+    this.deletedAt = time;
   }
 
 }

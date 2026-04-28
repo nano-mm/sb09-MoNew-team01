@@ -59,6 +59,7 @@ public class ArticleQueryRepository {
         .selectDistinct(article)
         .from(article)
         .where(
+            article.deletedAt.isNull(),
             keywordContains(condition.keyword()),
             interestId(condition.interestId()),
             sourceIn(sourceIn),
@@ -99,6 +100,7 @@ public class ArticleQueryRepository {
         .select(article.countDistinct())
         .from(article)
         .where(
+            article.deletedAt.isNull(),
             keywordContains(condition.keyword()),
             interestId(condition.interestId()),
             sourceIn(sourceIn),
@@ -220,6 +222,9 @@ public class ArticleQueryRepository {
     return queryFactory
         .select(article.source)
         .from(article)
+        .where(
+            article.deletedAt.isNull()
+        )
         .distinct()
         .fetch();
   }
@@ -237,6 +242,7 @@ public class ArticleQueryRepository {
         .select(articleView.article.id)
         .from(articleView)
         .where(
+            articleView.article.deletedAt.isNull(),
             articleView.user.id.eq(userId),
             articleView.article.id.in(articleIds)
         )
