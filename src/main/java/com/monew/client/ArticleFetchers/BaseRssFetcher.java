@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -55,25 +56,36 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
         .source(getSourceName())
         .sourceUrl(sourceUrl)
         .title(cleanHtml(entry.getTitle()))
-        .summary(cleanHtml(summary))
+        .summary(summary)
         .publishDate(parseDate(entry.getPublishedDate()))
         .build();
   }
 
   protected String getSummary(SyndEntry entry){
-    return entry.getDescription() != null ? entry.getDescription().getValue() : "요약이 제공되지 않는 기사입니다.";
+    String description = cleanHtml(entry.getDescription().getValue());
+    return !description.isEmpty() ? description : "요약이 제공되지 않는 기사입니다.";
+  }
+
+  protected String cleanHtml(String text) {
+    if (text == null) return "";
+    return Jsoup.parse(text).text().trim();
   }
 
   private boolean isMatched(SyndEntry entry, String keyword) {
     String title = entry.getTitle() != null ? entry.getTitle() : "";
-    String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
-    String target = (title + description).toLowerCase();
-    return target.contains(keyword.toLowerCase());
-  }
+    String description = entry.getDescription() != null
+        ? cleanHtml(entry.getDescription().getValue())
+        : "";
 
-  private String cleanHtml(String text) {
-    if (text == null) return "";
-    return text.replaceAll("<[^>]*>", "").trim();
+    String target = (title + " " + description).toLowerCase();
+    String lowerKeyword = keyword.toLowerCase();
+
+    // 짧은 영단어
+    if (lowerKeyword.matches("^[a-z]+$") && lowerKeyword.length() <= 3) {
+      return target.matches(".*\\b" + lowerKeyword + "\\b.*");
+    }
+
+    return target.contains(lowerKeyword);
   }
 
   private Instant parseDate(Date date) {
