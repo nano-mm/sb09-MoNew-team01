@@ -168,6 +168,7 @@ public class InterestServiceImpl implements InterestService {
 
     interest.increaseSubscriber();
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+    userActivityReadModelService.refreshSnapshot(userId);
 
     return subscriptionMapper.toDto(subscription);
   }
@@ -188,7 +189,9 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.delete(subscription);
 
     interest.decreaseSubscriber();
+
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+    userActivityReadModelService.refreshSnapshot(userId);
   }
 
 }
