@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -42,16 +43,23 @@ public class HankyungRssFetcher extends BaseRssFetcher {
           .timeout(3000)
           .userAgent("Mozilla/5.0")
           .get();
+      Element articleBody = doc.selectFirst(".article-body");
 
-      String content = doc.select("#articletxt").text();
+      if (articleBody == null) {
+        return "요약이 제공되지 않는 기사입니다.";
+      }
+
+      articleBody.select(".article-figure").remove();
+
+      String content = articleBody.text();
 
       if (content.isEmpty()) {
         return "요약이 제공되지 않는 기사입니다.";
       }
 
       content = content.trim();
-
       int maxLength = 100;
+
       if (content.length() > maxLength) {
         return content.substring(0, maxLength) + "...";
       }
