@@ -5,15 +5,11 @@ import com.monew.dto.response.ArticleDto;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
-import com.rometools.rome.io.XmlReader;
 import java.io.StringReader;
-import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.client.RestTemplate;
 
@@ -53,7 +49,7 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
   protected ArticleDto convertToDto(SyndEntry entry) {
     String sourceUrl = entry.getLink();
 
-    String summary = entry.getDescription() != null ? entry.getDescription().getValue() : "";
+    String summary = this.getSummary(entry);
 
     return ArticleDto.builder()
         .source(getSourceName())
@@ -62,6 +58,10 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
         .summary(cleanHtml(summary))
         .publishDate(parseDate(entry.getPublishedDate()))
         .build();
+  }
+
+  protected String getSummary(SyndEntry entry){
+    return entry.getDescription() != null ? entry.getDescription().getValue() : "요약이 제공되지 않는 기사입니다.";
   }
 
   private boolean isMatched(SyndEntry entry, String keyword) {
