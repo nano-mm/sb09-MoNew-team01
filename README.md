@@ -58,7 +58,7 @@
 | 분류 | 기술 |
 |------|------|
 | Language | Java 21 |
-| Framework | Spring Boot 3.x |
+| Framework | Spring Boot 3.5|
 | ORM | Spring Data JPA / Hibernate |
 | Security | Spring Security |
 | Batch | Spring Batch |
