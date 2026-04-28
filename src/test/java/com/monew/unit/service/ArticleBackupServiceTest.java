@@ -1,51 +1,34 @@
 package com.monew.unit.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monew.dto.backup.ArticleBackupDto;
-import com.monew.dto.response.ArticleRestoreResultDto;
 import com.monew.entity.Article;
-import com.monew.entity.ArticleInterest;
-import com.monew.entity.Interest;
 import com.monew.mapper.ArticleBackupMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
-import com.monew.service.impl.ArticleBackupServiceImpl;
+import com.monew.service.ArticleBackupService;
 import com.monew.storage.backup.ArticleBackupStorage;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.Resource;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ArticleBackupServiceTest {
 
   @InjectMocks
-  private ArticleBackupServiceImpl backupService;
+  private ArticleBackupService backupService;
 
   @Mock private ArticleRepository articleRepository;
   @Mock private InterestRepository interestRepository;
