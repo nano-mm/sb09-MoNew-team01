@@ -8,3 +8,6 @@ spring:
         static: ap-northeast-2
       stack:
         auto: false
+  batch:
+    jdbc:
+      initialize-schema: embedded
