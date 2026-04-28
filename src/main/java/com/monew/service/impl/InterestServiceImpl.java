@@ -167,7 +167,9 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.save(subscription);
 
     interest.increaseSubscriber();
+    // 구독자 전체의 스냅샷을 갱신하고, 구독을 수행한 사용자 자신의 스냅샷도 즉시 갱신합니다.
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+    userActivityReadModelService.refreshSnapshot(userId);
 
     return subscriptionMapper.toDto(subscription);
   }
@@ -188,7 +190,10 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.delete(subscription);
 
     interest.decreaseSubscriber();
+    // 관심사 구독자들에 대한 스냅샷 갱신(구독자 수 변경 반영) 및
+    // 구독 취소한 사용자의 스냅샷을 즉시 갱신하여 사용자의 활동탭이 변경되도록 합니다.
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+    userActivityReadModelService.refreshSnapshot(userId);
   }
 
 }
