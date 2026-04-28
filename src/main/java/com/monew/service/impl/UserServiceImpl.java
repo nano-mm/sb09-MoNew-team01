@@ -14,6 +14,7 @@ import com.monew.service.UserActivityDtoBuilder;
 import com.monew.service.UserActivityReadModelService;
 import com.monew.service.UserService;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserDto create(UserRegisterRequest request){
-    if(existsInAllUsers(request.email())) {
+    if(userRepository.existsByEmail(request.email())) {
       log.warn("중복된 이메일 오류: {}", request.email());
       throw new AlreadyExistEmailException("Email already exists");
     }
@@ -67,7 +68,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserDto update(UUID userId, UserUpdateRequest request) {
-    User user = userRepository.findById(userId)
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId)
         .orElseThrow(() -> {
           log.warn("사용자 업데이트 실패. 존재하지 않는 사용자 id: {}", userId);
           return new NoSuchElementException("User not found with id: " + userId);
@@ -80,19 +81,19 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void softDelete(UUID userId) {
-    User user = userRepository.findById(userId).orElseThrow(
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
         () -> {
           log.warn("softDelete 실패. 존재하지 않는 사용자 id: {}", userId);
           return new NoSuchElementException("User not found with id: " + userId);
         }
     );
 
-    user.markAsDeleted(true);
+    user.markAsDeleted(Instant.now());
   }
 
   @Override
   public void hardDelete(UUID userId) {
-    if (!userRepository.existsByIdPhysical(userId)) {
+    if (!userRepository.existsById(userId)) {
       log.warn("hardDelete 실패. DB에 존재하지 않는 사용자 id: {}", userId);
       throw new NoSuchElementException("User not found with id: " + userId);
     }
@@ -100,12 +101,12 @@ public class UserServiceImpl implements UserService {
     entityManager.flush();
     entityManager.clear();
     userActivityReadModelService.deleteSnapshot(userId);
-    userRepository.deleteByIdPhysical(userId);
+    userRepository.deleteById(userId);
     log.warn("HardDelete 성공. 사용자 id: {}", userId);
   }
 
   private User loginValidate(String email, String password) {
-    User user =  userRepository.findByEmail(email)
+    User user =  userRepository.findByEmailAndDeletedAtIsNull(email)
         .orElseThrow(() -> {
           log.warn("로그인 실패. 존재하지 않는 사용자 email: {}", email);
           return new IllegalArgumentException("Wrong email or password");
@@ -116,10 +117,6 @@ public class UserServiceImpl implements UserService {
     }
 
     return user;
-  }
-
-  private boolean existsInAllUsers(String email) {
-    return userRepository.existsInAllUsers(email);
   }
 
   @Override

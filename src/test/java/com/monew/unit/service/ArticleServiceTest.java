@@ -28,6 +28,7 @@ import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.NotificationService;
 import com.monew.service.impl.ArticleServiceImpl;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -130,7 +131,7 @@ class ArticleServiceTest {
     Article mockEntity = Article.builder().title("entity").build();
     ArticleDto mockDto = ArticleDto.builder().title("DTO").build();
 
-    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.of(mockEntity));
+    given(articleRepository.findByIdAndDeletedAtIsNull(ARTICLE_ID)).willReturn(Optional.of(mockEntity));
     given(articleMapper.toDto(mockEntity)).willReturn(mockDto);
 
     ArticleDto result = articleService.find(ARTICLE_ID);
@@ -141,7 +142,7 @@ class ArticleServiceTest {
   @Test
   @DisplayName("기사 단건 조회 - 실패 (존재하지 않는 ID)")
   void find_Fail_NotFound() {
-    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.empty());
+    given(articleRepository.findByIdAndDeletedAtIsNull(ARTICLE_ID)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> articleService.find(ARTICLE_ID))
         .isInstanceOf(ArticleNotFoundException.class);
@@ -155,7 +156,7 @@ class ArticleServiceTest {
 
     articleService.softDelete(ARTICLE_ID);
 
-    verify(mockEntity, times(1)).markAsDeleted();
+    verify(mockEntity, times(1)).updateDeletedAt(any(Instant.class));
   }
 
   @Test
