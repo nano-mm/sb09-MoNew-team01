@@ -227,7 +227,7 @@ public class CommentService {
   }
 
   private Comment getActiveComment(UUID commentId) {
-    return commentRepository.findById(commentId)
+    return commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(CommentNotFoundException::new);
   }
 }
