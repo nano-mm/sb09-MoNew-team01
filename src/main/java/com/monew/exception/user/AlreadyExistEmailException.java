@@ -1,10 +1,11 @@
 package com.monew.exception.user;
 
-import org.springframework.dao.DataIntegrityViolationException;
+import com.monew.exception.BaseException;
+import com.monew.exception.ErrorCode;
 
-public class AlreadyExistEmailException extends DataIntegrityViolationException {
+public class AlreadyExistEmailException extends BaseException {
 
-  public AlreadyExistEmailException(String message) {
-    super(message);
+  public AlreadyExistEmailException() {
+    super(ErrorCode.EMAIL_DUPLICATION);
   }
 }
