@@ -30,7 +30,7 @@ public class PreAuthenticatedUserFilter extends OncePerRequestFilter {
                 UUID id = UUID.fromString(userId);
                 
                 // DB에서 실제 존재하는 유저인지 확인 (Soft Delete 상태도 고려됨)
-                userRepository.findById(id).ifPresent(user -> {
+                userRepository.findByIdAndDeletedAtIsNull(id).ifPresent(user -> {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(user.getId(), null, Collections.emptyList());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
