@@ -20,13 +20,12 @@ import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
-import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.dao.DataAccessException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -75,6 +74,7 @@ public class InterestServiceImpl implements InterestService {
     userActivityReadModelService.refreshSnapshotsForInterestSubscribers(id);
   }
 
+  // 삭제 시 구독 정보도 삭제하도록 수정 했습니다.
   @Override
   public void delete(UUID id) {
     subscriptionRepository.deleteByInterestId(id);
@@ -182,25 +182,28 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-    Optional<Subscription> opt = subscriptionRepository.findByUserAndInterest(user, interest);
-    if (opt.isEmpty()) {
-      log.debug("구독이 존재하지 않아 무시합니다. userId={}, interestId={}", userId, interestId);
+    List<Subscription> subs = subscriptionRepository.findAllByUserAndInterest(user, interest);
+    if (subs == null || subs.isEmpty()) {
       return;
     }
 
-    Subscription subscription = opt.get();
-    try {
-      subscriptionRepository.delete(subscription);
-    } catch (DataAccessException ex) {
-      log.warn("구독 삭제 중 예외 발생(무시). userId={}, interestId={}, error={}", userId, interestId, ex.toString());
+    int removed = 0;
+    for (Subscription s : subs) {
+      try {
+        subscriptionRepository.delete(s);
+        removed++;
+      } catch (DataAccessException ex) {
+        log.warn("구독 삭제 실패(무시). id={}, error={}", s.getId(), ex.toString());
+      }
     }
 
-    try {
-      interest.decreaseSubscriber();
-    } catch (Exception ex) {
-      log.warn("구독자 수 감소 중 예외 발생(무시). interestId={}, error={}", interestId, ex.toString());
+    for (int i = 0; i < removed; i++) {
+      try {
+        interest.decreaseSubscriber();
+      } catch (Exception ex) {
+        log.warn("구독자 수 감소 실패(무시). interestId={}, error={}", interestId, ex.toString());
+      }
     }
-
 
     try {
       userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);

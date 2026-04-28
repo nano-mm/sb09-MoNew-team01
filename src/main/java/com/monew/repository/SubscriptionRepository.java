@@ -26,6 +26,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
   Optional<Subscription> findByUserAndInterest(User user, Interest interest);
 
+  // 모든 매칭 구독을 조회(중복 가능성 대비)
+  List<Subscription> findAllByUserAndInterest(User user, Interest interest);
+
   long countByInterest(Interest interest);
 
   void deleteByInterestId(UUID interestId);
