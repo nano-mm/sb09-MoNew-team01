@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableScheduling
 @SpringBootApplication(exclude = {
     JpaRepositoriesAutoConfiguration.class,
     MongoRepositoriesAutoConfiguration.class
