@@ -34,6 +34,10 @@ spring:
     init:
       mode: always  # data.sql 자동 실행
 
+  batch:
+    jdbc:
+      initialize-schema: always
+
 monew:
   mongodb:
     enabled: ${MONGODB_ENABLED:true}

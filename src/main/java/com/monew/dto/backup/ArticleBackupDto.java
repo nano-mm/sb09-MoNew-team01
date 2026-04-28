@@ -12,7 +12,7 @@ public record ArticleBackupDto(
     String sourceUrl,
     String source,
     Instant publishDate,
-    Boolean isDeleted,
+    Instant deletedAt,
     Map<String, List<String>> interestKeywords
 ) {
 }

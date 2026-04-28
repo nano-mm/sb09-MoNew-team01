@@ -9,6 +9,9 @@ spring:
         jdbc.batch_size: 50
         order_inserts: true
         order_updates: true
+  batch:
+    jdbc:
+      initialize-schema: never
 
   jackson:
     serialization:
