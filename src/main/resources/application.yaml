@@ -1,8 +1,7 @@
 spring:
   application:
     name: monew
-  profiles:
-    active: dev
+
   jpa:
     properties:
       hibernate:
