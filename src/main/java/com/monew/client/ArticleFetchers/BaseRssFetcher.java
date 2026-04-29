@@ -12,17 +12,20 @@ import java.util.Date;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 public abstract class BaseRssFetcher implements ArticleFetcher {
-    protected abstract String getRssUrl();
+  @Autowired
+  private RestTemplate restTemplate;
+
+  protected abstract String getRssUrl();
 
   @Override
   public List<ArticleDto> fetch(String keyword) {
     List<ArticleDto> result = new ArrayList<>();
     try {
-      RestTemplate restTemplate = new RestTemplate();
       String rawXmlContent = restTemplate.getForObject(getRssUrl(), String.class);
       if (rawXmlContent == null || rawXmlContent.isBlank()) return result;
 
@@ -62,6 +65,10 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
   }
 
   protected String getSummary(SyndEntry entry){
+    if (entry.getDescription() == null || entry.getDescription().getValue() == null) {
+      return "요약이 제공되지 않는 기사입니다.";
+    }
+
     String description = cleanHtml(entry.getDescription().getValue());
     return !description.isEmpty() ? description : "요약이 제공되지 않는 기사입니다.";
   }
