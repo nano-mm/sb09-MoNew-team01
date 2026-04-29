@@ -1,6 +1,6 @@
 ## Status
 
-![CI](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/ci.yml/badge.svg) [![Code Coverage](https://codecov.io/gh/nano-mm/sb09-MoNew-team01/branch/develop/graph/badge.svg)](https://codecov.io/gh/nano-mm/sb09-MoNew-team01) ![CD](https://img.shields.io/badge/CD-not%20configured-lightgrey)
+![CI](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/ci.yml/badge.svg) [![Code Coverage](https://codecov.io/gh/nano-mm/sb09-MoNew-team01/branch/develop/graph/badge.svg)](https://codecov.io/gh/nano-mm/sb09-MoNew-team01) ![CD](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/cd.yml/badge.svg)
 
 # 📰 모뉴 (MoNew)
 
