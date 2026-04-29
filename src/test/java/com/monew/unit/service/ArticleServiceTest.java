@@ -49,7 +49,6 @@ class ArticleServiceTest {
 
   @Mock private ArticleRepository articleRepository;
   @Mock private ArticleQueryRepository articleQueryRepository;
-  @Mock private ArticleViewRepository articleViewRepository;
   @Mock private InterestRepository interestRepository;
   @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ArticleMapper articleMapper;
@@ -69,7 +68,6 @@ class ArticleServiceTest {
     articleService = new ArticleService(
         articleRepository,
         articleQueryRepository,
-        articleViewRepository,
         interestRepository,
         articleMapper,
         List.of(mockFetcher),
