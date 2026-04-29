@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
 
   @EntityGraph(attributePaths = {"comment", "comment.article", "comment.user"})
-  @Query("SELECT cl FROM CommentLike cl WHERE cl.user.id = :userId")
+  @Query("SELECT cl FROM CommentLike cl WHERE cl.user.id = :userId AND cl.comment.deletedAt IS NULL")
   List<CommentLike> findTop10ByUserIdWithCommentAndUser(@Param("userId") UUID userId, Pageable pageable);
 
   boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);

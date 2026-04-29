@@ -85,6 +85,7 @@ public class CommentService {
     Comment comment = getActiveComment(commentId);
     comment.softDelete(Instant.now());
     articleRepository.decrementCommentCount(comment.getArticleId());
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
   public void hardDeleteComment(UUID commentId) {
