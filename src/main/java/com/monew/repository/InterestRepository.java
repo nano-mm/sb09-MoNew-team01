@@ -16,8 +16,8 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.name > :cursor 
@@ -36,8 +36,8 @@ order by i.name asc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.name < :cursor 
@@ -56,8 +56,8 @@ order by i.name desc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.subscriberCount > :cursor 
@@ -76,8 +76,8 @@ order by i.subscriberCount asc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.subscriberCount < :cursor 
