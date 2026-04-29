@@ -1,7 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://monew-user:<password>@monew.griyiof.mongodb.net/monew?appName=Monew}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/monew}
       database: monew
       auto-index-creation: true
   h2:
@@ -40,4 +40,4 @@ spring:
 
 monew:
   mongodb:
-    enabled: ${MONGODB_ENABLED:true}
+    enabled: true
