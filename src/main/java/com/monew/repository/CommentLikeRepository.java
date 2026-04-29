@@ -3,7 +3,6 @@ package com.monew.repository;
 import com.monew.entity.CommentLike;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,8 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
 
   @EntityGraph(attributePaths = {"comment", "comment.article", "comment.user"})
-  @Query("SELECT cl FROM CommentLike cl WHERE cl.user.id = :userId AND cl.comment.deletedAt IS NULL")
-  List<CommentLike> findTop10ByUserIdWithCommentAndUser(@Param("userId") UUID userId, Pageable pageable);
+  List<CommentLike> findTop10ByUser_IdAndComment_DeletedAtIsNullOrderByCreatedAtDesc(UUID userId);
 
   boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
 
