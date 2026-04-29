@@ -2,11 +2,14 @@ package com.monew.unit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -23,9 +26,13 @@ import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
+import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
-import com.monew.service.impl.ArticleServiceImpl;
+import com.monew.service.ArticleService;
+import com.monew.service.NotificationService;
+import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,19 +46,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ArticleServiceTest {
 
   @Mock private ArticleRepository articleRepository;
   @Mock private ArticleQueryRepository articleQueryRepository;
-  @Mock private ArticleViewRepository articleViewRepository;
   @Mock private InterestRepository interestRepository;
   @Mock private ArticleInterestRepository articleInterestRepository;
   @Mock private ArticleMapper articleMapper;
   @Mock private ArticleFetcher mockFetcher;
+  @Mock private NotificationService notificationService;
+  @Mock private SubscriptionRepository subscriptionRepository;
+  @Mock private ArticleFetcher articleFetchers;
 
-  private ArticleServiceImpl articleService;
+  private ArticleService articleService;
 
   @Captor
   private ArgumentCaptor<List<Article>> articleListCaptor;
@@ -60,14 +70,15 @@ class ArticleServiceTest {
 
   @BeforeEach
   void setUp() {
-    articleService = new ArticleServiceImpl(
+    articleService = new ArticleService(
         articleRepository,
         articleQueryRepository,
-        articleViewRepository,
         interestRepository,
         articleMapper,
         List.of(mockFetcher),
-        articleInterestRepository
+        articleInterestRepository,
+        notificationService,
+        subscriptionRepository
     );
   }
 
@@ -93,9 +104,74 @@ class ArticleServiceTest {
   }
 
   @Test
+  @DisplayName("기사 수집 - 수집 중 Fetcher에서 예외가 발생")
+  void collect_FetcherException_ShouldContinue() throws Exception {
+    ReflectionTestUtils.setField(articleService, "articleFetchers", List.of(articleFetchers));
+    Interest mockInterest = new Interest("IT", List.of("인공지능"));
+    given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
+
+    given(articleFetchers.fetch(anyString())).willThrow(new RuntimeException("API 타임아웃 에러"));
+
+    articleService.collect();
+
+    verify(articleRepository, never()).saveAll(anyList());
+  }
+
+  @Test
+  @DisplayName("기사 수집 - 수집된 모든 기사가 이미 DB에 존재")
+  void collect_AllDuplicates_ShouldReturnEarly() {
+    String duplicateUrl = "https://news.test.com/123";
+    ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(duplicateUrl).build();
+    Interest mockInterest = new Interest("IT", List.of("반도체"));
+
+    given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
+    given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
+
+    given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of(duplicateUrl));
+
+    articleService.collect();
+
+    verify(articleRepository, never()).saveAll(anyList());
+    verify(articleInterestRepository, never()).saveAll(anyList());
+    verify(notificationService, never()).createNotification(any(), anyString(), any(), any());
+  }
+
+  @Test
+  @DisplayName("기사 수집 - 기사 저장 후 구독자에게 알림 발송")
+  void collect_SendNotification_Success() {
+    String newUrl = "https://news.test.com/new";
+    ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(newUrl).build();
+    Article mockEntity = Article.builder().title("test").sourceUrl(newUrl).build();
+
+    UUID interestId = UUID.randomUUID();
+    Interest mockInterest = new Interest("IT", List.of("반도체"));
+    UUID subscriberId = UUID.randomUUID();
+
+    ReflectionTestUtils.setField(mockInterest, "id", interestId);
+    given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
+    given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
+    given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of());
+    given(articleMapper.toEntity(any(ArticleDto.class))).willReturn(mockEntity);
+
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(mockInterest));
+    given(subscriptionRepository.findUserIdsByInterestId(interestId)).willReturn(List.of(subscriberId));
+
+    articleService.collect();
+
+    verify(articleRepository).saveAll(anyList());
+    verify(notificationService, times(1)).createNotification(
+        eq(subscriberId),
+        anyString(),
+        eq(com.monew.entity.enums.ResourceType.INTEREST),
+        eq(interestId)
+    );
+  }
+
+  @Test
   @DisplayName("기사 목록 페이징 조회 - 성공")
   void findArticles_Success() {
     ArticleSearchCondition condition = ArticleSearchCondition.builder().build();
+    ArticleSource source = ArticleSource.NAVER;
     CursorRequest cursorRequest = new CursorRequest(null, null, 10, "publishDate", "DESC");
     UUID userId = UUID.randomUUID();
 
@@ -106,10 +182,11 @@ class ArticleServiceTest {
         .hasNext(false)
         .build();
 
-    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any()))
+    given(articleQueryRepository.searchArticlesByCursor(any(), any(), any(), any()))
         .willReturn(mockPage);
 
-    CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition, cursorRequest, userId);
+    CursorPageResponseDto<ArticleDto> result = articleService.findArticles(condition,
+        Collections.singletonList(source),cursorRequest, userId);
 
     assertThat(result.content()).hasSize(1);
     assertThat(result.content().get(0).title()).isEqualTo("test");
@@ -121,7 +198,7 @@ class ArticleServiceTest {
     Article mockEntity = Article.builder().title("entity").build();
     ArticleDto mockDto = ArticleDto.builder().title("DTO").build();
 
-    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.of(mockEntity));
+    given(articleRepository.findByIdAndDeletedAtIsNull(ARTICLE_ID)).willReturn(Optional.of(mockEntity));
     given(articleMapper.toDto(mockEntity)).willReturn(mockDto);
 
     ArticleDto result = articleService.find(ARTICLE_ID);
@@ -132,7 +209,7 @@ class ArticleServiceTest {
   @Test
   @DisplayName("기사 단건 조회 - 실패 (존재하지 않는 ID)")
   void find_Fail_NotFound() {
-    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.empty());
+    given(articleRepository.findByIdAndDeletedAtIsNull(ARTICLE_ID)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> articleService.find(ARTICLE_ID))
         .isInstanceOf(ArticleNotFoundException.class);
@@ -146,7 +223,19 @@ class ArticleServiceTest {
 
     articleService.softDelete(ARTICLE_ID);
 
-    verify(mockEntity, times(1)).markAsDeleted();
+    verify(mockEntity, times(1)).updateDeletedAt(any(Instant.class));
+  }
+
+  @Test
+  @DisplayName("기사 논리 삭제 - 실패 (존재하지 않는 기사)")
+  void softDelete_Fail_NotFound() {
+    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.empty());
+
+    assertThrows(ArticleNotFoundException.class, () -> {
+      articleService.softDelete(ARTICLE_ID);
+    });
+
+    verify(articleRepository, never()).save(any());
   }
 
   @Test
@@ -158,6 +247,18 @@ class ArticleServiceTest {
     articleService.hardDelete(ARTICLE_ID);
 
     verify(articleRepository, times(1)).delete(mockEntity);
+  }
+
+  @Test
+  @DisplayName("기사 물리 삭제 - 실패 (존재하지 않는 기사)")
+  void hardDelete_Fail_NotFound() {
+    given(articleRepository.findById(ARTICLE_ID)).willReturn(Optional.empty());
+
+    assertThrows(ArticleNotFoundException.class, () -> {
+      articleService.hardDelete(ARTICLE_ID);
+    });
+
+    verify(articleRepository, never()).delete(any());
   }
 
   @Test

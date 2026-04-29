@@ -1,10 +1,12 @@
 package com.monew.service;
 
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
+import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import java.util.UUID;
 
@@ -16,9 +18,9 @@ public interface InterestService {
 
   void delete(UUID id);
 
-  CursorPageResponseDto<InterestDto> find(InterestSearchRequest request);
+  CursorPageResponseDto<InterestDto> find(String keyword, CursorRequest cursorRequest, UUID userId);
 
-  void subscribe(UUID userId, UUID interestId);
+  SubscriptionDto subscribe(UUID userId, UUID interestId);
 
   void unsubscribe(UUID userId, UUID interestId);
 }

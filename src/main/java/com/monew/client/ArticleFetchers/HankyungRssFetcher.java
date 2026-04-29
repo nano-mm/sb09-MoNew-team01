@@ -1,10 +1,17 @@
 package com.monew.client.ArticleFetchers;
 
+import com.monew.dto.response.ArticleDto;
 import com.monew.entity.enums.ArticleSource;
 
+import com.rometools.rome.feed.synd.SyndEntry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class HankyungRssFetcher extends BaseRssFetcher {
@@ -28,5 +35,45 @@ public class HankyungRssFetcher extends BaseRssFetcher {
   @Override
   public String getSourceName() {
     return ArticleSource.HANKYUNG.toString();
+  }
+
+  private String fetchSummaryFromUrl(String articleUrl) {
+    try {
+      Document doc = Jsoup.connect(articleUrl)
+          .timeout(1000)
+          .userAgent("Mozilla/5.0")
+          .get();
+      Element articleBody = doc.selectFirst(".article-body");
+
+      if (articleBody == null) {
+        return "요약이 제공되지 않는 기사입니다.";
+      }
+
+      articleBody.select(".article-figure").remove();
+
+      String content = articleBody.text();
+
+      if (content.isEmpty()) {
+        return "요약이 제공되지 않는 기사입니다.";
+      }
+
+      content = content.trim();
+      int maxLength = 100;
+
+      if (content.length() > maxLength) {
+        return content.substring(0, maxLength) + "...";
+      }
+
+      return content;
+
+    } catch (Exception e) {
+      log.warn("[뉴스 기사 수집 - 요약 추출 실패] URL: {}, 사유: {}", articleUrl, e.getMessage());
+      return "요약 정보를 불러올 수 없습니다.";
+    }
+  }
+
+  @Override
+  protected String getSummary(SyndEntry entry) {
+    return fetchSummaryFromUrl(entry.getLink());
   }
 }

@@ -5,8 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,23 +13,18 @@ import static org.mockito.Mockito.when;
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
+import com.monew.dto.response.UserActivityDto;
 import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
-import com.monew.mapper.ArticleViewMapper;
-import com.monew.mapper.CommentMapper;
-import com.monew.mapper.SubscriptionMapper;
 import com.monew.mapper.UserMapper;
-import com.monew.repository.ArticleViewRepository;
-import com.monew.repository.CommentLikeRepository;
-import com.monew.repository.CommentRepository;
-import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
+import com.monew.service.UserActivityDtoBuilder;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.service.impl.UserServiceImpl;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,15 +45,9 @@ class UserServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private UserMapper userMapper;
   @Mock private EntityManager entityManager;
-  
-  @Mock private SubscriptionRepository subscriptionRepository;
-  @Mock private CommentRepository commentRepository;
-  @Mock private CommentLikeRepository commentLikeRepository;
-  @Mock private ArticleViewRepository articleViewRepository;
-  
-  @Mock private CommentMapper commentMapper;
-  @Mock private ArticleViewMapper articleViewMapper;
-  @Mock private SubscriptionMapper subscriptionMapper;
+
+  @Mock private UserActivityDtoBuilder userActivityDtoBuilder;
+  @Mock private UserActivityReadModelService userActivityReadModelService;
 
   @InjectMocks
   private UserServiceImpl userService;
@@ -72,7 +60,7 @@ class UserServiceTest {
     void create_Success() {
       // given
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Tester", "Password123!");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
+      when(userRepository.existsByEmail(anyString())).thenReturn(false);
       when(passwordEncoder.encode(any())).thenReturn("encoded_pw");
       when(userRepository.save(any())).thenReturn(User.of(request.email(), request.nickname(), "encoded_pw"));
       when(userMapper.toDto(any())).thenReturn(new UserDto(UUID.randomUUID(), request.email(), request.nickname(), Instant.now()));
@@ -89,7 +77,8 @@ class UserServiceTest {
     @DisplayName("실패: 이메일 중복")
     void create_DuplicateEmail() {
       UserRegisterRequest request = new UserRegisterRequest("exist@test.com", "Nick", "Pass123!");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(true);
+      // existsInAllUsers -> existsByEmail로 수정
+      when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
       assertThrows(AlreadyExistEmailException.class, () -> userService.create(request));
     }
@@ -98,7 +87,7 @@ class UserServiceTest {
     @DisplayName("실패: 비밀번호 패턴 부적합")
     void create_InvalidPasswordPattern() {
       UserRegisterRequest request = new UserRegisterRequest("test@test.com", "Nick", "123");
-      when(userRepository.existsInAllUsers(anyString())).thenReturn(false);
+      when(userRepository.existsByEmail(anyString())).thenReturn(false);
 
       assertThrows(PasswordPatternException.class, () -> userService.create(request));
     }
@@ -113,7 +102,7 @@ class UserServiceTest {
       UserLoginRequest request = new UserLoginRequest("test@test.com", "Pass123!");
       User user = User.of("test@test.com", "Tester", "encoded_pw");
 
-      when(userRepository.findByEmail(any())).thenReturn(Optional.of(user));
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.of(user));
       when(passwordEncoder.matches(any(), any())).thenReturn(true);
       when(userMapper.toDto(any())).thenReturn(new UserDto(UUID.randomUUID(), "test@test.com", "Tester", Instant.now()));
 
@@ -127,7 +116,7 @@ class UserServiceTest {
       UserLoginRequest request = new UserLoginRequest("test@test.com", "WrongPass");
       User user = User.of("test@test.com", "Tester", "encoded_pw");
 
-      when(userRepository.findByEmail(any())).thenReturn(Optional.of(user));
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.of(user));
       when(passwordEncoder.matches(any(), any())).thenReturn(false);
 
       assertThrows(IllegalArgumentException.class, () -> userService.login(request));
@@ -137,24 +126,41 @@ class UserServiceTest {
     @DisplayName("로그인 실패: 존재하지 않는 이메일")
     void login_UserNotFound() {
       UserLoginRequest request = new UserLoginRequest("non-exist@test.com", "Pass123!");
-      when(userRepository.findByEmail(any())).thenReturn(Optional.empty());
+      when(userRepository.findByEmailAndDeletedAtIsNull(any())).thenReturn(Optional.empty());
 
       assertThrows(IllegalArgumentException.class, () -> userService.login(request));
     }
   }
 
-  @Test
-  @DisplayName("회원정보 수정 성공")
-  void update_Success() {
-    UUID userId = UUID.randomUUID();
-    UserUpdateRequest request = new UserUpdateRequest("NewNick");
-    User user = User.of("test@test.com", "OldNick", "pw");
+  @Nested
+  @DisplayName("사용자 업데이트 테스트")
+  class UpdateTest {
+    @Test
+    @DisplayName("회원정보 수정 성공")
+    void update_Success() {
+      UUID userId = UUID.randomUUID();
+      UserUpdateRequest request = new UserUpdateRequest("NewNick");
+      User user = User.of("test@test.com", "OldNick", "pw");
+      ReflectionTestUtils.setField(user, "id", userId);
 
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "NewNick", Instant.now()));
+      // findById -> findByIdAndDeletedAtIsNull로 수정
+      when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+      when(userMapper.toDto(any())).thenReturn(new UserDto(userId, "test@test.com", "NewNick", Instant.now()));
 
-    UserDto result = userService.update(userId, request);
-    assertEquals("NewNick", result.nickname());
+        UserDto result = userService.update(userId, request);
+        assertEquals("NewNick", result.nickname());
+        verify(userActivityReadModelService).refreshSnapshot(userId);
+      }
+
+    @Test
+    @DisplayName("회원정보 수정 실패: 사용자 없음")
+    void update_Fail_NotFound() {
+      UUID userId = UUID.randomUUID();
+      UserUpdateRequest request = new UserUpdateRequest("NewNick");
+      when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
+
+      assertThrows(NoSuchElementException.class, () -> userService.update(userId, request));
+    }
   }
 
   @Nested
@@ -164,13 +170,25 @@ class UserServiceTest {
     @Test
     @DisplayName("Soft Delete 성공")
     void softDelete_Success() {
+      // given
       UUID userId = UUID.randomUUID();
-      User user = spy(User.of("test@test.com", "Tester", "pw"));
-      when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+      User user = User.of("test@test.com", "Tester", "pw");
+      when(userRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).thenReturn(Optional.of(user));
 
+      // when
       userService.softDelete(userId);
 
-      verify(user).markAsDeleted(true);
+      // then
+      assertNotNull(user.getDeletedAt());
+    }
+
+    @Test
+    @DisplayName("Soft Delete 실패: 사용자 없음")
+    void softDelete_Fail_NotFound() {
+      UUID userId = UUID.randomUUID();
+      when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
+
+      assertThrows(NoSuchElementException.class, () -> userService.softDelete(userId));
     }
 
     @Test
@@ -178,53 +196,101 @@ class UserServiceTest {
     void hardDelete_Success() {
       // given
       UUID userId = UUID.randomUUID();
-      when(userRepository.existsByIdPhysical(userId)).thenReturn(true);
+      when(userRepository.existsById(userId)).thenReturn(true);
 
       // when
       userService.hardDelete(userId);
 
-      // then
-      verify(entityManager, times(1)).flush();
-      verify(entityManager, times(1)).clear();
-      verify(userRepository, times(1)).deleteByIdPhysical(userId);
-    }
+        // then
+        verify(entityManager, times(1)).flush();
+        verify(entityManager, times(1)).clear();
+        verify(userActivityReadModelService).deleteSnapshot(userId);
+        verify(userRepository, times(1)).deleteById(userId);
+      }
 
-    @Test
-    @DisplayName("Hard Delete 실패: 사용자를 찾을 수 없음")
-    void hardDelete_Fail_NotFound() {
-      // given
-      UUID userId = UUID.randomUUID();
-      when(userRepository.existsByIdPhysical(userId)).thenReturn(false);
+      @Test
+      @DisplayName("Hard Delete 실패: 사용자를 찾을 수 없음")
+      void hardDelete_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        when(userRepository.existsById(userId)).thenReturn(false);
 
       // when & then
       assertThrows(NoSuchElementException.class, () -> userService.hardDelete(userId));
     }
   }
 
-  @Test
-  @DisplayName("사용자 활동 내역 조회 성공")
-  void getActivity_Success() {
-    // given
-    UUID userId = UUID.randomUUID();
-    User user = User.of("test@test.com", "Tester", "pw");
-    ReflectionTestUtils.setField(user, "id", userId);
+  @Nested
+  @DisplayName("활동 내역 조회 테스트")
+  class GetActivityTest {
+    @Test
+    @DisplayName("사용자 활동 내역 조회 성공 (캐시 비활성)")
+    void getActivity_Success_CacheDisabled() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UserActivityDto dto = UserActivityDto.builder().id(userId).build();
 
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(subscriptionRepository.findAllByUserIdWithInterest(userId)).thenReturn(Collections.emptyList());
-    when(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(Collections.emptyList());
-    when(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(eq(userId), any())).thenReturn(Collections.emptyList());
-    when(articleViewRepository.findTop10ByUserIdWithArticle(eq(userId), any())).thenReturn(Collections.emptyList());
+      when(userRepository.existsById(userId)).thenReturn(true);
+      when(userActivityReadModelService.isEnabled()).thenReturn(false);
+      when(userActivityDtoBuilder.build(userId)).thenReturn(dto);
 
-    // when
-    var result = userService.getActivity(userId);
+      // when
+      var result = userService.getActivity(userId);
 
-    // then
-    assertNotNull(result);
-    assertEquals(userId, result.id());
-    verify(userRepository).findById(userId);
-    verify(subscriptionRepository).findAllByUserIdWithInterest(userId);
-    verify(commentRepository).findTop10ByUser_IdOrderByCreatedAtDesc(userId);
-    verify(commentLikeRepository).findTop10ByUserIdWithCommentAndUser(eq(userId), any());
-    verify(articleViewRepository).findTop10ByUserIdWithArticle(eq(userId), any());
+      // then
+      assertNotNull(result);
+      verify(userActivityDtoBuilder).build(userId);
+    }
+
+    @Test
+    @DisplayName("사용자 활동 내역 조회 성공 (캐시 활성 - 히트)")
+    void getActivity_Success_CacheHit() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UserActivityDto dto = UserActivityDto.builder().id(userId).build();
+
+      when(userRepository.existsById(userId)).thenReturn(true);
+      when(userActivityReadModelService.isEnabled()).thenReturn(true);
+      when(userActivityReadModelService.findByUserId(userId)).thenReturn(Optional.of(dto));
+
+      // when
+      var result = userService.getActivity(userId);
+
+      // then
+      assertNotNull(result);
+      verify(userActivityReadModelService, times(1)).findByUserId(userId);
+      verify(userActivityDtoBuilder, never()).build(any());
+    }
+
+    @Test
+    @DisplayName("사용자 활동 내역 조회 성공 (캐시 활성 - 미스 후 리프레시)")
+    void getActivity_Success_CacheMiss() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UserActivityDto dto = UserActivityDto.builder().id(userId).build();
+
+      when(userRepository.existsById(userId)).thenReturn(true);
+      when(userActivityReadModelService.isEnabled()).thenReturn(true);
+      when(userActivityReadModelService.findByUserId(userId))
+          .thenReturn(Optional.empty()) // 첫 번째 호출: 미스
+          .thenReturn(Optional.of(dto)); // 리프레시 후 두 번째 호출: 히트
+
+      // when
+      var result = userService.getActivity(userId);
+
+      // then
+      assertNotNull(result);
+      verify(userActivityReadModelService).refreshSnapshot(userId);
+      verify(userActivityReadModelService, times(2)).findByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("사용자 활동 내역 조회 실패: 사용자 없음")
+    void getActivity_Fail_NotFound() {
+      UUID userId = UUID.randomUUID();
+      when(userRepository.existsById(userId)).thenReturn(false);
+
+      assertThrows(NoSuchElementException.class, () -> userService.getActivity(userId));
+    }
   }
 }

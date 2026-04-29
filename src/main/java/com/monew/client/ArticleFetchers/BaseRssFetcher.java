@@ -5,16 +5,13 @@ import com.monew.dto.response.ArticleDto;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
-import com.rometools.rome.io.XmlReader;
 import java.io.StringReader;
-import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -53,27 +50,42 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
   protected ArticleDto convertToDto(SyndEntry entry) {
     String sourceUrl = entry.getLink();
 
-    String summary = entry.getDescription() != null ? entry.getDescription().getValue() : "";
+    String summary = this.getSummary(entry);
 
     return ArticleDto.builder()
         .source(getSourceName())
         .sourceUrl(sourceUrl)
         .title(cleanHtml(entry.getTitle()))
-        .summary(cleanHtml(summary))
+        .summary(summary)
         .publishDate(parseDate(entry.getPublishedDate()))
         .build();
   }
 
-  private boolean isMatched(SyndEntry entry, String keyword) {
-    String title = entry.getTitle() != null ? entry.getTitle() : "";
-    String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
-    String target = (title + description).toLowerCase();
-    return target.contains(keyword.toLowerCase());
+  protected String getSummary(SyndEntry entry){
+    String description = cleanHtml(entry.getDescription().getValue());
+    return !description.isEmpty() ? description : "요약이 제공되지 않는 기사입니다.";
   }
 
-  private String cleanHtml(String text) {
+  protected String cleanHtml(String text) {
     if (text == null) return "";
-    return text.replaceAll("<[^>]*>", "").trim();
+    return Jsoup.parse(text).text().trim();
+  }
+
+  private boolean isMatched(SyndEntry entry, String keyword) {
+    String title = entry.getTitle() != null ? entry.getTitle() : "";
+    String description = entry.getDescription() != null
+        ? cleanHtml(entry.getDescription().getValue())
+        : "";
+
+    String target = (title + " " + description).toLowerCase();
+    String lowerKeyword = keyword.toLowerCase();
+
+    // 짧은 영단어
+    if (lowerKeyword.matches("^[a-z]+$") && lowerKeyword.length() <= 3) {
+      return target.matches(".*\\b" + lowerKeyword + "\\b.*");
+    }
+
+    return target.contains(lowerKeyword);
   }
 
   private Instant parseDate(Date date) {

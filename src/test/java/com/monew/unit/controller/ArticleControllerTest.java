@@ -11,12 +11,12 @@ import com.monew.entity.User;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.UserRepository;
-import com.monew.service.impl.ArticleServiceImpl;
-import com.monew.service.impl.ArticleViewServiceImpl;
+import com.monew.service.ArticleBackupService;
+import com.monew.service.ArticleService;
+import com.monew.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -40,10 +40,13 @@ class ArticleControllerTest {
   private MockMvc mockMvc;
 
   @MockitoBean
-  private ArticleServiceImpl articleService;
+  private ArticleService articleService;
 
   @MockitoBean
-  private ArticleViewServiceImpl articleViewService;
+  private ArticleViewService articleViewService;
+
+  @MockitoBean
+  private ArticleBackupService articleBackupService;
 
   @MockitoBean
   private ArticleViewMapper articleViewMapper;
@@ -76,7 +79,8 @@ class ArticleControllerTest {
     ArticleDto mockDto = ArticleDto.builder().id(ARTICLE_ID).title("테스트 기사").build();
     given(articleService.find(ARTICLE_ID)).willReturn(mockDto);
 
-    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID))
+    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID)
+          .header("Monew-Request-User-ID", USER_ID.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("테스트 기사"));
   }
@@ -87,7 +91,8 @@ class ArticleControllerTest {
   void search_Fail_NotFound() throws Exception {
     given(articleService.find(ARTICLE_ID)).willThrow(new ArticleNotFoundException(ARTICLE_ID));
 
-    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID))
+    mockMvc.perform(get("/api/articles/{articleId}", ARTICLE_ID)
+        .header("Monew-Request-User-ID", USER_ID.toString()))
         .andExpect(status().isNotFound());
   }
 
@@ -140,7 +145,7 @@ class ArticleControllerTest {
         true
     );
 
-    given(articleService.findArticles(any(), any(), any())).willReturn(mockResponse);
+    given(articleService.findArticles(any(), any(), any(),any())).willReturn(mockResponse);
 
     mockMvc.perform(get("/api/articles")
             .header(HEADER_USER_ID, USER_ID.toString())

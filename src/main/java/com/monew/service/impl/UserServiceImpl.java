@@ -8,22 +8,17 @@ import com.monew.dto.response.UserDto;
 import com.monew.entity.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
-import com.monew.mapper.ArticleViewMapper;
-import com.monew.mapper.CommentMapper;
-import com.monew.mapper.SubscriptionMapper;
 import com.monew.mapper.UserMapper;
-import com.monew.repository.ArticleViewRepository;
-import com.monew.repository.CommentLikeRepository;
-import com.monew.repository.CommentRepository;
-import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
+import com.monew.service.UserActivityDtoBuilder;
+import com.monew.service.UserActivityReadModelService;
 import com.monew.service.UserService;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,20 +33,14 @@ public class UserServiceImpl implements UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
-  private final SubscriptionRepository subscriptionRepository;
-  private final CommentRepository commentRepository;
-  private final CommentLikeRepository commentLikeRepository;
-  private final ArticleViewRepository articleViewRepository;
-
-  private final CommentMapper commentMapper;
-  private final ArticleViewMapper articleViewMapper;
-  private final SubscriptionMapper subscriptionMapper;
+  private final UserActivityDtoBuilder userActivityDtoBuilder;
+  private final UserActivityReadModelService userActivityReadModelService;
 
   @Override
   public UserDto create(UserRegisterRequest request){
-    if(existsInAllUsers(request.email())) {
+    if(userRepository.existsByEmail(request.email())) {
       log.warn("중복된 이메일 오류: {}", request.email());
-      throw new AlreadyExistEmailException("Email already exists");
+      throw new AlreadyExistEmailException();
     }
 
     String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{6,20}$";
@@ -79,43 +68,45 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserDto update(UUID userId, UserUpdateRequest request) {
-    User user = userRepository.findById(userId)
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId)
         .orElseThrow(() -> {
           log.warn("사용자 업데이트 실패. 존재하지 않는 사용자 id: {}", userId);
           return new NoSuchElementException("User not found with id: " + userId);
         });
     user.update(request.nickname());
+    userActivityReadModelService.refreshSnapshot(userId);
     log.info("사용자 닉네임 변경 성공. 사용자 id: {}", user.getId());
     return userMapper.toDto(user);
   }
 
   @Override
   public void softDelete(UUID userId) {
-    User user = userRepository.findById(userId).orElseThrow(
+    User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
         () -> {
           log.warn("softDelete 실패. 존재하지 않는 사용자 id: {}", userId);
           return new NoSuchElementException("User not found with id: " + userId);
         }
     );
 
-    user.markAsDeleted(true);
+    user.markAsDeleted(Instant.now());
   }
 
   @Override
   public void hardDelete(UUID userId) {
-    if (!userRepository.existsByIdPhysical(userId)) {
+    if (!userRepository.existsById(userId)) {
       log.warn("hardDelete 실패. DB에 존재하지 않는 사용자 id: {}", userId);
       throw new NoSuchElementException("User not found with id: " + userId);
     }
 
     entityManager.flush();
     entityManager.clear();
-    userRepository.deleteByIdPhysical(userId);
+    userActivityReadModelService.deleteSnapshot(userId);
+    userRepository.deleteById(userId);
     log.warn("HardDelete 성공. 사용자 id: {}", userId);
   }
 
   private User loginValidate(String email, String password) {
-    User user =  userRepository.findByEmail(email)
+    User user =  userRepository.findByEmailAndDeletedAtIsNull(email)
         .orElseThrow(() -> {
           log.warn("로그인 실패. 존재하지 않는 사용자 email: {}", email);
           return new IllegalArgumentException("Wrong email or password");
@@ -128,33 +119,22 @@ public class UserServiceImpl implements UserService {
     return user;
   }
 
-  private boolean existsInAllUsers(String email) {
-    return userRepository.existsInAllUsers(email);
-  }
-
   @Override
   @Transactional(readOnly = true)
   public UserActivityDto getActivity(UUID userId) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+    if (!userRepository.existsById(userId)) {
+      throw new NoSuchElementException("User not found with id: " + userId);
+    }
 
-    return UserActivityDto.builder()
-        .id(user.getId())
-        .email(user.getEmail())
-        .nickname(user.getNickname())
-        .createdAt(user.getCreatedAt())
-        .subscriptions(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
-            .map(subscriptionMapper::toDto)
-            .toList())
-        .comments(commentRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
-            .map(commentMapper::toActivityDto)
-            .toList())
-        .commentLikes(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
-            .map(commentMapper::toLikeActivityDto)
-            .toList())
-        .articleViews(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
-            .map(av -> articleViewMapper.toDto(av, av.getArticle()))
-            .toList())
-        .build();
+    if (userActivityReadModelService.isEnabled()) {
+      return userActivityReadModelService.findByUserId(userId)
+          .orElseGet(() -> {
+            userActivityReadModelService.refreshSnapshot(userId);
+            return userActivityReadModelService.findByUserId(userId)
+                .orElseGet(() -> userActivityDtoBuilder.build(userId));
+          });
+    }
+
+    return userActivityDtoBuilder.build(userId);
   }
 }

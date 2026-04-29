@@ -1,6 +1,11 @@
 package com.monew.scheduler;
 
+import org.springframework.batch.core.Job;
+
 public interface BatchTask {
-  void execute();
   String getCron();
+
+  String getJobName();
+
+  Job getJob();
 }

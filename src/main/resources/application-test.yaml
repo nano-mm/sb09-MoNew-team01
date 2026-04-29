@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    aws:
+      credentials:
+        access-key: dummy-key
+        secret-key: dummy-secret
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+  batch:
+    jdbc:
+      initialize-schema: embedded

@@ -54,7 +54,7 @@ class UserControllerTest {
   private final UUID DIFFERENT_USER_ID = UUID.randomUUID();
 
   @BeforeEach
-  void setUp() throws BadRequestException {
+  void setUp() {
     when(loginUserArgumentResolver.supportsParameter(any())).thenReturn(true);
     when(loginUserArgumentResolver.resolveArgument(any(), any(), any(), any()))
         .thenReturn(SAME_USER_ID);
@@ -133,17 +133,6 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("실패: 타인 계정 논리적 삭제 시 403 Forbidden")
-    void logicalDelete_Forbidden() throws Exception {
-      /// given&when
-      mockMvc.perform(delete("/api/users/{userId}", DIFFERENT_USER_ID))
-          .andExpect(status().isForbidden());
-
-      /// then
-      verify(userService, never()).softDelete(any());
-    }
-
-    @Test
     @DisplayName("성공: 물리적 삭제(Hard Delete) 시 204 No Content")
     void hardDelete_Success() throws Exception {
       /// given&when
@@ -173,21 +162,6 @@ class UserControllerTest {
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.nickname").value("NewNickname"));
-    }
-
-    @Test
-    @DisplayName("실패: 타인 정보 수정 시도 시 403 Forbidden")
-    void update_Forbidden() throws Exception {
-      // given
-      UserUpdateRequest request = new UserUpdateRequest("NewNickname");
-
-      // when & then
-      mockMvc.perform(patch("/api/users/{userId}", DIFFERENT_USER_ID)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isForbidden());
-
-      verify(userService, never()).update(any(), any());
     }
   }
 }

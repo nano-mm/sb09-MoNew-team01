@@ -17,9 +17,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
   @Query("SELECT s FROM Subscription s WHERE s.user.id = :userId")
   List<Subscription> findAllByUserIdWithInterest(@Param("userId") UUID userId);
 
+  @Query("SELECT DISTINCT s.user.id FROM Subscription s WHERE s.interest.id = :interestId")
+  List<UUID> findDistinctUserIdsByInterestId(@Param("interestId") UUID interestId);
+
   boolean existsByUserAndInterest(User user, Interest interest);
 
   Optional<Subscription> findByUserAndInterest(User user, Interest interest);
 
+  List<Subscription> findAllByUserAndInterest(User user, Interest interest);
+
   long countByInterest(Interest interest);
+
+  void deleteByInterestId(UUID interestId);
+
+  @Query("select s.user.id from Subscription s where s.interest.id = :interestId")
+  List<UUID> findUserIdsByInterestId(@Param("interestId") UUID interestId);
 }

@@ -1,4 +1,4 @@
-package com.monew.mapper;
+package com.monew.unit.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,7 +14,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 class NotificationMapperTest {
 
-  private final NotificationMapper notificationMapper = Mappers.getMapper(NotificationMapper.class);
+  private final com.monew.mapper.NotificationMapper notificationMapper = Mappers.getMapper(com.monew.mapper.NotificationMapper.class);
 
   @Test
   void toDto_알림엔티티를_명세형식으로_매핑한다() {

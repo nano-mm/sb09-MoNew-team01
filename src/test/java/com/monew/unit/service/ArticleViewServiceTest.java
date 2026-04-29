@@ -16,7 +16,8 @@ import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
-import com.monew.service.impl.ArticleViewServiceImpl;
+import com.monew.service.UserActivityReadModelService;
+import com.monew.service.ArticleViewService;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -34,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ArticleViewServiceTest {
 
   @InjectMocks
-  private ArticleViewServiceImpl articleViewService;
+  private ArticleViewService articleViewService;
 
   @Mock
   private ArticleViewRepository articleViewRepository;
@@ -44,6 +45,8 @@ class ArticleViewServiceTest {
   private ArticleRepository articleRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private UserActivityReadModelService userActivityReadModelService;
 
   private UUID articleId;
   private UUID userId;
@@ -80,7 +83,6 @@ class ArticleViewServiceTest {
   @DisplayName("기사 조회 내역 생성 - 성공")
   void create_Success() {
     given(articleRepository.findById(articleId)).willReturn(Optional.of(article));
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     given(articleViewRepository.saveAndFlush(any(ArticleView.class))).willReturn(articleView);
     given(articleViewMapper.toDto(any(ArticleView.class), eq(article))).willReturn(articleViewDto);
@@ -92,6 +94,7 @@ class ArticleViewServiceTest {
 
     verify(articleViewRepository).saveAndFlush(any(ArticleView.class));
     verify(articleRepository).incrementViewCount(articleId);
+    verify(userActivityReadModelService).refreshSnapshot(userId);
   }
 
   @Test
@@ -106,6 +109,26 @@ class ArticleViewServiceTest {
     verify(userRepository, never()).findById(any());
     verify(articleViewRepository, never()).saveAndFlush(any());
     verify(articleRepository, never()).incrementViewCount(any());
+  }
+
+  @Test
+  @DisplayName("기사 조회 내역 생성 - 이미 조회한 기사일 경우 (조회수 증가 안함)")
+  void create_AlreadyViewed_ShouldReturnEarly() {
+    given(articleViewRepository.findByArticleIdAndUserId(articleId, userId))
+        .willReturn(Optional.of(articleView));
+
+    given(articleRepository.getReferenceById(articleId)).willReturn(article);
+    given(articleViewMapper.toDto(articleView, article)).willReturn(articleViewDto);
+
+    ArticleViewDto result = articleViewService.create(articleId, userId);
+
+    assertThat(result).isNotNull();
+    assertThat(result.articleId()).isEqualTo(articleId);
+
+    verify(articleRepository, never()).findById(any());
+    verify(articleViewRepository, never()).saveAndFlush(any());
+    verify(articleRepository, never()).incrementViewCount(any());
+    verify(userActivityReadModelService, never()).refreshSnapshot(any());
   }
 
   @Test

@@ -13,6 +13,6 @@ public interface ArticleMapper {
 
   @Mapping(target = "commentCount", constant = "0L")
   @Mapping(target = "viewCount", constant = "0L")
-  @Mapping(target = "isDeleted", constant = "false")
+  @Mapping(target = "deletedAt", ignore = true)
   Article toEntity(ArticleDto dto);
 }

@@ -8,13 +8,16 @@ import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Comment;
 import com.monew.entity.CommentLike;
+import com.monew.entity.enums.ResourceType;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
+import com.monew.exception.TooManyRequestsException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,46 +47,69 @@ public class CommentService {
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
+  private final UserActivityReadModelService userActivityReadModelService;
+  private final NotificationService notificationService;
+
+  private final Map<UUID, Instant> recentCommentRequests = new ConcurrentHashMap<>();
 
   public CommentDto createComment(UUID userId, UUID articleId, String content) {
+    checkRateLimit(userId);
+
     Article article = articleRepository.findById(articleId)
         .orElseThrow(() -> new NoSuchElementException("해당 Article을 찾을 수 없습니다"));
 
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
     Comment comment = Comment.create(article, user, content);
-    commentRepository.save(comment);
+    commentRepository.saveAndFlush(comment);
 
-    return commentMapper.toResponse(comment, user);
+    articleRepository.incrementCommentCount(article.getId());
 
+    userActivityReadModelService.refreshSnapshot(userId);
+
+    return commentMapper.toResponse(comment);
+
+  }
+
+  private void checkRateLimit(UUID userId) {
+    Instant now = Instant.now();
+    Instant lastRequestTime = recentCommentRequests.get(userId);
+
+    if (lastRequestTime != null && Duration.between(lastRequestTime, now).toMillis() < 300) {
+      throw new TooManyRequestsException();
+    }
+
+    recentCommentRequests.put(userId, now);
   }
 
   public CommentDto updateComment(UUID userId, UUID commentId, String content) {
     Comment comment = getActiveComment(commentId);
+
+    if(userRepository.findById(userId).isEmpty()) {
+      throw new UserNotFoundException("사용자를 찾을 수 없습니다");
+    }
+
     if (!comment.isOwnedBy(userId)) {
       throw new ForbiddenException();
     }
     comment.updateContent(content);
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다"));
-    return commentMapper.toResponse(comment, user);
+    userActivityReadModelService.refreshSnapshot(userId);
+    return commentMapper.toResponse(comment);
   }
 
-  public void deleteComment(UUID userId, UUID commentId) {
+  public void deleteComment(UUID commentId) {
     Comment comment = getActiveComment(commentId);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
-    comment.softDelete(true);  // isDeleted = true 플래그만 변경
+    comment.softDelete(Instant.now());
+    articleRepository.decrementCommentCount(comment.getArticleId());
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
-  public void hardDeleteComment(UUID userId, UUID commentId) {
+  public void hardDeleteComment(UUID commentId) {
     Comment comment = commentRepository.findByIdIncludeDeleted(commentId)
         .orElseThrow(CommentNotFoundException::new);
-    if (!comment.isOwnedBy(userId)) {
-      throw new ForbiddenException();
-    }
-    commentRepository.delete(comment);  // cascade로 likes도 자동 삭제
+    commentRepository.delete(comment);
   }
 
   public CommentLikeResponse likeComment(UUID userId, UUID commentId) {
@@ -95,6 +122,19 @@ public class CommentService {
     CommentLike commentLike = new CommentLike(comment, user);
     commentLikeRepository.save(commentLike);
     comment.increaseLikeCount();
+
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
+
+    if (!comment.getUserId().equals(userId)) {
+
+      notificationService.createNotification(
+          comment.getUserId(),
+          user.getNickname() + "님이 나의 댓글을 좋아합니다.",
+          ResourceType.COMMENT,
+          comment.getId()
+      );
+    }
 
     return new CommentLikeResponse(
         commentLike.getId(),
@@ -117,6 +157,8 @@ public class CommentService {
       throw new LikeNotFoundException();
     }
     comment.decreaseLikeCount();
+    userActivityReadModelService.refreshSnapshot(userId);
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
   @Transactional(readOnly = true)
@@ -172,7 +214,7 @@ public class CommentService {
       }
     }
 
-    long totalElements = commentRepository.countByArticleId(articleId);
+    long totalElements = commentRepository.countByArticle_IdAndDeletedAtIsNull(articleId);
 
     return CursorPageResponseDto.<CommentDto>builder()
         .content(content)
@@ -204,7 +246,7 @@ public class CommentService {
   }
 
   private Comment getActiveComment(UUID commentId) {
-    return commentRepository.findById(commentId)
+    return commentRepository.findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(CommentNotFoundException::new);
   }
 }
