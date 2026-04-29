@@ -23,7 +23,11 @@ import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class InterestServiceImpl implements InterestService {
 
   private final InterestRepository interestRepository;
@@ -164,8 +169,26 @@ public class InterestServiceImpl implements InterestService {
     subscriptionRepository.save(subscription);
 
     interest.increaseSubscriber();
-    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    userActivityReadModelService.refreshSnapshot(userId);
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          try {
+            userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+            userActivityReadModelService.refreshSnapshot(userId);
+          } catch (Exception ex) {
+            // ignore
+          }
+        }
+      });
+    } else {
+      try {
+        userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+        userActivityReadModelService.refreshSnapshot(userId);
+      } catch (Exception ex) {
+        // ignore
+      }
+    }
 
     return subscriptionMapper.toDto(subscription);
   }
@@ -179,16 +202,49 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-    Subscription subscription = subscriptionRepository
-        .findByUserAndInterest(user, interest)
-        .orElseThrow(() -> new RuntimeException("구독 정보 없음"));
+    List<Subscription> subs = subscriptionRepository.findAllByUserAndInterest(user, interest);
+    if (subs == null || subs.isEmpty()) {
+      return;
+    }
 
-    subscriptionRepository.delete(subscription);
+    int removed = 0;
+    for (Subscription s : subs) {
+      try {
+        subscriptionRepository.delete(s);
+        removed++;
+      } catch (DataAccessException ex) {
+        log.warn("구독 삭제 실패(무시). id={}, error={}", s.getId(), ex.toString());
+      }
+    }
 
-    interest.decreaseSubscriber();
+    for (int i = 0; i < removed; i++) {
+      try {
+        interest.decreaseSubscriber();
+      } catch (Exception ex) {
+        log.warn("구독자 수 감소 실패(무시). interestId={}, error={}", interestId, ex.toString());
+      }
+    }
 
-    userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-    userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          try {
+            userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+            userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+          } catch (Exception ex) {
+            // ignore
+          }
+        }
+      });
+    } else {
+      try {
+        userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+        userActivityReadModelService.removeSubscriptionSnapshot(userId, interestId);
+      } catch (Exception ex) {
+        // ignore
+      }
+    }
   }
 
 }
