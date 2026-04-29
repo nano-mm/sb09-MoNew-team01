@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -95,4 +96,8 @@ order by i.subscriberCount desc, i.createdAt asc
   // 뉴스 기사 수집할 때 쓸 쿼리
   @Query("SELECT DISTINCT i FROM Interest i LEFT JOIN FETCH i.keywords")
   List<Interest> findAllWithKeywords();
+
+  @Modifying
+  @Query(value = "UPDATE interests SET subscriber_count = (SELECT COUNT(*) FROM subscriptions WHERE interest_id = :id) WHERE id = :id", nativeQuery = true)
+  int updateSubscriberCount(@Param("id") UUID id, @Param("count") long count);
 }
