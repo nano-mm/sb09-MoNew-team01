@@ -211,7 +211,7 @@ public class InterestServiceImpl implements InterestService {
 
     Interest refreshedInterest = interestRepository.findById(interestId).orElse(interest);
 
-    return new com.monew.dto.response.SubscriptionDto(
+    return new SubscriptionDto(
         subscription.getId(),
         refreshedInterest.getId(),
         refreshedInterest.getName(),
