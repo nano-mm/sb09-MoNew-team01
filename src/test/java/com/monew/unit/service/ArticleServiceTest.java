@@ -26,8 +26,8 @@ import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.service.ArticleService;
 import com.monew.service.NotificationService;
-import com.monew.service.impl.ArticleServiceImpl;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -57,7 +57,7 @@ class ArticleServiceTest {
   @Mock private NotificationService notificationService;
   @Mock private SubscriptionRepository subscriptionRepository;
 
-  private ArticleServiceImpl articleService;
+  private ArticleService articleService;
 
   @Captor
   private ArgumentCaptor<List<Article>> articleListCaptor;
@@ -66,7 +66,7 @@ class ArticleServiceTest {
 
   @BeforeEach
   void setUp() {
-    articleService = new ArticleServiceImpl(
+    articleService = new ArticleService(
         articleRepository,
         articleQueryRepository,
         articleViewRepository,

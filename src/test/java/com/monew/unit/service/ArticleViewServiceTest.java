@@ -17,7 +17,7 @@ import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.UserActivityReadModelService;
-import com.monew.service.impl.ArticleViewServiceImpl;
+import com.monew.service.ArticleViewService;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -35,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ArticleViewServiceTest {
 
   @InjectMocks
-  private ArticleViewServiceImpl articleViewService;
+  private ArticleViewService articleViewService;
 
   @Mock
   private ArticleViewRepository articleViewRepository;

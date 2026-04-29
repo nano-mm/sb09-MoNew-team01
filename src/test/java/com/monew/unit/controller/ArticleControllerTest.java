@@ -12,13 +12,11 @@ import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
 import com.monew.repository.UserRepository;
 import com.monew.service.ArticleBackupService;
-import com.monew.service.impl.ArticleBackupServiceImpl;
-import com.monew.service.impl.ArticleServiceImpl;
-import com.monew.service.impl.ArticleViewServiceImpl;
+import com.monew.service.ArticleService;
+import com.monew.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -42,13 +40,13 @@ class ArticleControllerTest {
   private MockMvc mockMvc;
 
   @MockitoBean
-  private ArticleServiceImpl articleService;
+  private ArticleService articleService;
 
   @MockitoBean
-  private ArticleViewServiceImpl articleViewService;
+  private ArticleViewService articleViewService;
 
   @MockitoBean
-  private ArticleBackupServiceImpl articleBackupService;
+  private ArticleBackupService articleBackupService;
 
   @MockitoBean
   private ArticleViewMapper articleViewMapper;
