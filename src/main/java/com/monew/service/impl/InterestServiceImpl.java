@@ -19,13 +19,15 @@ import com.monew.repository.UserRepository;
 import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -161,14 +163,31 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
-    if (subscriptionRepository.existsByUserAndInterest(user, interest)) {
-      throw new RuntimeException("이미 구독 중입니다.");
-    }
 
     Subscription subscription = new Subscription(user, interest);
-    subscriptionRepository.save(subscription);
+    try {
+      subscriptionRepository.save(subscription);
+      try {
+        subscriptionRepository.flush();
+      } catch (DataIntegrityViolationException ex) {
+        return subscriptionRepository.findByUserAndInterest(user, interest)
+            .map(subscriptionMapper::toDto)
+            .orElseThrow(() -> new RuntimeException("이미 구독 중입니다."));
+      } catch (Exception ex) {
+        log.warn("subscriptionRepository.flush 실패(무시). interestId={}, userId={}, error={}", interestId, userId, ex.toString());
+      }
+    } catch (DataIntegrityViolationException ex) {
+      return subscriptionRepository.findByUserAndInterest(user, interest)
+          .map(subscriptionMapper::toDto)
+          .orElseThrow(() -> new RuntimeException("이미 구독 중입니다."));
+    }
 
-    interest.increaseSubscriber();
+    try {
+      long actual = subscriptionRepository.countByInterest(interest);
+      interestRepository.updateSubscriberCount(interestId, actual);
+    } catch (Exception ex) {
+      log.warn("구독자 수 동기화 실패(무시). interestId={}, error={}", interestId, ex.toString());
+    }
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
         @Override
@@ -190,7 +209,16 @@ public class InterestServiceImpl implements InterestService {
       }
     }
 
-    return subscriptionMapper.toDto(subscription);
+    Interest refreshedInterest = interestRepository.findById(interestId).orElse(interest);
+
+    return new com.monew.dto.response.SubscriptionDto(
+        subscription.getId(),
+        refreshedInterest.getId(),
+        refreshedInterest.getName(),
+        refreshedInterest.getKeywords(),
+        refreshedInterest.getSubscriberCount(),
+        subscription.getCreatedAt()
+    );
   }
 
   @Override
@@ -217,12 +245,17 @@ public class InterestServiceImpl implements InterestService {
       }
     }
 
-    for (int i = 0; i < removed; i++) {
-      try {
-        interest.decreaseSubscriber();
-      } catch (Exception ex) {
-        log.warn("구독자 수 감소 실패(무시). interestId={}, error={}", interestId, ex.toString());
-      }
+    try {
+      subscriptionRepository.flush();
+    } catch (Exception ex) {
+      log.warn("subscriptionRepository.flush 실패(무시). interestId={}, userId={}, error={}", interestId, userId, ex.toString());
+    }
+
+    try {
+      long actual = subscriptionRepository.countByInterest(interest);
+      interestRepository.updateSubscriberCount(interestId, actual);
+    } catch (Exception ex) {
+      log.warn("구독자 수 동기화 실패(무시). interestId={}, error={}", interestId, ex.toString());
     }
 
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
