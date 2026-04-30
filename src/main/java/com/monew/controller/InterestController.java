@@ -1,6 +1,7 @@
 package com.monew.controller;
 
 import com.monew.config.LoginUser;
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -81,23 +84,15 @@ public class InterestController {
   @GetMapping
   public CursorPageResponseDto<InterestDto> find(
       @RequestParam(required = false) String keyword,
-      @RequestParam(defaultValue = "name") String orderBy,
-      @RequestParam(defaultValue = "ASC") String direction,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) Instant after,
-      @RequestParam(defaultValue = "10") int size,
+      @Valid @ModelAttribute CursorRequest cursorRequest,
       @LoginUser UUID userId
   ) {
     log.info("[관심사] 목록 조회 요청 수신: userId={}, keyword={}, orderBy={}, direction={}",
-        userId, keyword, orderBy, direction);
+        userId, keyword, cursorRequest.orderBy(), cursorRequest.direction());
 
     InterestSearchRequest request = new InterestSearchRequest(
         keyword,
-        orderBy,
-        direction,
-        cursor,
-        after,
-        size,
+        cursorRequest,
         userId
     );
 

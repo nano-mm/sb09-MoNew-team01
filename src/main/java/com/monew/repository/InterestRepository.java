@@ -2,6 +2,7 @@ package com.monew.repository;
 
 import com.monew.entity.Interest;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +28,7 @@ order by i.name asc, i.createdAt asc
   List<Interest> findByNameAsc(
       @Param("keyword") String keyword,
       @Param("cursor") String cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -47,7 +48,7 @@ order by i.name desc, i.createdAt asc
   List<Interest> findByNameDesc(
       @Param("keyword") String keyword,
       @Param("cursor") String cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -67,7 +68,7 @@ order by i.subscriberCount asc, i.createdAt asc
   List<Interest> findBySubscriberAsc(
       @Param("keyword") String keyword,
       @Param("cursor") Long cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -87,7 +88,7 @@ order by i.subscriberCount desc, i.createdAt asc
   List<Interest> findBySubscriberDesc(
       @Param("keyword") String keyword,
       @Param("cursor") Long cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 

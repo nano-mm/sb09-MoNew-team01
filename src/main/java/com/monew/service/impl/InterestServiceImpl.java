@@ -18,6 +18,7 @@ import com.monew.service.InterestService;
 import com.monew.util.SimilarityUtils;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -76,8 +77,8 @@ public class InterestServiceImpl implements InterestService {
     String keyword = request.keyword();
     String orderBy = request.getOrderByOrDefault();
     String direction = request.getDirectionOrDefault();
-    String cursor = request.cursor();
-    Instant after = request.after();
+    String cursor = request.cursorRequest().cursor();
+    LocalDateTime after = request.cursorRequest().after();
     int size = request.getSizeOrDefault();
     User user = userRepository.findById(request.userId()).orElseThrow();
 
