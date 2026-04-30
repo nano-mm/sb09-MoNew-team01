@@ -199,8 +199,8 @@ class InterestServiceTest {
   @DisplayName("구독 취소 성공")
   void unsubscribe_Success() {
     User user = mock(User.class);
-    Interest interest = new Interest("스포츠", List.of("축구"));
-    Subscription subscription = new Subscription(user, interest);
+    Interest interest = mock(Interest.class);
+    Subscription subscription = mock(Subscription.class);
 
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
@@ -208,8 +208,8 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId))
         .willReturn(Optional.of(interest));
 
-    given(subscriptionRepository.findByUserAndInterest(user, interest))
-        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.findAllByUserAndInterest(any(), any()))
+        .willReturn(List.of(subscription));
 
     given(subscriptionRepository.countByInterest(interest))
         .willReturn(0L);
