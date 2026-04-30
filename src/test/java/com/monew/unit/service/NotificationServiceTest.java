@@ -3,7 +3,6 @@ package com.monew.unit.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,7 +17,7 @@ import com.monew.exception.ErrorCode;
 import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
-import com.monew.service.impl.NotificationServiceImpl;
+import com.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +44,7 @@ class NotificationServiceTest {
   private NotificationMapper notificationMapper;
 
   @InjectMocks
-  private NotificationServiceImpl notificationService;
+  private NotificationService notificationService;
 
   private UUID userId;
   private User user;
