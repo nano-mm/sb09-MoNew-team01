@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -161,8 +160,6 @@ public class NotificationService {
     int count = 0;
     for (var command : commands) {
       if (command == null) continue;
-      userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
-      eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
       eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       count++;
