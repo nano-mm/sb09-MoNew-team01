@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import com.monew.dto.request.NotificationCreateCommand;
 import com.monew.entity.Notification;
 import com.monew.entity.User;
 import com.monew.entity.enums.ResourceType;
@@ -160,6 +161,34 @@ class NotificationServiceTest {
     int created = notificationService.createNotifications(List.of());
     assertThat(created).isZero();
     verify(notificationRepository, never()).saveAll(any());
+  }
+
+  @Test
+  void createNotifications_publishes_events_forCommands() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    NotificationCreateCommand c1 = new NotificationCreateCommand(userId, "a", ResourceType.INTEREST, UUID.randomUUID());
+    NotificationCreateCommand c2 = new NotificationCreateCommand(userId, "b", ResourceType.INTEREST, UUID.randomUUID());
+
+    int created = notificationService.createNotifications(List.of(c1, c2));
+
+    assertThat(created).isEqualTo(2);
+    verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(any());
+  }
+
+  @Test
+  void confirmAllNotifications_confirms_whenExists() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    Notification n1 = Notification.of(user, "x", ResourceType.INTEREST, UUID.randomUUID());
+    Notification n2 = Notification.of(user, "y", ResourceType.INTEREST, UUID.randomUUID());
+    when(notificationRepository.findAllByUser_IdAndConfirmedFalse(userId)).thenReturn(List.of(n1, n2));
+
+    notificationService.confirmAllNotifications(userId);
+
+    assertThat(n1.getConfirmed()).isTrue();
+    assertThat(n2.getConfirmed()).isTrue();
+    verify(notificationRepository).findAllByUser_IdAndConfirmedFalse(userId);
   }
 
   @Test
