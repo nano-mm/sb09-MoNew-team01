@@ -17,8 +17,8 @@ import com.monew.entity.CommentLike;
 import com.monew.entity.User;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
-import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
+import com.monew.exception.TooManyRequestsException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
@@ -111,6 +111,22 @@ class CommentServiceTest {
       assertThatThrownBy(() -> commentService.createComment(userId, articleId, "content"))
           .isInstanceOf(com.monew.exception.user.UserNotFoundException.class);
     }
+
+    @Test
+    @DisplayName("0.3초 이내에 연속으로 댓글을 작성하면 예외가 발생한다")
+    void rateLimitExceeded() {
+      // given
+      when(articleRepository.findById(articleId)).thenReturn(Optional.of(article));
+      when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+      when(commentMapper.toResponse(any())).thenReturn(mock(CommentDto.class));
+
+      // when
+      commentService.createComment(userId, articleId, "first");
+
+      // then
+      assertThatThrownBy(() -> commentService.createComment(userId, articleId, "second"))
+          .isInstanceOf(TooManyRequestsException.class);
+    }
   }
 
   @Nested
@@ -124,7 +140,7 @@ class CommentServiceTest {
       Comment comment = Comment.create(article, user, "old content");
       ReflectionTestUtils.setField(comment, "id", commentId);
       
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
       when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
       // when
@@ -139,7 +155,7 @@ class CommentServiceTest {
     void userNotFound() {
       UUID commentId = UUID.randomUUID();
       Comment comment = Comment.create(article, user, "content");
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
       when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> commentService.updateComment(userId, commentId, "new content"))
@@ -156,7 +172,7 @@ class CommentServiceTest {
       // given
       UUID commentId = UUID.randomUUID();
       Comment comment = Comment.create(article, user, "content");
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
 
       // when
       commentService.deleteComment(commentId);
@@ -202,7 +218,7 @@ class CommentServiceTest {
       Comment comment = spy(Comment.create(article, user, "content"));
       ReflectionTestUtils.setField(comment, "id", commentId);
       
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
       when(commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)).thenReturn(false);
       when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -220,7 +236,7 @@ class CommentServiceTest {
     void userNotFound() {
       UUID commentId = UUID.randomUUID();
       Comment comment = Comment.create(article, user, "content");
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
       when(commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)).thenReturn(false);
       when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -234,7 +250,7 @@ class CommentServiceTest {
       // given
       UUID commentId = UUID.randomUUID();
       Comment comment = Comment.create(article, user, "content");
-      when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+      when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
       when(commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId)).thenReturn(true);
 
       // when & then
@@ -320,7 +336,7 @@ class CommentServiceTest {
     ReflectionTestUtils.setField(comment, "id", commentId);
     ReflectionTestUtils.setField(comment, "likeCount", 1);
     
-    when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
     when(commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId)).thenReturn(1);
 
     // when
@@ -336,7 +352,7 @@ class CommentServiceTest {
   void unlikeNotFound() {
     UUID commentId = UUID.randomUUID();
     Comment comment = Comment.create(article, user, "content");
-    when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId)).thenReturn(Optional.of(comment));
     when(commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId)).thenReturn(0);
 
     assertThatThrownBy(() -> commentService.unlikeComment(userId, commentId))

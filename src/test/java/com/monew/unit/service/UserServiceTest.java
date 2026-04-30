@@ -22,7 +22,7 @@ import com.monew.mapper.UserMapper;
 import com.monew.repository.UserRepository;
 import com.monew.service.UserActivityDtoBuilder;
 import com.monew.service.UserActivityReadModelService;
-import com.monew.service.impl.UserServiceImpl;
+import com.monew.service.UserService;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -50,7 +50,7 @@ class UserServiceTest {
   @Mock private UserActivityReadModelService userActivityReadModelService;
 
   @InjectMocks
-  private UserServiceImpl userService;
+  private UserService userService;
 
   @Nested
   @DisplayName("회원가입 테스트")

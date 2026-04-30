@@ -12,7 +12,7 @@ public interface CommentRepository extends JpaRepository<Comment, UUID>, Comment
 
   List<Comment> findTop10ByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId);
 
-  List<Comment> findAllByArticle_IdAndDeletedAtIsNull(UUID articleId);
+  Optional<Comment> findByIdAndDeletedAtIsNull(UUID id);
 
   // 물리 삭제 전용 - 테스트에서만 사용, @SQLRestriction 우회하여 삭제된 것도 포함
   @Query(value = "SELECT * FROM comments WHERE id = :id", nativeQuery = true)

@@ -112,6 +112,26 @@ class ArticleViewServiceTest {
   }
 
   @Test
+  @DisplayName("기사 조회 내역 생성 - 이미 조회한 기사일 경우 (조회수 증가 안함)")
+  void create_AlreadyViewed_ShouldReturnEarly() {
+    given(articleViewRepository.findByArticleIdAndUserId(articleId, userId))
+        .willReturn(Optional.of(articleView));
+
+    given(articleRepository.getReferenceById(articleId)).willReturn(article);
+    given(articleViewMapper.toDto(articleView, article)).willReturn(articleViewDto);
+
+    ArticleViewDto result = articleViewService.create(articleId, userId);
+
+    assertThat(result).isNotNull();
+    assertThat(result.articleId()).isEqualTo(articleId);
+
+    verify(articleRepository, never()).findById(any());
+    verify(articleViewRepository, never()).saveAndFlush(any());
+    verify(articleRepository, never()).incrementViewCount(any());
+    verify(userActivityReadModelService, never()).refreshSnapshot(any());
+  }
+
+  @Test
   @DisplayName("특정 유저의 최근 기사 조회 내역 10개 반환")
   void getRecentArticleViews_Success() {
     List<ArticleView> views = List.of(articleView);

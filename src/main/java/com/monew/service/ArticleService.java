@@ -25,13 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -40,7 +37,6 @@ public class ArticleService {
 
   private final ArticleRepository articleRepository;
   private final ArticleQueryRepository articleQueryRepository;
-  private final ArticleViewRepository articleViewRepository;
   private final InterestRepository interestRepository;
 
   private final ArticleMapper articleMapper;
@@ -220,23 +216,5 @@ public class ArticleService {
     return sources.stream()
         .map(Enum::name)
         .toList();
-  }
-
-  // 나중에 쓸지도 모름...
-  private boolean isKeywordMatch(ArticleDto dto, String keyword) {
-    String content = (dto.title() + dto.summary()).toLowerCase();
-    return content.contains(keyword.toLowerCase());
-  }
-
-  private Set<String> getSearchKeywords() {
-    return interestRepository.findAllWithKeywords().stream()
-        .flatMap(interest -> {
-          return Stream.concat(
-              Stream.of(interest.getName()),
-              interest.getKeywords().stream()
-          );
-        })
-        .filter(StringUtils::hasText)
-        .collect(Collectors.toSet());
   }
 }
