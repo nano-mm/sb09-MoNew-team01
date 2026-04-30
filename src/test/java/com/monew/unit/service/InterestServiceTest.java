@@ -2,57 +2,61 @@ package com.monew.unit.service;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
-import static org.mockito.Mockito.*;
 
+import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
+import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import com.monew.entity.Subscription;
 import com.monew.entity.User;
+import com.monew.exception.ErrorCode;
+import com.monew.mapper.SubscriptionMapper;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.UserRepository;
-import com.monew.service.impl.InterestServiceImpl;
 
-import java.time.Instant;
+import com.monew.service.InterestService;
+import com.monew.service.UserActivityReadModelService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class InterestServiceTest {
 
   @Mock private InterestRepository interestRepository;
   @Mock private SubscriptionRepository subscriptionRepository;
   @Mock private UserRepository userRepository;
+  @Mock private UserActivityReadModelService userActivityReadModelService;
+  @Mock private SubscriptionMapper subscriptionMapper;
 
   @InjectMocks
-  private InterestServiceImpl interestService;
+  private InterestService interestService;
 
   private UUID userId;
   private UUID interestId;
-  private User user;
-  private Interest interest;
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
-
     userId = UUID.randomUUID();
     interestId = UUID.randomUUID();
 
-    user = User.builder()
-        .email("test@test.com")
-        .nickname("tester")
-        .password("1234")
-        .build();
-
-    interest = new Interest("스포츠", List.of("축구"));
+    interestService = new InterestService(
+        interestRepository,
+        subscriptionRepository,
+        userRepository,
+        userActivityReadModelService,
+        subscriptionMapper
+    );
   }
 
   // 생성 성공
@@ -63,12 +67,11 @@ class InterestServiceTest {
         new InterestRegisterRequest("스포츠", List.of("축구"));
 
     given(interestRepository.findAll()).willReturn(List.of());
-    given(interestRepository.save(any())).willReturn(interest);
+    given(interestRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
     Interest result = interestService.create(request);
 
-    assertThat(result).isNotNull();
-    verify(interestRepository).save(any());
+    assertThat(result.getName()).isEqualTo("스포츠");
   }
 
   // 생성 실패
@@ -78,18 +81,22 @@ class InterestServiceTest {
     InterestRegisterRequest request =
         new InterestRegisterRequest("스포츠", List.of("축구"));
 
-    given(interestRepository.findAll()).willReturn(List.of(
-        new Interest("스포츠", List.of())
-    ));
+    Interest existing = new Interest("스포츠", List.of("야구"));
+
+    given(interestRepository.findAll()).willReturn(List.of(existing));
 
     assertThatThrownBy(() -> interestService.create(request))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(ErrorCode.INTEREST_DUPLICATED.getMessage());
+
   }
 
   // 수정 성공
   @Test
   @DisplayName("관심사 수정 성공 (키워드만 변경)")
   void update_Success() {
+    Interest interest = new Interest("스포츠", List.of("축구"));
+
     given(interestRepository.findById(interestId))
         .willReturn(Optional.of(interest));
 
@@ -99,6 +106,8 @@ class InterestServiceTest {
     );
 
     assertThat(interest.getKeywords()).contains("야구");
+    verify(userActivityReadModelService).refreshSnapshotsForInterestSubscribers(interestId);
+
   }
 
   // 삭제 성공
@@ -108,6 +117,7 @@ class InterestServiceTest {
     interestService.delete(interestId);
 
     verify(interestRepository).deleteById(interestId);
+    verify(subscriptionRepository).deleteByInterestId(interestId);
   }
 
   // 목록 조회 성공
@@ -115,15 +125,8 @@ class InterestServiceTest {
   @DisplayName("관심사 목록 조회 성공")
   void find_Success() {
 
-    InterestSearchRequest request = new InterestSearchRequest(
-        "스포츠",
-        "name",
-        "ASC",
-        null,
-        null,
-        10,
-        userId
-    );
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of("축구"));
 
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
@@ -134,8 +137,11 @@ class InterestServiceTest {
     given(subscriptionRepository.existsByUserAndInterest(any(), any()))
         .willReturn(false);
 
+    CursorRequest cursorRequest =
+        new CursorRequest(null, null, 10, "name", "ASC");
+
     CursorPageResponseDto<InterestDto> result =
-        interestService.find(request);
+        interestService.find(null, cursorRequest, userId);
 
     assertThat(result.content()).hasSize(1);
     assertThat(result.hasNext()).isFalse();
@@ -145,6 +151,9 @@ class InterestServiceTest {
   @Test
   @DisplayName("구독 성공")
   void subscribe_Success() {
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of("축구"));
+
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
@@ -154,15 +163,23 @@ class InterestServiceTest {
     given(subscriptionRepository.existsByUserAndInterest(user, interest))
         .willReturn(false);
 
-    interestService.subscribe(userId, interestId);
+    Subscription subscription = new Subscription(user, interest);
 
-    verify(subscriptionRepository).save(any(Subscription.class));
+    given(subscriptionRepository.save(any())).willReturn(subscription);
+    given(subscriptionRepository.countByInterest(interest)).willReturn(1L);
+
+    SubscriptionDto result = interestService.subscribe(userId, interestId);
+
+    assertThat(result.interestName()).isEqualTo("스포츠");
   }
 
   //구독 실패
   @Test
   @DisplayName("구독 실패 - 이미 구독")
   void subscribe_Fail_Already() {
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of("축구"));
+
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
@@ -181,6 +198,8 @@ class InterestServiceTest {
   @Test
   @DisplayName("구독 취소 성공")
   void unsubscribe_Success() {
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of("축구"));
     Subscription subscription = new Subscription(user, interest);
 
     given(userRepository.findById(userId))
@@ -192,6 +211,9 @@ class InterestServiceTest {
     given(subscriptionRepository.findByUserAndInterest(user, interest))
         .willReturn(Optional.of(subscription));
 
+    given(subscriptionRepository.countByInterest(interest))
+        .willReturn(0L);
+
     interestService.unsubscribe(userId, interestId);
 
     verify(subscriptionRepository).delete(subscription);
@@ -201,17 +223,24 @@ class InterestServiceTest {
   @Test
   @DisplayName("구독 취소 실패 - 구독 없음")
   void unsubscribe_Fail() {
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of("축구"));
+    Subscription subscription = new Subscription(user, interest);
+
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
     given(interestRepository.findById(interestId))
         .willReturn(Optional.of(interest));
 
-    given(subscriptionRepository.findByUserAndInterest(user, interest))
-        .willReturn(Optional.empty());
+    given(subscriptionRepository.findAllByUserAndInterest(user, interest))
+        .willReturn(List.of(subscription));
 
-    assertThatThrownBy(() ->
-        interestService.unsubscribe(userId, interestId))
-        .isInstanceOf(RuntimeException.class);
+    given(subscriptionRepository.countByInterest(interest))
+        .willReturn(0L);
+
+    interestService.unsubscribe(userId, interestId);
+
+    verify(subscriptionRepository).delete(subscription);
   }
 }

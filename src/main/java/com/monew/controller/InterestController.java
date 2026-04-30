@@ -97,7 +97,7 @@ public class InterestController {
         userId
     );
 
-    CursorPageResponseDto<InterestDto> response = interestService.find(request);
+    CursorPageResponseDto<InterestDto> response = interestService.find(keyword, cursorRequest, userId);
 
     log.debug("[관심사] 목록 조회 완료: userId={}, size={}, hasNext={}",
         userId, response.size(), response.hasNext());
