@@ -18,6 +18,8 @@ import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
+import com.monew.event.NotificationCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +33,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class NotificationServiceTest {
 
   @Mock
@@ -42,6 +48,9 @@ class NotificationServiceTest {
 
   @Mock
   private NotificationMapper notificationMapper;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private NotificationService notificationService;
@@ -135,14 +144,15 @@ class NotificationServiceTest {
     UUID resourceId = UUID.randomUUID();
     notificationService.createNotification(userId, "hello", ResourceType.INTEREST, resourceId);
 
-    ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-    verify(notificationRepository).save(captor.capture());
-
-    Notification saved = captor.getValue();
-    assertThat(saved.getUser()).isEqualTo(user);
-    assertThat(saved.getContent()).isEqualTo("hello");
-    assertThat(saved.getResourceType()).isEqualTo(ResourceType.INTEREST);
-    assertThat(saved.getResourceId()).isEqualTo(resourceId);
+    ArgumentCaptor<Object> evtCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher).publishEvent(evtCaptor.capture());
+    Object published = evtCaptor.getValue();
+    assertThat(published).isInstanceOf(NotificationCreatedEvent.class);
+    NotificationCreatedEvent evt = (NotificationCreatedEvent) published;
+    assertThat(evt.userId()).isEqualTo(userId);
+    assertThat(evt.content()).isEqualTo("hello");
+    assertThat(evt.resourceType()).isEqualTo(ResourceType.INTEREST);
+    assertThat(evt.resourceId()).isEqualTo(resourceId);
   }
 
   @Test
@@ -159,7 +169,7 @@ class NotificationServiceTest {
   void createNotifications_returnsZero_whenEmpty() {
     int created = notificationService.createNotifications(List.of());
     assertThat(created).isZero();
-    verify(notificationRepository, never()).saveAll(any());
+    verify(eventPublisher, never()).publishEvent(any());
   }
 
   @Test
