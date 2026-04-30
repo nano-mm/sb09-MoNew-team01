@@ -145,7 +145,8 @@ public class NotificationService {
   @Transactional
   public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
     getUserOrThrow(userId);
-    eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
+    // publish as Object to ensure publishEvent(Object) overload is called
+    eventPublisher.publishEvent((Object) new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
     log.info("[알림] 단건 생성 이벤트 발행. userId={}, resourceType={}, resourceId={}", userId, resourceType, resourceId);
   }
 
@@ -162,7 +163,8 @@ public class NotificationService {
       if (command == null) continue;
       userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
       // publish simple record event for each command
-      eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
+      // publish as Object to consistently call publishEvent(Object)
+      eventPublisher.publishEvent((Object) new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       count++;
     }
     log.info("[알림] 다건 생성 이벤트 발행. 요청건수={}, 발행건수={}", commands.size(), count);
