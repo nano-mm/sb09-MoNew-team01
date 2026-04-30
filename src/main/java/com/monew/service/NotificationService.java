@@ -13,6 +13,7 @@ import com.monew.exception.ErrorCode;
 import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final NotificationMapper notificationMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public long deleteOldConfirmedNotifications() {
@@ -143,16 +145,9 @@ public class NotificationService {
 
   @Transactional
   public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
-    User user = getUserOrThrow(userId);
-    Notification notification = Notification.of(user, content, resourceType, resourceId);
-    notificationRepository.save(notification);
-
-    log.info(
-        "[알림] 단건 생성 반영. userId={}, resourceType={}, resourceId={}",
-        userId,
-        resourceType,
-        resourceId
-    );
+    getUserOrThrow(userId);
+    eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
+    log.info("[알림] 단건 생성 이벤트 발행. userId={}, resourceType={}, resourceId={}", userId, resourceType, resourceId);
   }
 
   @Transactional
@@ -163,22 +158,15 @@ public class NotificationService {
     }
 
     Map<UUID, User> userCache = new HashMap<>();
-    List<Notification> notifications = commands.stream()
-        .filter(Objects::nonNull)
-        .map(command -> {
-          User user = userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
-          return Notification.of(user, command.content(), command.resourceType(), command.resourceId());
-        })
-        .toList();
-
-    if (notifications.isEmpty()) {
-      log.debug("[알림] 다건 생성 미반영. 사유=유효_명령_없음");
-      return 0;
+    int count = 0;
+    for (var command : commands) {
+      if (command == null) continue;
+      userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
+      eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
+      count++;
     }
-
-    notificationRepository.saveAll(notifications);
-    log.info("[알림] 다건 생성 반영. 요청건수={}, 반영건수={}", commands.size(), notifications.size());
-    return notifications.size();
+    log.info("[알림] 다건 생성 이벤트 발행. 요청건수={}, 발행건수={}", commands.size(), count);
+    return count;
   }
 
   private void assertUserExists(UUID userId) {
