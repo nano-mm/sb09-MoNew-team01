@@ -109,4 +109,14 @@ public class ArticleController {
 
     return ResponseEntity.ok(responseDto);
   }
+
+  @PostMapping("/collect")
+  public ResponseEntity<Void> collectArticlesManually(
+      @RequestHeader("Monew-Request-User-ID") UUID userId) {
+
+    log.info("[뉴스 기사] 수동 수집 요청 수신");
+    articleService.collect();
+
+    return ResponseEntity.ok().build();
+  }
 }

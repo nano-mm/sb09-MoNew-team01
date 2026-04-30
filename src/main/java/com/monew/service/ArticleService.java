@@ -12,7 +12,6 @@ import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
-import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -25,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,31 +50,42 @@ public class ArticleService {
 
   public void collect() {
     List<Interest> allInterests = interestRepository.findAllWithKeywords();
+    if (allInterests.isEmpty()) {
+      log.info("[뉴스 기사] 관심사가 없어 수집을 종료합니다.");
+      return;
+    }
 
     Map<String, Set<Interest>> keywordToInterestsMap = new HashMap<>();
     for (Interest interest : allInterests) {
-      keywordToInterestsMap.computeIfAbsent(interest.getName(), k -> new HashSet<>()).add(interest);
+      keywordToInterestsMap.computeIfAbsent(interest.getName().toLowerCase(), k -> new HashSet<>()).add(interest);
       for (String kw : interest.getKeywords()) {
-        keywordToInterestsMap.computeIfAbsent(kw, k -> new HashSet<>()).add(interest);
+        keywordToInterestsMap.computeIfAbsent(kw.toLowerCase(), k -> new HashSet<>()).add(interest);
       }
     }
 
     Set<String> allKeywords = keywordToInterestsMap.keySet();
+    log.info("==================================================");
     log.info("[뉴스 기사] 수집 시작. 키워드 갯수: {}", allKeywords.size());
+
+    List<ArticleDto> totalFetchedDtos = collectByKeyword(allKeywords);
+    int totalFetchedCount = totalFetchedDtos.size();
 
     Map<String, Article> urlToArticleMap = new HashMap<>();
     Map<String, Set<Interest>> urlToInterestsMap = new HashMap<>();
 
-    for (String keyword : allKeywords) {
-      List<ArticleDto> fetchedDtos = collectByKeyword(keyword);
-      Set<Interest> relatedInterests = keywordToInterestsMap.get(keyword);
+    for (ArticleDto dto : totalFetchedDtos) {
+      String url = dto.sourceUrl();
+      if (urlToArticleMap.containsKey(url)) continue;
 
-      for (ArticleDto dto : fetchedDtos) {
-        String url = dto.sourceUrl();
-        urlToArticleMap.putIfAbsent(url, articleMapper.toEntity(dto));
-        urlToInterestsMap.computeIfAbsent(url, k -> new HashSet<>()).addAll(relatedInterests);
+      Set<Interest> matchedInterests = findMatchedInterests(dto, allKeywords, keywordToInterestsMap);
+
+      if (!matchedInterests.isEmpty()) {
+        urlToArticleMap.put(url, articleMapper.toEntity(dto));
+        urlToInterestsMap.put(url, matchedInterests);
       }
     }
+
+    int apiDuplicateCount = totalFetchedCount - urlToArticleMap.size();
 
     Set<String> existingUrls = articleRepository.findExistingUrls(new ArrayList<>(urlToArticleMap.keySet()));
     existingUrls.forEach(url -> {
@@ -82,13 +93,20 @@ public class ArticleService {
       urlToInterestsMap.remove(url);
     });
 
+    int dbDuplicateCount = existingUrls.size();
+    int targetCount = urlToArticleMap.size();
+
+    log.info("[기사 수집] 중복 제거 - API내 중복: {}건, DB 중복: {}건", apiDuplicateCount, dbDuplicateCount);
+
     if (urlToArticleMap.isEmpty()) {
-      log.info("[뉴스 기사] 새로 저장할 뉴스 기사가 없습니다.");
+      log.info("[뉴스 기사] 새로 저장할 뉴스 기사가 없어 수집을 종료합니다.");
+      log.info("==================================================");
       return;
     }
 
     List<Article> articleList = new ArrayList<>(urlToArticleMap.values());
     articleRepository.saveAll(articleList);
+    log.info("[기사 수집] DB 저장 완료 - {}건", articleList.size());
 
     List<ArticleInterest> mappingList = new ArrayList<>();
     for (Article article : articleList) {
@@ -103,6 +121,49 @@ public class ArticleService {
     articleInterestRepository.saveAll(mappingList);
 
     // 관심사별로 새로 등록된 기사 수를 집계한 뒤 구독자에게 요약 알림을 한 건만 생성합니다.
+    sendNotifications(articleList, urlToInterestsMap, allInterests);
+
+    log.info("[뉴스 기사] 수집 완료 - 총 {}건 중 {}건 저장", totalFetchedCount, targetCount);
+    log.info("==================================================");
+  }
+
+  private List<ArticleDto> collectByKeyword(Set<String> keywords) {
+    List<ArticleDto> fetchedItems = new ArrayList<>();
+
+    for (ArticleFetcher fetcher : articleFetchers) {
+      try {
+        log.info("[뉴스 기사] 외부 API 요청 - {}", fetcher.getSourceName());
+        List<ArticleDto> fetched = fetcher.fetch(keywords);
+        fetchedItems.addAll(fetched);
+        log.info("[기사 수집] 외부 API 응답 수신 - {}건", fetched.size());
+      } catch (Exception e) {
+        log.error("[뉴스 기사] 수집 중 [{}]에서 에러 발생: {}", fetcher.getClass().getSimpleName(), e.getMessage());
+      }
+    }
+
+    return fetchedItems;
+  }
+
+  private Set<Interest> findMatchedInterests(ArticleDto dto, Set<String> allKeywords, Map<String, Set<Interest>> mapping) {
+    String targetText = (dto.title() + " " + dto.summary()).toLowerCase();
+    Set<Interest> matched = new HashSet<>();
+
+    for (String kw : allKeywords) {
+      boolean isMatch = false;
+      if (kw.matches("^[a-z]+$") && kw.length() <= 3) {
+        isMatch = targetText.matches(".*\\b" + kw + "\\b.*");
+      } else {
+        isMatch = targetText.contains(kw);
+      }
+
+      if (isMatch) {
+        matched.addAll(mapping.get(kw));
+      }
+    }
+    return matched;
+  }
+
+  private void sendNotifications(List<Article> articleList, Map<String, Set<Interest>> urlToInterestsMap, List<Interest> allInterests) {
     Map<UUID, Integer> interestToCount = new HashMap<>();
     for (Article article : articleList) {
       Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
@@ -112,44 +173,23 @@ public class ArticleService {
       }
     }
 
-    if (!interestToCount.isEmpty()) {
-      for (Map.Entry<UUID, Integer> e : interestToCount.entrySet()) {
-        UUID interestId = e.getKey();
-        int count = e.getValue();
-        if (count <= 0) continue;
+    Map<UUID, Interest> interestLookup = allInterests.stream()
+        .collect(Collectors.toMap(Interest::getId, i -> i));
 
-        Interest interest = interestRepository.findById(interestId).orElse(null);
-        String interestName = interest != null ? interest.getName() : "";
+    for (Map.Entry<UUID, Integer> e : interestToCount.entrySet()) {
+      Interest interest = interestLookup.get(e.getKey());
+      if (interest == null) continue;
 
-        List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestId(interestId);
-
-        for (UUID userId : subscriberIds) {
-          notificationService.createNotification(
-              userId,
-              "[" + interestName + "]와 관련된 기사가 " + count + "건 등록되었습니다.",
-              com.monew.entity.enums.ResourceType.INTEREST,
-              interestId
-          );
-        }
+      List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestId(interest.getId());
+      for (UUID userId : subscriberIds) {
+        notificationService.createNotification(
+            userId,
+            "[" + interest.getName() + "]와 관련된 기사가 " + e.getValue() + "건 등록되었습니다.",
+            com.monew.entity.enums.ResourceType.INTEREST,
+            interest.getId()
+        );
       }
     }
-
-    log.info("[뉴스 기사] 수집 완료.  {}개 저장.", articleList.size());
-  }
-
-  private List<ArticleDto> collectByKeyword(String keyword) {
-    List<ArticleDto> fetchedItems = new ArrayList<>();
-
-    for (ArticleFetcher fetcher : articleFetchers) {
-      try {
-        fetchedItems.addAll(fetcher.fetch(keyword));
-      } catch (Exception e) {
-        log.error("[뉴스 기사] [{}] 키워드 수집 중 [{}]에서 에러 발생: {}",
-            keyword, fetcher.getClass().getSimpleName(), e.getMessage());
-      }
-    }
-
-    return fetchedItems;
   }
 
   @Transactional(readOnly = true)

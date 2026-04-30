@@ -10,6 +10,7 @@ import com.monew.dto.news.NaverNewsItem;
 import com.monew.dto.news.NaverNewsResponse;
 import com.monew.dto.response.ArticleDto;
 import com.monew.entity.enums.ArticleSource;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class NaverApiFetcherTest {
         eq(NaverNewsResponse.class)
     )).willReturn(ResponseEntity.ok(mockResponseBody));
 
-    List<ArticleDto> results = naverApiFetcher.fetch("인공지능");
+    List<ArticleDto> results = naverApiFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(results).hasSize(1);
 
@@ -97,7 +98,7 @@ class NaverApiFetcherTest {
     given(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(NaverNewsResponse.class)))
         .willReturn(ResponseEntity.ok(mockResponseBody));
 
-    List<ArticleDto> results = naverApiFetcher.fetch("인공지능");
+    List<ArticleDto> results = naverApiFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(results.get(0).sourceUrl()).isEqualTo("https://n.news.naver.com/123");
   }
@@ -108,7 +109,7 @@ class NaverApiFetcherTest {
     given(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(NaverNewsResponse.class)))
         .willThrow(new RestClientException("Connection Timeout"));
 
-    List<ArticleDto> results = naverApiFetcher.fetch("인공지능");
+    List<ArticleDto> results = naverApiFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(results).isEmpty();
   }
@@ -119,13 +120,13 @@ class NaverApiFetcherTest {
     // 1. body가 null인 경우
     given(restTemplate.exchange(any(), eq(HttpMethod.GET), any(), eq(NaverNewsResponse.class)))
         .willReturn(ResponseEntity.ok(null));
-    assertThat(naverApiFetcher.fetch("인공지능")).isEmpty();
+    assertThat(naverApiFetcher.fetch(Collections.singleton("인공지능"))).isEmpty();
 
     // 2. items가 null인 경우
     NaverNewsResponse nullItemsResponse = new NaverNewsResponse(null, 0, 0, 0, null);
     given(restTemplate.exchange(any(), eq(HttpMethod.GET), any(), eq(NaverNewsResponse.class)))
         .willReturn(ResponseEntity.ok(nullItemsResponse));
-    assertThat(naverApiFetcher.fetch("인공지능")).isEmpty();
+    assertThat(naverApiFetcher.fetch(Collections.singleton("인공지능"))).isEmpty();
   }
 
   @Test
@@ -138,7 +139,7 @@ class NaverApiFetcherTest {
     given(restTemplate.exchange(any(), eq(HttpMethod.GET), any(), eq(NaverNewsResponse.class)))
         .willReturn(ResponseEntity.ok(response));
 
-    List<ArticleDto> results = naverApiFetcher.fetch("인공지능");
+    List<ArticleDto> results = naverApiFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(results).hasSize(2);
     assertThat(results.get(0).publishDate()).isNotNull();
@@ -154,7 +155,7 @@ class NaverApiFetcherTest {
     given(restTemplate.exchange(any(), eq(HttpMethod.GET), any(), eq(NaverNewsResponse.class)))
         .willReturn(ResponseEntity.ok(response));
 
-    List<ArticleDto> results = naverApiFetcher.fetch("인공지능");
+    List<ArticleDto> results = naverApiFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(results.get(0).title()).isEmpty();
     assertThat(results.get(0).summary()).isEmpty();

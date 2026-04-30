@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.monew.dto.response.ArticleDto;
 import com.monew.client.ArticleFetchers.BaseRssFetcher;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,7 +64,7 @@ class BaseRssFetcherTest {
         """;
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn(mockXml);
 
-    List<ArticleDto> result = testFetcher.fetch("스프링");
+    List<ArticleDto> result = testFetcher.fetch(Collections.singleton("스프링"));
 
     assertThat(result).hasSize(1);
     ArticleDto dto = result.get(0);
@@ -96,7 +97,7 @@ class BaseRssFetcherTest {
         """;
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn(mockXml);
 
-    List<ArticleDto> result = testFetcher.fetch("ai");
+    List<ArticleDto> result = testFetcher.fetch(Collections.singleton("ai"));
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).title()).isEqualTo("최신 ai 기술");
@@ -120,7 +121,7 @@ class BaseRssFetcherTest {
         """;
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn(mockXml);
 
-    List<ArticleDto> result = testFetcher.fetch("인공지능");
+    List<ArticleDto> result = testFetcher.fetch(Collections.singleton("인공지능"));
 
     assertThat(result).isEmpty();
   }
@@ -129,10 +130,10 @@ class BaseRssFetcherTest {
   @DisplayName("RSS 검색 - 응답 XML이 null이거나 비어있으면 빈 리스트 반환")
   void fetch_NullOrBlankXml_ReturnsEmptyList() {
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn(null);
-    assertThat(testFetcher.fetch("스프링")).isEmpty();
+    assertThat(testFetcher.fetch(Collections.singleton("스프링"))).isEmpty();
 
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn("   ");
-    assertThat(testFetcher.fetch("스프링")).isEmpty();
+    assertThat(testFetcher.fetch(Collections.singleton("스프링"))).isEmpty();
   }
 
   @Test
@@ -150,7 +151,7 @@ class BaseRssFetcherTest {
         """;
     given(restTemplate.getForObject(anyString(), eq(String.class))).willReturn(mockXml);
 
-    List<ArticleDto> result = testFetcher.fetch("");
+    List<ArticleDto> result = testFetcher.fetch(Collections.singleton(""));
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).title()).isEmpty();
@@ -163,7 +164,7 @@ class BaseRssFetcherTest {
     given(restTemplate.getForObject(anyString(), eq(String.class)))
         .willThrow(new RestClientException("Connection Refused"));
 
-    List<ArticleDto> result = testFetcher.fetch("스프링");
+    List<ArticleDto> result = testFetcher.fetch(Collections.singleton("스프링"));
 
     assertThat(result).isEmpty();
   }
