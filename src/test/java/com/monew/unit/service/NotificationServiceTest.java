@@ -183,7 +183,13 @@ class NotificationServiceTest {
     int created = notificationService.createNotifications(List.of(c1, c2));
 
     assertThat(created).isEqualTo(2);
-    verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(any());
+    ArgumentCaptor<Object> evtCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(evtCaptor.capture());
+    List<Object> published = evtCaptor.getAllValues();
+    assertThat(published).hasSize(2);
+    for (Object o : published) {
+      assertThat(o).isInstanceOf(NotificationCreatedEvent.class);
+    }
   }
 
   @Test
