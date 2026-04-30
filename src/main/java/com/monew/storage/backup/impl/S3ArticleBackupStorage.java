@@ -58,15 +58,8 @@ public class S3ArticleBackupStorage implements ArticleBackupStorage {
     s3Client.listObjectsV2(listRequest).contents().stream()
         .filter(s3Object -> s3Object.key().endsWith(".json"))
         .forEach(s3Object -> {
-
-          GetObjectRequest getRequest = GetObjectRequest.builder()
-              .bucket(s3Bucket)
-              .key(s3Object.key())
-              .build();
-
-          InputStream inputStream = s3Client.getObject(getRequest);
-
-          backupResources.add(new InputStreamResource(inputStream));
+          String s3Uri = "s3://" + s3Bucket + "/" + s3Object.key();
+          backupResources.add(resourceLoader.getResource(s3Uri));
         });
 
     return backupResources;

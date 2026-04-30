@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import java.time.LocalDateTime;
 
 import com.monew.scheduler.task.NewsBackupBatchTask;
 import com.monew.service.ArticleBackupService;
@@ -68,13 +70,13 @@ class NewsBackupBatchTaskTest {
     RepeatStatus status = tasklet.execute(null, null);
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
-    verify(articleBackupService).export();
+    verify(articleBackupService).export(any(LocalDateTime.class), any(LocalDateTime.class));
   }
 
   @Test
   @DisplayName("Tasklet 예외 처리 - 백업 중 IOException 발생 시 RuntimeException으로 변환하여 던진다")
   void articleBackupStep_ThrowsRuntimeException_WhenIOExceptionOccurs() throws Exception {
-    doThrow(new IOException("디스크 용량 부족")).when(articleBackupService).export();
+    doThrow(new IOException("디스크 용량 부족")).when(articleBackupService).export(any(LocalDateTime.class), any(LocalDateTime.class));
 
     Tasklet tasklet = extractTasklet("articleBackupStep");
 

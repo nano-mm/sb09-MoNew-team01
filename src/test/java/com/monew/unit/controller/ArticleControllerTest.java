@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -29,7 +30,11 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = ArticleController.class)
@@ -184,5 +189,20 @@ class ArticleControllerTest {
   void hardDelete_Success() throws Exception {
     mockMvc.perform(delete("/api/articles/{articleId}/hard", ARTICLE_ID))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @DisplayName("수동 기사 수집")
+  @WithMockUser
+  void collectArticles_Success() throws Exception {
+
+    doNothing().when(articleService).collect();
+
+    mockMvc.perform(post("/api/articles/collect")
+            .header("Monew-Request-User-ID", USER_ID.toString()))
+        .andExpect(status().isOk());
+
+
+    verify(articleService, times(1)).collect();
   }
 }

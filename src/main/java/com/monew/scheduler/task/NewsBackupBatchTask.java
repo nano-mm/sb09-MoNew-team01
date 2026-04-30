@@ -3,6 +3,9 @@ package com.monew.scheduler.task;
 import com.monew.scheduler.BatchTask;
 import com.monew.service.ArticleBackupService;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -48,7 +51,10 @@ public class NewsBackupBatchTask implements BatchTask {
     return new StepBuilder("articleBackupStep", jobRepository)
         .tasklet((contribution, chunkContext) -> {
           try {
-            articleBackupService.export();
+            // 전날 기사 백업
+            LocalDateTime from = LocalDate.now().minusDays(1).atStartOfDay();
+            LocalDateTime to = LocalDate.now().minusDays(1).atTime(LocalTime.MAX);
+            articleBackupService.export(from, to);
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

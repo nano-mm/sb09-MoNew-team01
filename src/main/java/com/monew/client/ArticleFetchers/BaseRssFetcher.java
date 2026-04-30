@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,11 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
   protected abstract String getRssUrl();
 
   @Override
-  public List<ArticleDto> fetch(String keyword) {
+  public List<ArticleDto> fetch(Set<String> keywords) {
+    if (keywords == null || keywords.isEmpty()) {
+      return new ArrayList<>();
+    }
+
     List<ArticleDto> result = new ArrayList<>();
     try {
       String rawXmlContent = restTemplate.getForObject(getRssUrl(), String.class);
@@ -36,7 +41,7 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
       SyndFeed feed = input.build(new StringReader(processedXml));
 
       for (SyndEntry entry : feed.getEntries()) {
-        if (isMatched(entry, keyword)) {
+        if (isMatched(entry, keywords)) {
           result.add(convertToDto(entry));
         }
       }
@@ -78,24 +83,27 @@ public abstract class BaseRssFetcher implements ArticleFetcher {
     return Jsoup.parse(text).text().trim();
   }
 
-  private boolean isMatched(SyndEntry entry, String keyword) {
+  private boolean isMatched(SyndEntry entry, Set<String> keywords) {
     String title = entry.getTitle() != null ? entry.getTitle() : "";
     String description = entry.getDescription() != null
         ? cleanHtml(entry.getDescription().getValue())
         : "";
 
     String target = (title + " " + description).toLowerCase();
-    String lowerKeyword = keyword.toLowerCase();
 
-    // 짧은 영단어
-    if (lowerKeyword.matches("^[a-z]+$") && lowerKeyword.length() <= 3) {
-      return target.matches(".*\\b" + lowerKeyword + "\\b.*");
-    }
+    return keywords.stream().anyMatch(keyword -> {
+      String lowerKeyword = keyword.toLowerCase();
 
-    return target.contains(lowerKeyword);
+      if (lowerKeyword.matches("^[a-z]+$") && lowerKeyword.length() <= 3) {
+        return target.matches(".*\\b" + lowerKeyword + "\\b.*");
+      }
+
+      return target.contains(lowerKeyword);
+    });
   }
 
   private Instant parseDate(Date date) {
     return (date != null) ? date.toInstant() : Instant.now();
   }
+
 }
