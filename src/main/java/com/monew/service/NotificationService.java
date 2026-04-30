@@ -163,6 +163,8 @@ public class NotificationService {
       if (command == null) continue;
       userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
       eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
+      userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
+      eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       count++;
     }
     log.info("[알림] 다건 생성 이벤트 발행. 요청건수={}, 발행건수={}", commands.size(), count);
