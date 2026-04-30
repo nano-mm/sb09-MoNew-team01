@@ -14,6 +14,8 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,16 +42,16 @@ public class UserActivityDtoBuilder {
         .email(user.getEmail())
         .nickname(user.getNickname())
         .createdAt(user.getCreatedAt())
-        .subscriptions(subscriptionRepository.findAllByUserIdWithInterest(userId).stream()
+        .subscriptions(subscriptionRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
             .map(subscriptionMapper::toDto)
             .toList())
         .comments(commentRepository.findTop10ByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId).stream()
             .map(commentMapper::toActivityDto)
             .toList())
-        .commentLikes(commentLikeRepository.findTop10ByUserIdWithCommentAndUser(userId, PageRequest.of(0, 10)).stream()
+        .commentLikes(commentLikeRepository.findTop10ByUser_IdAndComment_DeletedAtIsNullOrderByCreatedAtDesc(userId).stream()
             .map(commentMapper::toLikeActivityDto)
             .toList())
-        .articleViews(articleViewRepository.findTop10ByUserIdWithArticle(userId, PageRequest.of(0, 10)).stream()
+        .articleViews(articleViewRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId).stream()
             .map(av -> articleViewMapper.toDto(av, av.getArticle()))
             .toList())
         .build();

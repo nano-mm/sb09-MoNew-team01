@@ -108,32 +108,28 @@ class CommentRepositoryTest {
   @Test
   @DisplayName("생성일 기준 커서가 있을 때 다음 페이지를 조회한다")
   void findByArticleIdWithCreatedAtCursor() {
-    // 1. Given: 두 개의 댓글 생성
+    // Given - 명시적으로 시간을 지정
+    Instant now = Instant.parse("2026-04-30T10:00:00Z");
+
     Comment comment1 = Comment.create(article, user, "댓글1");
     Comment comment2 = Comment.create(article, user, "댓글2");
-    commentRepository.saveAll(List.of(comment1, comment2));
 
-    // 2. 시간 차이를 확실하게 벌림 (comment2가 더 최신)
-    // truncatedTo를 사용하여 DB 정밀도(밀리초)와 맞춤
-    Instant baseTime = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-    setField(comment1, "createdAt", baseTime.minusSeconds(10));
-    setField(comment2, "createdAt", baseTime);
+    setField(comment1, "createdAt", now.minusSeconds(10));
+    setField(comment2, "createdAt", now);
+
+    commentRepository.saveAll(List.of(comment1, comment2));
 
     em.flush();
     em.clear();
 
-    // 3. 핵심: DB에 저장된 comment2를 다시 조회해서 필드 값을 가져옴
-    // 이렇게 해야 QueryDSL 비교 시 'constant'가 null이 되거나 정밀도가 어긋나는 것을 방지함
-    Comment savedComment2 = commentRepository.findById(comment2.getId()).orElseThrow();
-
-    // 4. 커서 생성: DB에서 불러온 정확한 createdAt과 id 사용
+    Comment savedComment2 = commentRepository.findById(comment2.getId()).get();
     CommentCursor cursor = new CommentCursor(
         savedComment2.getId(),
         savedComment2.getCreatedAt(),
-        savedComment2.getLikeCount()
+        0
     );
 
-    // 5. When: comment2(커서) 이전의 데이터를 조회
+    // When
     List<Comment> results = commentRepository.findByArticleIdWithCursor(
         article.getId(),
         CommentSortType.CREATED_AT,
@@ -141,9 +137,10 @@ class CommentRepositoryTest {
         10
     );
 
-    // 6. Then: 결과는 comment1 하나만 나와야 함
-    assertThat(results).hasSize(1);
-    assertThat(results.get(0).getContent()).isEqualTo("댓글1");
+    // Then
+    assertThat(results)
+        .extracting(Comment::getContent)
+        .containsExactly("댓글1");
   }
 
   @Test

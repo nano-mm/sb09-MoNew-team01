@@ -16,9 +16,12 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.jdbc.Sql;
 
 @SpringBatchTest
 @SpringBootTest(properties = "spring.data.mongodb.database=testdb")
+@TestPropertySource(properties = "spring.batch.jdbc.initialize-schema=always")
 class HardDeleteTaskTest {
 
   @Autowired

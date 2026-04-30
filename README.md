@@ -1,3 +1,7 @@
+## Status
+
+![CI](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/ci.yml/badge.svg) [![Code Coverage](https://codecov.io/gh/nano-mm/sb09-MoNew-team01/branch/develop/graph/badge.svg)](https://codecov.io/gh/nano-mm/sb09-MoNew-team01) ![CD](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/cd.yml/badge.svg)
+
 # 📰 모뉴 (MoNew)
 
 > 흩어진 뉴스를 한 곳에, 관심 있는 주제만 모아보세요!

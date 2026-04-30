@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      TZ: Asia/Seoul
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,20 +22,19 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle' # Gradle 캐시 자동 적용
+          cache: 'gradle'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run Tests
+      - name: Run Tests with Coverage
         env:
-          # AWS SDK 오류 방지를 위한 가짜 값 주입
           AWS_ACCESS_KEY_ID: dummy
           AWS_SECRET_ACCESS_KEY: dummy
           AWS_REGION: ap-northeast-2
           SPRING_PROFILES_ACTIVE: test
           SPRING_SQL_INIT_MODE: never
-        run: ./gradlew --no-daemon test
+        run: ./gradlew clean test
 
       - name: Upload test reports
         if: always()
@@ -39,3 +42,9 @@ jobs:
         with:
           name: test-reports
           path: build/reports/tests/test/**
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/reports/jacoco/test/jacocoTestReport.xml
