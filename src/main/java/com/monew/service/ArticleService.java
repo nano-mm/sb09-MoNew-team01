@@ -96,7 +96,7 @@ public class ArticleService {
     int dbDuplicateCount = existingUrls.size();
     int targetCount = urlToArticleMap.size();
 
-    log.info("[기사 수집] 중복 제거 - API내 중복: {}건, DB 중복: {}건", apiDuplicateCount, dbDuplicateCount);
+    log.info("[뉴스 기사] 수집된 기사 중복 제거 - API내 중복: {}건, DB 중복: {}건", apiDuplicateCount, dbDuplicateCount);
 
     if (urlToArticleMap.isEmpty()) {
       log.info("[뉴스 기사] 새로 저장할 뉴스 기사가 없어 수집을 종료합니다.");
@@ -106,7 +106,7 @@ public class ArticleService {
 
     List<Article> articleList = new ArrayList<>(urlToArticleMap.values());
     articleRepository.saveAll(articleList);
-    log.info("[기사 수집] DB 저장 완료 - {}건", articleList.size());
+    log.info("[뉴스 기사] DB 저장 완료 - {}건", articleList.size());
 
     List<ArticleInterest> mappingList = new ArrayList<>();
     for (Article article : articleList) {
@@ -135,7 +135,7 @@ public class ArticleService {
         log.info("[뉴스 기사] 외부 API 요청 - {}", fetcher.getSourceName());
         List<ArticleDto> fetched = fetcher.fetch(keywords);
         fetchedItems.addAll(fetched);
-        log.info("[기사 수집] 외부 API 응답 수신 - {}건", fetched.size());
+        log.info("[뉴스 기사] 외부 API 응답 수신 - {}건", fetched.size());
       } catch (Exception e) {
         log.error("[뉴스 기사] 수집 중 [{}]에서 에러 발생: {}", fetcher.getClass().getSimpleName(), e.getMessage());
       }

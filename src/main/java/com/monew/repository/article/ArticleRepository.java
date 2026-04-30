@@ -1,6 +1,7 @@
 package com.monew.repository.article;
 
 import com.monew.entity.Article;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -29,4 +30,6 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
   void decrementCommentCount(@Param("articleId") UUID articleId);
 
   Optional<Article> findByIdAndDeletedAtIsNull(UUID articleId);
+
+  List<Article> findByPublishDateBetween(Instant start, Instant end);
 }
