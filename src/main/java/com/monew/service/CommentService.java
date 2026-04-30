@@ -13,9 +13,11 @@ import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
 import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
+import com.monew.exception.TooManyRequestsException;
 import com.monew.mapper.CommentMapper;
 import com.monew.repository.CommentLikeRepository;
 import com.monew.repository.CommentRepository;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,7 +50,11 @@ public class CommentService {
   private final UserActivityReadModelService userActivityReadModelService;
   private final NotificationService notificationService;
 
+  private final Map<UUID, Instant> recentCommentRequests = new ConcurrentHashMap<>();
+
   public CommentDto createComment(UUID userId, UUID articleId, String content) {
+    checkRateLimit(userId);
+
     Article article = articleRepository.findById(articleId)
         .orElseThrow(() -> new NoSuchElementException("해당 Article을 찾을 수 없습니다"));
 
@@ -62,6 +69,17 @@ public class CommentService {
 
     return commentMapper.toResponse(comment);
 
+  }
+
+  private void checkRateLimit(UUID userId) {
+    Instant now = Instant.now();
+    Instant lastRequestTime = recentCommentRequests.get(userId);
+
+    if (lastRequestTime != null && Duration.between(lastRequestTime, now).toMillis() < 300) {
+      throw new TooManyRequestsException();
+    }
+
+    recentCommentRequests.put(userId, now);
   }
 
   public CommentDto updateComment(UUID userId, UUID commentId, String content) {
@@ -85,6 +103,7 @@ public class CommentService {
     Comment comment = getActiveComment(commentId);
     comment.softDelete(Instant.now());
     articleRepository.decrementCommentCount(comment.getArticleId());
+    userActivityReadModelService.refreshSnapshot(comment.getUserId());
   }
 
   public void hardDeleteComment(UUID commentId) {

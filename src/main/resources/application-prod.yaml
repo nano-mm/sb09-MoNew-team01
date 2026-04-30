@@ -1,0 +1,19 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:}
+      database: ${MONGODB_DATABASE:monew}
+      auto-index-creation: false
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+monew:
+  mongodb:
+    enabled: true
+
+

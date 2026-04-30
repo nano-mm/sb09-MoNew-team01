@@ -116,8 +116,8 @@ class CommentRepositoryTest {
     // 2. 시간 차이를 확실하게 벌림 (comment2가 더 최신)
     // truncatedTo를 사용하여 DB 정밀도(밀리초)와 맞춤
     Instant baseTime = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-    org.springframework.test.util.ReflectionTestUtils.setField(comment1, "createdAt", baseTime.minusSeconds(10));
-    org.springframework.test.util.ReflectionTestUtils.setField(comment2, "createdAt", baseTime);
+    setField(comment1, "createdAt", baseTime.minusSeconds(10));
+    setField(comment2, "createdAt", baseTime);
 
     em.flush();
     em.clear();
