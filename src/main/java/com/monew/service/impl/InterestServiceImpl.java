@@ -2,6 +2,7 @@ package com.monew.service.impl;
 
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
+import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
@@ -21,6 +22,7 @@ import com.monew.service.UserActivityReadModelService;
 import com.monew.util.SimilarityUtils;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
@@ -163,6 +165,9 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
+    if (subscriptionRepository.existsByUserAndInterest(user, interest)) {
+      throw new RuntimeException("이미 구독 중입니다.");
+    }
 
     Subscription subscription = new Subscription(user, interest);
     try {
