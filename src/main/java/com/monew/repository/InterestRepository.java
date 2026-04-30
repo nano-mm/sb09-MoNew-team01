@@ -101,4 +101,13 @@ order by i.subscriberCount desc, i.createdAt asc
   @Modifying
   @Query(value = "UPDATE interests SET subscriber_count = (SELECT COUNT(*) FROM subscriptions WHERE interest_id = :id) WHERE id = :id", nativeQuery = true)
   int updateSubscriberCount(@Param("id") UUID id, @Param("count") long count);
+
+
+  @Modifying
+  @Query(value = "UPDATE interests SET subscriber_count = subscriber_count + :delta WHERE id = :id", nativeQuery = true)
+  int incrementSubscriberCount(@Param("id") UUID id, @Param("delta") long delta);
+
+  @Modifying
+  @Query(value = "UPDATE interests SET subscriber_count = GREATEST(subscriber_count - :delta, 0) WHERE id = :id", nativeQuery = true)
+  int decrementSubscriberCount(@Param("id") UUID id, @Param("delta") long delta);
 }
