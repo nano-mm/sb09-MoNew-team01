@@ -161,6 +161,7 @@ public class NotificationService {
     for (var command : commands) {
       if (command == null) continue;
       userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
+      // publish simple record event for each command
       eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       count++;
     }
