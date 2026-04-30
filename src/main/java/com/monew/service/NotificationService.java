@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -146,7 +145,8 @@ public class NotificationService {
   @Transactional
   public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
     getUserOrThrow(userId);
-    eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
+    // publish as Object to ensure publishEvent(Object) overload is called
+    eventPublisher.publishEvent((Object) new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
     log.info("[알림] 단건 생성 이벤트 발행. userId={}, resourceType={}, resourceId={}", userId, resourceType, resourceId);
   }
 
@@ -162,7 +162,9 @@ public class NotificationService {
     for (var command : commands) {
       if (command == null) continue;
       userCache.computeIfAbsent(command.userId(), this::getUserOrThrow);
-      eventPublisher.publishEvent(new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
+      // publish simple record event for each command
+      // publish as Object to consistently call publishEvent(Object)
+      eventPublisher.publishEvent((Object) new com.monew.event.NotificationCreatedEvent(command.userId(), command.content(), command.resourceType(), command.resourceId()));
       count++;
     }
     log.info("[알림] 다건 생성 이벤트 발행. 요청건수={}, 발행건수={}", commands.size(), count);

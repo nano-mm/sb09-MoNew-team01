@@ -9,9 +9,11 @@ import com.monew.entity.enums.ResourceType;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 
 @Component
 @RequiredArgsConstructor
@@ -21,8 +23,8 @@ public class NotificationEventListener {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
 
-  @EventListener
-  @Transactional
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void handleNotificationCreated(NotificationCreatedEvent event) {
     UUID userId = event.userId();
     String content = event.content();
