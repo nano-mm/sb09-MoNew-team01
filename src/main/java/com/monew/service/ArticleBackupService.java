@@ -100,15 +100,13 @@ public class ArticleBackupService {
 
   @Transactional
   public ArticleRestoreResultDto importBackup(LocalDateTime from, LocalDateTime to) throws IOException {
-    List<Resource> backupResources = articleBackupStorage.loadBackupResources();
+    List<Resource> backupResources = articleBackupStorage.loadBackupResources(from, to);
+
+    log.info("[뉴스 기사] 복구 데이터 불러오기 완료: 파일 갯수: {}", backupResources.size());
 
     if (backupResources.isEmpty()) {
       return emptyRestoreResult();
     }
-
-    Instant fromInstant = from.atZone(ZoneId.of("Asia/Seoul")).toInstant();
-    Instant toInstant = to.atZone(ZoneId.of("Asia/Seoul")).toInstant();
-
     Map<String, Interest> interestMap = interestRepository.findAll().stream()
         .collect(Collectors.toMap(Interest::getName, i -> i));
 
@@ -116,7 +114,7 @@ public class ArticleBackupService {
     Set<String> processedUrls = new HashSet<>();
 
     for (Resource resource : backupResources) {
-      processBackupFile(resource, fromInstant, toInstant, interestMap, processedUrls, totalRestoredIds);
+      processBackupFile(resource, interestMap, processedUrls, totalRestoredIds);
     }
 
     log.info("[뉴스 기사] 데이터 복구 성공: 총 {}개의 기사가 처리되었습니다.", totalRestoredIds.size());
@@ -128,10 +126,8 @@ public class ArticleBackupService {
         .build();
   }
 
-
-  private void processBackupFile(Resource resource, Instant fromInstant, Instant toInstant,
-      Map<String, Interest> interestMap, Set<String> processedUrls,
-      List<UUID> totalRestoredIds) throws IOException {
+  private void processBackupFile(Resource resource, Map<String, Interest> interestMap,
+      Set<String> processedUrls, List<UUID> totalRestoredIds) throws IOException {
 
     List<Article> articlesToSave = new ArrayList<>();
     List<Interest> newInterestsToSave = new ArrayList<>();
@@ -144,9 +140,6 @@ public class ArticleBackupService {
       Set<String> existingInDbUrls = backupUrls.isEmpty() ? Collections.emptySet() : articleRepository.findExistingUrls(backupUrls);
 
       for (ArticleBackupDto dto : backupList) {
-        Instant articleDate = dto.publishDate();
-        if (articleDate == null || articleDate.isBefore(fromInstant) || articleDate.isAfter(toInstant)) continue;
-
         String currentUrl = dto.sourceUrl();
         if (existingInDbUrls.contains(currentUrl) || processedUrls.contains(currentUrl)) continue;
 

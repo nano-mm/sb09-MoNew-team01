@@ -45,7 +45,6 @@ public class ArticleService {
 
   private final List<ArticleFetcher> articleFetchers;
 
-  private final ArticleInterestRepository articleInterestRepository;
   private final NotificationService notificationService;
   private final SubscriptionRepository subscriptionRepository;
 
