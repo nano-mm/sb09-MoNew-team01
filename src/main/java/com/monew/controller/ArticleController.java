@@ -100,11 +100,12 @@ public class ArticleController {
       @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
 
       @Parameter(description = "날짜 끝(범위)")
-      @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to){
+      @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to)
+      throws IOException {
 
     log.info("[뉴스 기사] 복구 요청 수신: from={}, to={}", from, to);
     ArticleRestoreResultDto responseDto = articleBackupService.importBackup(from, to);
-    //log.debug("[뉴스 기사] 복구 요청 처리 완료: from={}, to={}", from, to);
+    log.debug("[뉴스 기사] 복구 요청 처리 완료: from={}, to={}", from, to);
 
     return ResponseEntity.ok(responseDto);
   }

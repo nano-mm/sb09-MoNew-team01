@@ -55,7 +55,7 @@ public class NewsBackupBatchTask implements BatchTask {
             LocalDateTime from = LocalDate.now().minusDays(1).atStartOfDay();
             LocalDateTime to = LocalDate.now().minusDays(1).atTime(LocalTime.MAX);
             articleBackupService.export(from, to);
-          } catch (Exception e) {
+          } catch (IOException e) {
             throw new RuntimeException(e);
           }
           return RepeatStatus.FINISHED;
