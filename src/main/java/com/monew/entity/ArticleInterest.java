@@ -7,6 +7,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,5 +41,11 @@ public class ArticleInterest extends BaseEntity {
         .article(article)
         .interest(interest)
         .build();
+  }
+
+  public void generateIdForBulkInsert() {
+    if (this.id == null) {
+      this.id = UUID.randomUUID();
+    }
   }
 }

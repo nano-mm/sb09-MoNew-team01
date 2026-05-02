@@ -65,4 +65,10 @@ public class Article {
     this.deletedAt = time;
   }
 
+  public void generateIdForBulkInsert() {
+    if (this.id == null) {
+      this.id = UUID.randomUUID();
+    }
+  }
+
 }
