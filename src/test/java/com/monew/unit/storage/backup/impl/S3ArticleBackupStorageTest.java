@@ -50,7 +50,7 @@ class S3ArticleBackupStorageTest {
   void loadBackupResources_정상동작() {
     // given
     S3Object s3Object = S3Object.builder()
-        .key("backups/test.json")
+        .key("backups/backup_2015-12-17.json")
         .build();
 
     ListObjectsV2Response response = ListObjectsV2Response.builder()
