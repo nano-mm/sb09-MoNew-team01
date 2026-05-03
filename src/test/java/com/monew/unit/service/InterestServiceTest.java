@@ -221,26 +221,68 @@ class InterestServiceTest {
 
   //구독 취소 실패
   @Test
-  @DisplayName("구독 취소 실패 - 구독 없음")
-  void unsubscribe_Fail() {
+  @DisplayName("구독 실패가 아니라 기존 구독 반환")
+  void subscribe_AlreadySubscribed_ReturnExisting() {
     User user = mock(User.class);
     Interest interest = new Interest("스포츠", List.of("축구"));
     Subscription subscription = new Subscription(user, interest);
+    SubscriptionDto dto = new SubscriptionDto(
+        UUID.randomUUID(),
+        interestId,
+        "스포츠",
+        List.of("축구"),
+        1L,
+        subscription.getCreatedAt()
+    );
 
-    given(userRepository.findById(userId))
-        .willReturn(Optional.of(user));
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
 
-    given(interestRepository.findById(interestId))
-        .willReturn(Optional.of(interest));
+    given(subscriptionRepository.existsByUserAndInterest(user, interest))
+        .willReturn(true);
 
-    given(subscriptionRepository.findAllByUserAndInterest(user, interest))
-        .willReturn(List.of(subscription));
+    given(subscriptionRepository.findByUserAndInterest(user, interest))
+        .willReturn(Optional.of(subscription));
 
-    given(subscriptionRepository.countByInterest(interest))
-        .willReturn(0L);
+    given(subscriptionMapper.toDto(subscription)).willReturn(dto);
 
-    interestService.unsubscribe(userId, interestId);
+    // when
+    SubscriptionDto result = interestService.subscribe(userId, interestId);
 
-    verify(subscriptionRepository).delete(subscription);
+    // then
+    assertThat(result).isEqualTo(dto);
+  }
+
+  @Test
+  void subscribe_FlushFail_Fallback() {
+    User user = mock(User.class);
+    Interest interest = new Interest("스포츠", List.of());
+    Subscription subscription = new Subscription(user, interest);
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.existsByUserAndInterest(user, interest)).willReturn(false);
+
+    given(subscriptionRepository.save(any())).willReturn(subscription);
+
+    doThrow(new org.springframework.dao.DataAccessException("fail") {})
+        .when(subscriptionRepository).flush();
+
+    given(subscriptionRepository.findByUserAndInterest(user, interest))
+        .willReturn(Optional.of(subscription));
+
+    given(subscriptionMapper.toDto(subscription))
+        .willReturn(new SubscriptionDto(
+            UUID.randomUUID(),
+            interestId,
+            "스포츠",
+            List.of(),
+            0L,
+            subscription.getCreatedAt()
+        ));
+
+    SubscriptionDto result = interestService.subscribe(userId, interestId);
+
+    assertThat(result).isNotNull();
   }
 }
