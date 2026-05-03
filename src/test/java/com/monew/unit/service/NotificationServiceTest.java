@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -193,7 +194,7 @@ class NotificationServiceTest {
 
     assertThat(created).isEqualTo(2);
     ArgumentCaptor<Object> evtCaptor = ArgumentCaptor.forClass(Object.class);
-    verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(evtCaptor.capture());
+    verify(eventPublisher, times(2)).publishEvent(evtCaptor.capture());
     List<Object> published = evtCaptor.getAllValues();
     assertThat(published).hasSize(2);
     for (Object o : published) {
@@ -219,7 +220,9 @@ class NotificationServiceTest {
   @Test
   void confirmAllNotifications_noOp_whenNoNotifications() {
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(notificationRepository.findByUserIdAndConfirmedFalse(userId)).thenReturn(List.of());
+
+    when(notificationRepository.findAllByUser_IdAndConfirmedFalse(userId))
+        .thenReturn(List.of());
 
     notificationService.confirmAllNotifications(userId);
 
@@ -233,4 +236,98 @@ class NotificationServiceTest {
     assertThat(deleted).isEqualTo(3L);
     verify(notificationRepository).deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class));
   }
+
+  @Test
+  void getNotifications_usesCursor_whenValidCursor() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    UUID cursorId = UUID.randomUUID();
+    Notification cursorNotification =
+        Notification.of(user, "cursor", ResourceType.INTEREST, UUID.randomUUID());
+
+    Instant now = Instant.now();
+
+    ReflectionTestUtils.setField(cursorNotification, "id", cursorId);
+    ReflectionTestUtils.setField(cursorNotification, "createdAt", now);
+
+    when(notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId))
+        .thenReturn(Optional.of(cursorNotification));
+
+    when(notificationRepository.findByUserIdWithCursor(userId, now, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId))
+        .thenReturn(0L);
+
+    CursorPageResponseDto<NotificationDto> response =
+        notificationService.getNotifications(userId, cursorId.toString(), null, 1);
+
+    assertThat(response.content()).isEmpty();
+  }
+
+  @Test
+  void createNotifications_skipsNullCommands() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    NotificationCreateCommand valid =
+        new NotificationCreateCommand(userId, "a", ResourceType.INTEREST, UUID.randomUUID());
+
+    int created = notificationService.createNotifications(
+        java.util.Arrays.asList(null, valid)
+    );
+
+    assertThat(created).isEqualTo(1);
+
+    verify(eventPublisher, times(1)).publishEvent(any(Object.class));
+  }
+
+  @Test
+  void getNotifications_usesAfter_whenCursorIsNull() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    Instant after = Instant.now();
+
+    when(notificationRepository.findByUserIdWithCursor(userId, after, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId)).thenReturn(0L);
+
+    CursorPageResponseDto<NotificationDto> response =
+        notificationService.getNotifications(userId, null, after, 1);
+
+    assertThat(response.content()).isEmpty();
+  }
+
+  @Test
+  void getNotifications_throwsInvalidInput_whenCursorNotFound() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    UUID cursorId = UUID.randomUUID();
+
+    when(notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() ->
+        notificationService.getNotifications(userId, cursorId.toString(), null, 10)
+    )
+        .isInstanceOf(BaseException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
+  void getNotifications_sizeZero_defaultsToOne() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    when(notificationRepository.findByUserIdWithCursor(userId, null, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId)).thenReturn(0L);
+
+    notificationService.getNotifications(userId, null, null, 0);
+
+    verify(notificationRepository).findByUserIdWithCursor(userId, null, 2);
+  }
+
+
 }
