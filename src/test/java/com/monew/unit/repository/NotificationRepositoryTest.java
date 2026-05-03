@@ -125,4 +125,54 @@ class NotificationRepositoryTest {
     ReflectionTestUtils.setField(saved, "updatedAt", createdAt);
     return saved;
   }
+
+  @Test
+  void findByUserIdWithCursor_whenCursorExists_returnsOlderNotifications() {
+    User user = saveUser("user1@monew.com", "user1");
+
+    Notification newest = saveNotification(user, "new", Instant.parse("2026-04-19T12:00:03Z"), false);
+    Notification middle = saveNotification(user, "middle", Instant.parse("2026-04-19T12:00:02Z"), false);
+    Notification oldest = saveNotification(user, "old", Instant.parse("2026-04-19T12:00:01Z"), false);
+
+    entityManager.clear();
+
+    List<Notification> result =
+        notificationRepository.findByUserIdWithCursor(user.getId(), Instant.parse("2026-04-19T12:00:03Z"), 10);
+
+    assertThat(result)
+        .extracting(Notification::getId)
+        .containsExactly(middle.getId(), oldest.getId());
+  }
+
+  @Test
+  void findByUserIdWithCursor_whenSizeIsZero_returnsAtLeastOne() {
+    User user = saveUser("user1@monew.com", "user1");
+
+    Notification n1 = saveNotification(user, "n1", Instant.now(), false);
+
+    entityManager.clear();
+
+    List<Notification> result =
+        notificationRepository.findByUserIdWithCursor(user.getId(), null, 0);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getId()).isEqualTo(n1.getId());
+  }
+
+  @Test
+  void findByUserIdAndConfirmedFalse_returnsOnlyUnconfirmed() {
+    User user = saveUser("user1@monew.com", "user1");
+
+    saveNotification(user, "confirmed", Instant.now(), true);
+    Notification unconfirmed = saveNotification(user, "unconfirmed", Instant.now(), false);
+
+    entityManager.clear();
+
+    List<Notification> result =
+        notificationRepository.findByUserIdAndConfirmedFalse(user.getId());
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getId()).isEqualTo(unconfirmed.getId());
+  }
+
 }
