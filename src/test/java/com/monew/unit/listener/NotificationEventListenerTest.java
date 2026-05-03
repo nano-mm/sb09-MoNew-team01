@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,5 +69,13 @@ class NotificationEventListenerTest {
 
     org.mockito.Mockito.verify(notificationRepository, org.mockito.Mockito.never()).save(org.mockito.Mockito.any());
   }
-}
 
+  @Test
+  void handleNotificationCreated_throws_whenInvalidEvent() {
+    NotificationCreatedEvent invalidEvent = new NotificationCreatedEvent(null, "", null, null);
+
+    assertThatThrownBy(() -> listener.handleNotificationCreated(invalidEvent))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid event");
+  }
+}

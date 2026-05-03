@@ -1,4 +1,3 @@
-
 package com.monew.service;
 import java.time.temporal.ChronoUnit;
 
@@ -144,6 +143,10 @@ public class NotificationService {
 
   @Transactional
   public void createNotification(UUID userId, String content, ResourceType resourceType, UUID resourceId) {
+    if (userId == null || content == null || content.isBlank() || resourceType == null || resourceId == null) {
+        throw new BaseException(ErrorCode.INVALID_INPUT);
+    }
+
     getUserOrThrow(userId);
     // publish as Object to ensure publishEvent(Object) overload is called
     eventPublisher.publishEvent((Object) new com.monew.event.NotificationCreatedEvent(userId, content, resourceType, resourceId));
