@@ -3,6 +3,7 @@ package com.monew.unit.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -167,6 +168,14 @@ class NotificationServiceTest {
   }
 
   @Test
+  void createNotification_throws_whenInvalidInput() {
+    assertThatThrownBy(() -> notificationService.createNotification(null, "", ResourceType.INTEREST, null))
+        .isInstanceOf(BaseException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
   void createNotifications_returnsZero_whenEmpty() {
     int created = notificationService.createNotifications(List.of());
     assertThat(created).isZero();
@@ -208,6 +217,16 @@ class NotificationServiceTest {
   }
 
   @Test
+  void confirmAllNotifications_noOp_whenNoNotifications() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(notificationRepository.findByUserIdAndConfirmedFalse(userId)).thenReturn(List.of());
+
+    notificationService.confirmAllNotifications(userId);
+
+    verify(notificationRepository, never()).saveAll(anyList());
+  }
+
+  @Test
   void deleteOldConfirmedNotifications_delegatesToRepository() {
     when(notificationRepository.deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class))).thenReturn(3L);
     long deleted = notificationService.deleteOldConfirmedNotifications();
@@ -215,4 +234,3 @@ class NotificationServiceTest {
     verify(notificationRepository).deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class));
   }
 }
-

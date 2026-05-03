@@ -26,6 +26,10 @@ public class NotificationEventListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void handleNotificationCreated(NotificationCreatedEvent event) {
+    if (event == null || event.userId() == null || event.content() == null || event.resourceType() == null || event.resourceId() == null) {
+        throw new IllegalArgumentException("Invalid event: all fields must be non-null");
+    }
+
     UUID userId = event.userId();
     String content = event.content();
     ResourceType type = event.resourceType();
@@ -42,4 +46,3 @@ public class NotificationEventListener {
     log.debug("[알림 이벤트] 알림 생성 이벤트 처리 완료 userId={} resourceId={}", userId, resourceId);
   }
 }
-

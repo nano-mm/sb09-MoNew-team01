@@ -163,7 +163,7 @@ public class ArticleService {
     return matched;
   }
 
-  private void sendNotifications(List<Article> articleList, Map<String, Set<Interest>> urlToInterestsMap, List<Interest> allInterests) {
+  public void sendNotifications(List<Article> articleList, Map<String, Set<Interest>> urlToInterestsMap, List<Interest> allInterests) {
     Map<UUID, Integer> interestToCount = new HashMap<>();
     for (Article article : articleList) {
       Set<Interest> interests = urlToInterestsMap.get(article.getSourceUrl());
@@ -181,7 +181,10 @@ public class ArticleService {
       if (interest == null) continue;
 
       List<UUID> subscriberIds = subscriptionRepository.findUserIdsByInterestId(interest.getId());
+      log.debug("[알림 생성] 관심사: {}, 구독자 수: {}", interest.getName(), subscriberIds.size());
+
       for (UUID userId : subscriberIds) {
+        log.debug("[알림 생성] 사용자 ID: {}, 관심사: {}, 기사 수: {}", userId, interest.getName(), e.getValue());
         notificationService.createNotification(
             userId,
             "[" + interest.getName() + "]와 관련된 기사가 " + e.getValue() + "건 등록되었습니다.",
