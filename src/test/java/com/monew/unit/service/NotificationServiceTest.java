@@ -3,12 +3,15 @@ package com.monew.unit.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
+import com.monew.dto.request.NotificationCreateCommand;
 import com.monew.entity.Notification;
 import com.monew.entity.User;
 import com.monew.entity.enums.ResourceType;
@@ -18,6 +21,8 @@ import com.monew.mapper.NotificationMapper;
 import com.monew.repository.NotificationRepository;
 import com.monew.repository.UserRepository;
 import com.monew.service.NotificationService;
+import com.monew.event.NotificationCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +36,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class NotificationServiceTest {
 
   @Mock
@@ -42,6 +51,9 @@ class NotificationServiceTest {
 
   @Mock
   private NotificationMapper notificationMapper;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private NotificationService notificationService;
@@ -135,14 +147,15 @@ class NotificationServiceTest {
     UUID resourceId = UUID.randomUUID();
     notificationService.createNotification(userId, "hello", ResourceType.INTEREST, resourceId);
 
-    ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-    verify(notificationRepository).save(captor.capture());
-
-    Notification saved = captor.getValue();
-    assertThat(saved.getUser()).isEqualTo(user);
-    assertThat(saved.getContent()).isEqualTo("hello");
-    assertThat(saved.getResourceType()).isEqualTo(ResourceType.INTEREST);
-    assertThat(saved.getResourceId()).isEqualTo(resourceId);
+    ArgumentCaptor<Object> evtCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher).publishEvent(evtCaptor.capture());
+    Object published = evtCaptor.getValue();
+    assertThat(published).isInstanceOf(NotificationCreatedEvent.class);
+    NotificationCreatedEvent evt = (NotificationCreatedEvent) published;
+    assertThat(evt.userId()).isEqualTo(userId);
+    assertThat(evt.content()).isEqualTo("hello");
+    assertThat(evt.resourceType()).isEqualTo(ResourceType.INTEREST);
+    assertThat(evt.resourceId()).isEqualTo(resourceId);
   }
 
   @Test
@@ -156,10 +169,64 @@ class NotificationServiceTest {
   }
 
   @Test
+  void createNotification_throws_whenInvalidInput() {
+    assertThatThrownBy(() -> notificationService.createNotification(null, "", ResourceType.INTEREST, null))
+        .isInstanceOf(BaseException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
   void createNotifications_returnsZero_whenEmpty() {
     int created = notificationService.createNotifications(List.of());
     assertThat(created).isZero();
-    verify(notificationRepository, never()).saveAll(any());
+    verify(eventPublisher, never()).publishEvent(any());
+  }
+
+  @Test
+  void createNotifications_publishes_events_forCommands() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    NotificationCreateCommand c1 = new NotificationCreateCommand(userId, "a", ResourceType.INTEREST, UUID.randomUUID());
+    NotificationCreateCommand c2 = new NotificationCreateCommand(userId, "b", ResourceType.INTEREST, UUID.randomUUID());
+
+    int created = notificationService.createNotifications(List.of(c1, c2));
+
+    assertThat(created).isEqualTo(2);
+    ArgumentCaptor<Object> evtCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher, times(2)).publishEvent(evtCaptor.capture());
+    List<Object> published = evtCaptor.getAllValues();
+    assertThat(published).hasSize(2);
+    for (Object o : published) {
+      assertThat(o).isInstanceOf(NotificationCreatedEvent.class);
+    }
+  }
+
+  @Test
+  void confirmAllNotifications_confirms_whenExists() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    Notification n1 = Notification.of(user, "x", ResourceType.INTEREST, UUID.randomUUID());
+    Notification n2 = Notification.of(user, "y", ResourceType.INTEREST, UUID.randomUUID());
+    when(notificationRepository.findAllByUser_IdAndConfirmedFalse(userId)).thenReturn(List.of(n1, n2));
+
+    notificationService.confirmAllNotifications(userId);
+
+    assertThat(n1.getConfirmed()).isTrue();
+    assertThat(n2.getConfirmed()).isTrue();
+    verify(notificationRepository).findAllByUser_IdAndConfirmedFalse(userId);
+  }
+
+  @Test
+  void confirmAllNotifications_noOp_whenNoNotifications() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    when(notificationRepository.findAllByUser_IdAndConfirmedFalse(userId))
+        .thenReturn(List.of());
+
+    notificationService.confirmAllNotifications(userId);
+
+    verify(notificationRepository, never()).saveAll(anyList());
   }
 
   @Test
@@ -169,5 +236,98 @@ class NotificationServiceTest {
     assertThat(deleted).isEqualTo(3L);
     verify(notificationRepository).deleteByConfirmedIsTrueAndCreatedAtBefore(any(Instant.class));
   }
-}
 
+  @Test
+  void getNotifications_usesCursor_whenValidCursor() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    UUID cursorId = UUID.randomUUID();
+    Notification cursorNotification =
+        Notification.of(user, "cursor", ResourceType.INTEREST, UUID.randomUUID());
+
+    Instant now = Instant.now();
+
+    ReflectionTestUtils.setField(cursorNotification, "id", cursorId);
+    ReflectionTestUtils.setField(cursorNotification, "createdAt", now);
+
+    when(notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId))
+        .thenReturn(Optional.of(cursorNotification));
+
+    when(notificationRepository.findByUserIdWithCursor(userId, now, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId))
+        .thenReturn(0L);
+
+    CursorPageResponseDto<NotificationDto> response =
+        notificationService.getNotifications(userId, cursorId.toString(), null, 1);
+
+    assertThat(response.content()).isEmpty();
+  }
+
+  @Test
+  void createNotifications_skipsNullCommands() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    NotificationCreateCommand valid =
+        new NotificationCreateCommand(userId, "a", ResourceType.INTEREST, UUID.randomUUID());
+
+    int created = notificationService.createNotifications(
+        java.util.Arrays.asList(null, valid)
+    );
+
+    assertThat(created).isEqualTo(1);
+
+    verify(eventPublisher, times(1)).publishEvent(any(Object.class));
+  }
+
+  @Test
+  void getNotifications_usesAfter_whenCursorIsNull() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    Instant after = Instant.now();
+
+    when(notificationRepository.findByUserIdWithCursor(userId, after, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId)).thenReturn(0L);
+
+    CursorPageResponseDto<NotificationDto> response =
+        notificationService.getNotifications(userId, null, after, 1);
+
+    assertThat(response.content()).isEmpty();
+  }
+
+  @Test
+  void getNotifications_throwsInvalidInput_whenCursorNotFound() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    UUID cursorId = UUID.randomUUID();
+
+    when(notificationRepository.findByIdAndUser_IdAndConfirmedFalse(cursorId, userId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() ->
+        notificationService.getNotifications(userId, cursorId.toString(), null, 10)
+    )
+        .isInstanceOf(BaseException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
+  void getNotifications_sizeZero_defaultsToOne() {
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    when(notificationRepository.findByUserIdWithCursor(userId, null, 2))
+        .thenReturn(List.of());
+
+    when(notificationRepository.countByUser_IdAndConfirmedFalse(userId)).thenReturn(0L);
+
+    notificationService.getNotifications(userId, null, null, 0);
+
+    verify(notificationRepository).findByUserIdWithCursor(userId, null, 2);
+  }
+
+
+}

@@ -34,7 +34,7 @@ jobs:
           AWS_REGION: ap-northeast-2
           SPRING_PROFILES_ACTIVE: test
           SPRING_SQL_INIT_MODE: never
-        run: ./gradlew clean test
+        run: ./gradlew clean test jacocoTestReport
 
       - name: Upload test reports
         if: always()

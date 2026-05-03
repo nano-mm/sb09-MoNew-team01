@@ -27,7 +27,6 @@ import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
-import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -38,6 +37,7 @@ import com.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -279,5 +279,29 @@ class ArticleServiceTest {
     List<String> result = articleService.getSources();
 
     assertThat(result).containsExactly("NAVER", "HANKYUNG");
+  }
+
+  @Test
+  @DisplayName("sendNotifications - 구독자가 없는 경우")
+  void sendNotifications_NoSubscribers() {
+    Article mockArticle = Article.builder().title("Test Article").sourceUrl("test-url").build();
+    Interest mockInterest = new Interest("Tech", List.of("AI"));
+    ReflectionTestUtils.setField(mockInterest, "id", UUID.randomUUID());
+
+    Map<String, Set<Interest>> urlToInterestsMap = Map.of("test-url", Set.of(mockInterest));
+    List<Article> articleList = List.of(mockArticle);
+
+    given(subscriptionRepository.findUserIdsByInterestId(mockInterest.getId())).willReturn(List.of());
+
+    articleService.sendNotifications(articleList, urlToInterestsMap, List.of(mockInterest));
+
+    verify(notificationService, never()).createNotification(any(), any(), any(), any());
+  }
+
+  public void sendNotifications(List<Article> articles, Map<String, Set<Interest>> urlToInterestsMap, List<Interest> interests) {
+    if (articles == null || urlToInterestsMap == null || interests == null) {
+        throw new IllegalArgumentException("매개변수가 null일 수 없습니다.");
+    }
+    // ...기존 코드 유지...
   }
 }

@@ -2,6 +2,7 @@ package com.monew.unit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -17,6 +18,7 @@ import com.monew.entity.CommentLike;
 import com.monew.entity.User;
 import com.monew.exception.CommentNotFoundException;
 import com.monew.exception.DuplicateLikeException;
+import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
 import com.monew.exception.TooManyRequestsException;
 import com.monew.mapper.CommentMapper;
@@ -25,6 +27,7 @@ import com.monew.repository.CommentRepository;
 import com.monew.repository.UserRepository;
 import com.monew.repository.article.ArticleRepository;
 import com.monew.service.CommentService;
+import com.monew.service.NotificationService;
 import com.monew.service.UserActivityReadModelService;
 import java.time.Instant;
 import java.util.List;
@@ -55,6 +58,7 @@ class CommentServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private CommentMapper commentMapper;
   @Mock private UserActivityReadModelService userActivityReadModelService;
+  @Mock private NotificationService notificationService;
 
   private User user;
   private Article article;
@@ -357,5 +361,42 @@ class CommentServiceTest {
 
     assertThatThrownBy(() -> commentService.unlikeComment(userId, commentId))
         .isInstanceOf(LikeNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("다른 사람 댓글 수정 시 예외 발생")
+  void forbidden() {
+    UUID commentId = UUID.randomUUID();
+    Comment comment = spy(Comment.create(article, user, "content"));
+
+    // 다른 유저라고 가정
+    UUID otherUserId = UUID.randomUUID();
+
+    when(commentRepository.findByIdAndDeletedAtIsNull(commentId))
+        .thenReturn(Optional.of(comment));
+    when(userRepository.findById(otherUserId))
+        .thenReturn(Optional.of(user));
+
+    doReturn(false).when(comment).isOwnedBy(otherUserId);
+
+    assertThatThrownBy(() ->
+        commentService.updateComment(otherUserId, commentId, "new"))
+        .isInstanceOf(ForbiddenException.class);
+  }
+
+  @Test
+  @DisplayName("0.3초 이후에는 다시 댓글 작성 가능")
+  void rateLimit_reset() throws InterruptedException {
+    when(articleRepository.findById(articleId)).thenReturn(Optional.of(article));
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(commentMapper.toResponse(any())).thenReturn(mock(CommentDto.class));
+
+    commentService.createComment(userId, articleId, "first");
+
+    Thread.sleep(350);
+
+    assertThatCode(() ->
+        commentService.createComment(userId, articleId, "second"))
+        .doesNotThrowAnyException();
   }
 }
