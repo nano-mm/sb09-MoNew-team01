@@ -22,6 +22,7 @@ import com.monew.repository.UserRepository;
 import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -155,7 +156,18 @@ class InterestServiceTest {
   @DisplayName("구독 성공")
   void subscribe_Success() {
     User user = mock(User.class);
+    Instant now = Instant.now();
+    Subscription subscription = mock(Subscription.class);
     Interest interest = new Interest("스포츠", List.of("축구"));
+
+    SubscriptionDto responseDto = new SubscriptionDto(
+        subscription.getId(),
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords(),
+        interest.getSubscriberCount(),
+        now
+    );
 
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
@@ -166,12 +178,15 @@ class InterestServiceTest {
     given(subscriptionRepository.existsByUserAndInterest(user, interest))
         .willReturn(false);
 
-    Subscription subscription = new Subscription(user, interest);
+    given(subscriptionRepository.saveAndFlush(any()))
+        .willReturn(subscription);
 
-    given(subscriptionRepository.saveAndFlush(any())).willReturn(subscription);
+    given(subscriptionMapper.toDto(any(Subscription.class)))
+        .willReturn(responseDto);
 
     SubscriptionDto result = interestService.subscribe(userId, interestId);
 
+    assertThat(result).isNotNull();
     assertThat(result.interestName()).isEqualTo("스포츠");
     verify(interestRepository).updateSubscriberCount(interestId);
     verify(entityManager).refresh(interest);
