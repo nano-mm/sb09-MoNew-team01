@@ -89,6 +89,13 @@ public class NaverApiFetcher implements ArticleFetcher {
       } catch (Exception e) {
         log.error("네이버 API 뉴스 수집 중 오류 발생 - 쿼리: {}", combinedQuery, e);
       }
+
+      try {
+        // api 부하 줄이기 용
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
 
     return articles ;
