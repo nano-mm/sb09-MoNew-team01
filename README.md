@@ -1,5 +1,3 @@
-## Status
-
 ![CI](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/ci.yml/badge.svg) [![Code Coverage](https://codecov.io/gh/nano-mm/sb09-MoNew-team01/branch/develop/graph/badge.svg)](https://codecov.io/gh/nano-mm/sb09-MoNew-team01) ![CD](https://github.com/nano-mm/sb09-MoNew-team01/actions/workflows/cd.yml/badge.svg)
 
 # 📰 모뉴 (MoNew)
@@ -95,7 +93,7 @@
 │              Spring Boot Application        │
 │                                             │
 │  ┌──────────────┐     ┌───────────────────┐ │
-│  │  Controller  │───▶│     Service       │ │
+│  │  Controller  │───▶ │     Service       │ │
 │  └──────────────┘     └────────┬──────────┘ │
 │                               │             │
 │                      ┌────────▼──────────┐  │
@@ -247,15 +245,15 @@ monew
 
 ---
 
-##  팀원 소개
+## 팀원 소개
 
-| 이름     | 담당 기능     | GitHub |
-|---------|-----------|--------|
-| 나은비   | 알림,인프라 구축 | [@github](#) |
-| 이진용   | 사용자, 활동 내역 관리  | [@github](#) |
-| 한성재   | 뉴스 기사 관리  | [@github](#) |
-| 임혜민   | 관심사 관리    | [@github](#) |
-| 이용일   | 댓글 관리     | [@github](#) |
+| 이름     | 담당 기능           | GitHub |
+|----------|--------------------|--------|
+| 나은비   | 알림, 인프라 구축   | [@nano-mm](https://github.com/nano-mm) |
+| 이진용   | 사용자, 활동 내역 관리 | [@alpha-lens](https://github.com/alpha-lens) |
+| 한성재   | 뉴스 기사 관리       | [@seonghj](https://github.com/seonghj) |
+| 임혜민   | 관심사 관리         | [@hyemin-L](https://github.com/hyemin-L) |
+| 이용일   | 댓글 관리           | [@lyi980403-arch](https://github.com/lyi980403-arch) |
 
 ---
 
