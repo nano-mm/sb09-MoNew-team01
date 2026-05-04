@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import jakarta.persistence.EntityManager;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +47,7 @@ public class InterestService {
   private final UserRepository userRepository;
   private final UserActivityReadModelService userActivityReadModelService;
   private final SubscriptionMapper subscriptionMapper;
+  private final EntityManager entityManager;
 
   public Interest create(InterestRegisterRequest request) {
     validateDuplicate(request.name());
@@ -153,45 +155,25 @@ public class InterestService {
   public SubscriptionDto subscribe(UUID userId, UUID interestId) {
 
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new com.monew.exception.BaseException(com.monew.exception.ErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
 
-    Interest interest = interestRepository.findById(interestId)
-        .orElseThrow(() -> new com.monew.exception.BaseException(com.monew.exception.ErrorCode.INTEREST_NOT_FOUND));
+    Interest interest = interestRepository.findByIdWithPessimisticLock(interestId)
+        .orElseThrow(() -> new BaseException(ErrorCode.INTEREST_NOT_FOUND));
 
     if (subscriptionRepository.existsByUserAndInterest(user, interest)) {
-      return subscriptionRepository.findByUserAndInterest(user, interest)
-          .map(subscriptionMapper::toDto)
-          .orElseThrow(() -> new com.monew.exception.BaseException(com.monew.exception.ErrorCode.DUPLICATE_RESOURCE));
+      throw new BaseException(ErrorCode.DUPLICATE_RESOURCE);
     }
 
     Subscription subscription = new Subscription(user, interest);
     try {
-      subscriptionRepository.save(subscription);
-      try {
-        subscriptionRepository.flush();
-      } catch (org.springframework.dao.DataAccessException ex) {
-        return subscriptionRepository.findByUserAndInterest(user, interest)
-            .map(subscriptionMapper::toDto)
-            .orElseThrow(() -> new com.monew.exception.BaseException(com.monew.exception.ErrorCode.DUPLICATE_RESOURCE));
-      } catch (Exception ex) {
-        log.warn("subscriptionRepository.flush 실패(무시). interestId={}, userId={}, error={}", interestId, userId, ex.toString());
-      }
-    } catch (org.springframework.dao.DataAccessException ex) {
-      return subscriptionRepository.findByUserAndInterest(user, interest)
-          .map(subscriptionMapper::toDto)
-          .orElseThrow(() -> new com.monew.exception.BaseException(com.monew.exception.ErrorCode.DUPLICATE_RESOURCE));
+      subscriptionRepository.saveAndFlush(subscription);
+    } catch (DataIntegrityViolationException ex) {
+      throw new BaseException(ErrorCode.DUPLICATE_RESOURCE);
     }
 
-    try {
-      interestRepository.incrementSubscriberCount(interestId, 1);
-    } catch (Exception ex) {
-      log.warn("구독자 수 증가 실패(무시). interestId={}, error={}", interestId, ex.toString());
-    }
-    try {
-      subscriptionRepository.countByInterest(interest);
-    } catch (Exception ex) {
-      // ignore
-    }
+    interestRepository.updateSubscriberCount(interestId);
+    entityManager.refresh(interest);
+
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
         @Override
@@ -200,29 +182,16 @@ public class InterestService {
             userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
             userActivityReadModelService.refreshSnapshot(userId);
           } catch (Exception ex) {
-            // ignore
+            log.error("AfterCommit 리프레시 실패. userId={}, interestId={}", userId, interestId, ex);
           }
         }
       });
     } else {
-      try {
-        userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
-        userActivityReadModelService.refreshSnapshot(userId);
-      } catch (Exception ex) {
-        // ignore
-      }
+      userActivityReadModelService.refreshSnapshotsForInterestSubscribers(interestId);
+      userActivityReadModelService.refreshSnapshot(userId);
     }
 
-    Interest refreshedInterest = interestRepository.findById(interestId).orElse(interest);
-
-    return new SubscriptionDto(
-        subscription.getId(),
-        refreshedInterest.getId(),
-        refreshedInterest.getName(),
-        refreshedInterest.getKeywords(),
-        refreshedInterest.getSubscriberCount(),
-        subscription.getCreatedAt()
-    );
+    return subscriptionMapper.toDto(subscription);
   }
 
   public void unsubscribe(UUID userId, UUID interestId) {
@@ -230,12 +199,12 @@ public class InterestService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new RuntimeException("유저 없음"));
 
-    Interest interest = interestRepository.findById(interestId)
+    Interest interest = interestRepository.findByIdWithPessimisticLock(interestId)
         .orElseThrow(() -> new RuntimeException("관심사 없음"));
 
     List<Subscription> subs = subscriptionRepository.findAllByUserAndInterest(user, interest);
     if (subs == null || subs.isEmpty()) {
-      return;
+      throw new BaseException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
     }
 
     int removed = 0;
@@ -254,13 +223,10 @@ public class InterestService {
       log.warn("subscriptionRepository.flush 실패(무시). interestId={}, userId={}, error={}", interestId, userId, ex.toString());
     }
 
-    // 삭제에 성공한 건수만큼 원자적으로 감소시킵니다. 음수 방지는 repository에서 처리합니다.
+    // 셀프 코렉팅 업데이트: 실제 구독 레코드 수를 카운트하여 업데이트
     if (removed > 0) {
-      try {
-        interestRepository.decrementSubscriberCount(interestId, removed);
-      } catch (Exception ex) {
-        log.warn("구독자 수 감소 실패(무시). interestId={}, delta={}, error={}", interestId, removed, ex.toString());
-      }
+      interestRepository.updateSubscriberCount(interestId);
+      entityManager.refresh(interest);
     }
 
     // 테스트에서 subscriptionRepository.countByInterest를 stubbing하는 곳이 있어
