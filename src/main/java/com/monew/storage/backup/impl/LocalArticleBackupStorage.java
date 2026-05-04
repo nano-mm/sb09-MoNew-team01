@@ -1,6 +1,10 @@
 package com.monew.storage.backup.impl;
 
 import com.monew.storage.backup.ArticleBackupStorage;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +28,8 @@ import java.util.List;
 public class LocalArticleBackupStorage implements ArticleBackupStorage {
 
   private final ResourcePatternResolver resourcePatternResolver;
+
+  private static final DateTimeFormatter FILE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
   @Value("${monew.storage.local.root-path}")
   private String localRootPath;
@@ -51,9 +57,31 @@ public class LocalArticleBackupStorage implements ArticleBackupStorage {
   }
 
   @Override
-  public List<Resource> loadBackupResources() throws IOException {
+  public List<Resource> loadBackupResources(LocalDateTime from, LocalDateTime to) throws IOException {
     String pattern = "file:" + getDirPath() + "*.json";
     Resource[] resources = resourcePatternResolver.getResources(pattern);
-    return Arrays.asList(resources);
+
+    LocalDate fromDate = from.toLocalDate();
+    LocalDate toDate = to.toLocalDate();
+
+    return Arrays.stream(resources)
+        .filter(resource -> isWithinDateRange(resource.getFilename(), fromDate, toDate))
+        .collect(Collectors.toList());
+  }
+
+
+  private boolean isWithinDateRange(String fileName, LocalDate fromDate, LocalDate toDate) {
+    if (fileName == null) return false;
+
+    try {
+      String dateString = fileName.replace("backup_", "").replace(".json", "");
+      LocalDate fileDate = LocalDate.parse(dateString, FILE_DATE_FORMATTER);
+
+      return !fileDate.isBefore(fromDate) && !fileDate.isAfter(toDate);
+
+    } catch (Exception e) {
+      log.warn("[뉴스 기사 백업] 로컬 파일명 날짜 파싱 실패. 파일명: {}", fileName);
+      return false;
+    }
   }
 }

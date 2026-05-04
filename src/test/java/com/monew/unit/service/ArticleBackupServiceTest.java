@@ -10,6 +10,7 @@ import com.monew.mapper.ArticleBackupMapper;
 import com.monew.repository.ArticleInterestRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.repository.article.ArticleRepositoryCustom;
 import com.monew.service.ArticleBackupService;
 import com.monew.storage.backup.ArticleBackupStorage;
 import java.io.ByteArrayInputStream;
@@ -57,6 +58,7 @@ class ArticleBackupServiceTest {
   @Mock private ObjectMapper objectMapper;
   @Mock private ArticleBackupMapper articleBackupMapper;
 
+  @Mock private ArticleRepositoryCustom articleRepositoryCustom;
   @Mock private ArticleBackupStorage articleBackupStorage;
 
   @Captor
@@ -144,7 +146,7 @@ class ArticleBackupServiceTest {
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
 
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+    given(articleBackupStorage.loadBackupResources(from, to)).willReturn(List.of(mockResource));
 
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .title("test")
@@ -170,8 +172,7 @@ class ArticleBackupServiceTest {
 
     ArticleRestoreResultDto result = backupService.importBackup(from, to);
 
-    verify(articleRepository).saveAll(anyList());
-    verify(articleInterestRepository).saveAll(anyList());
+    verify(articleRepositoryCustom).bulkInsertArticle(anyList());
   }
 
   @Test
@@ -180,39 +181,12 @@ class ArticleBackupServiceTest {
     LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
     LocalDateTime to = LocalDateTime.of(2026, 4, 30, 23, 59);
 
-    given(articleBackupStorage.loadBackupResources()).willReturn(Collections.emptyList());
+    given(articleBackupStorage.loadBackupResources(from, to)).willReturn(Collections.emptyList());
 
     ArticleRestoreResultDto result = backupService.importBackup(from, to);
 
     assertThat(result.restoredArticleCount()).isEqualTo(0L);
-    verify(articleRepository, never()).saveAll(anyList());
-  }
-
-  @Test
-  @DisplayName("뉴스 기사 복구 - 날짜 범위(from, to)를 벗어난 경우")
-  void importBackup_SkipOutOfBoundsDate() throws Exception {
-    LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
-    LocalDateTime to = LocalDateTime.of(2026, 4, 30, 23, 59);
-
-    Instant outOfBoundsInstant = LocalDateTime.of(2026, 3, 15, 12, 0)
-        .atZone(ZoneId.of("Asia/Seoul")).toInstant();
-
-    Resource mockResource = mock(Resource.class);
-    InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
-    given(mockResource.getInputStream()).willReturn(mockInputStream);
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
-
-    ArticleBackupDto outOfBoundsDto = ArticleBackupDto.builder()
-        .sourceUrl("http://out.com")
-        .publishDate(outOfBoundsInstant)
-        .build();
-
-    given(objectMapper.readValue(any(InputStream.class), ArgumentMatchers.<TypeReference<List<ArticleBackupDto>>>any()))
-        .willReturn(List.of(outOfBoundsDto));
-
-    backupService.importBackup(from, to);
-
-    verify(articleRepository, never()).saveAll(anyList());
+    verify(articleRepositoryCustom, never()).bulkInsertArticle(anyList());
   }
 
   @Test
@@ -225,7 +199,7 @@ class ArticleBackupServiceTest {
     Resource mockResource = mock(Resource.class);
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+    given(articleBackupStorage.loadBackupResources(from, to)).willReturn(List.of(mockResource));
 
     String duplicateUrl = "http://duplicate.com";
     ArticleBackupDto duplicateDto = ArticleBackupDto.builder()
@@ -240,7 +214,7 @@ class ArticleBackupServiceTest {
 
     backupService.importBackup(from, to);
 
-    verify(articleRepository, never()).saveAll(anyList());
+    verify(articleRepositoryCustom, never()).bulkInsertArticle(anyList());
   }
 
   @Test
@@ -253,7 +227,7 @@ class ArticleBackupServiceTest {
     Resource mockResource = mock(Resource.class);
     InputStream mockInputStream = new ByteArrayInputStream("[]".getBytes());
     given(mockResource.getInputStream()).willReturn(mockInputStream);
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+    given(articleBackupStorage.loadBackupResources(from, to)).willReturn(List.of(mockResource));
 
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .sourceUrl("http://new-interest.com")
@@ -273,8 +247,8 @@ class ArticleBackupServiceTest {
 
     backupService.importBackup(from, to);
 
-    verify(interestRepository).saveAll(anyList());
-    verify(articleInterestRepository).saveAll(anyList());
+    verify(articleRepositoryCustom).bulkInsertArticle(anyList());
+    verify(articleRepositoryCustom).bulkInsertArticleInterest(anyList());
   }
 
   @Test
@@ -286,7 +260,7 @@ class ArticleBackupServiceTest {
 
     Resource mockResource = mock(Resource.class);
     given(mockResource.getInputStream()).willReturn(new ByteArrayInputStream("[]".getBytes()));
-    given(articleBackupStorage.loadBackupResources()).willReturn(List.of(mockResource));
+    given(articleBackupStorage.loadBackupResources(from, to)).willReturn(List.of(mockResource));
 
     String sameUrl = "http://same.com";
     ArticleBackupDto dto1 = ArticleBackupDto.builder().sourceUrl(sameUrl).publishDate(validInstant).build();
@@ -302,7 +276,7 @@ class ArticleBackupServiceTest {
 
     backupService.importBackup(from, to);
 
-    verify(articleRepository).saveAll(articleListCaptor.capture());
+    verify(articleRepositoryCustom).bulkInsertArticle(articleListCaptor.capture());
     assertThat(articleListCaptor.getValue().size()).isEqualTo(1);
   }
 }

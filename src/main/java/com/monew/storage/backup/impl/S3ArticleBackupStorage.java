@@ -2,6 +2,9 @@ package com.monew.storage.backup.impl;
 
 import com.monew.storage.backup.ArticleBackupStorage;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,6 +36,7 @@ public class S3ArticleBackupStorage implements ArticleBackupStorage {
   private String s3Bucket;
 
   private static final String BASE_DIR = "backups/";
+  private static final DateTimeFormatter FILE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
   @Override
   public void saveBackup(String fileName, String jsonData) {
@@ -48,20 +52,44 @@ public class S3ArticleBackupStorage implements ArticleBackupStorage {
   }
 
   @Override
-  public List<Resource> loadBackupResources() {
+  public List<Resource> loadBackupResources(LocalDateTime from, LocalDateTime to) {
     List<Resource> backupResources = new ArrayList<>();
+
     ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
         .bucket(s3Bucket)
         .prefix(BASE_DIR)
         .build();
 
+    LocalDate fromDate = from.toLocalDate();
+    LocalDate toDate = to.toLocalDate();
+
     s3Client.listObjectsV2(listRequest).contents().stream()
         .filter(s3Object -> s3Object.key().endsWith(".json"))
+        .filter(s3Object -> isWithinDateRange(s3Object.key(), fromDate, toDate))
         .forEach(s3Object -> {
           String s3Uri = "s3://" + s3Bucket + "/" + s3Object.key();
           backupResources.add(resourceLoader.getResource(s3Uri));
         });
 
     return backupResources;
+  }
+
+
+  private boolean isWithinDateRange(String key, LocalDate fromDate, LocalDate toDate) {
+    if (key == null) return false;
+
+    try {
+      String fileName = key.substring(key.lastIndexOf("/") + 1);
+
+      String dateString = fileName.replace("backup_", "").replace(".json", "");
+
+      LocalDate fileDate = LocalDate.parse(dateString, FILE_DATE_FORMATTER);
+
+      return !fileDate.isBefore(fromDate) && !fileDate.isAfter(toDate);
+
+    } catch (Exception e) {
+      log.warn("[뉴스 기사 백업] S3 파일명 날짜 파싱 실패. key: {}", key);
+      return false;
+    }
   }
 }

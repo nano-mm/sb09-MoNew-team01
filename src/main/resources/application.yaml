@@ -5,7 +5,7 @@ spring:
   jpa:
     properties:
       hibernate:
-        jdbc.batch_size: 50
+        jdbc.batch_size: 1000
         order_inserts: true
         order_updates: true
   batch:

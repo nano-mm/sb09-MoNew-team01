@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.monew.storage.backup.impl.S3ArticleBackupStorage;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class S3ArticleBackupStorageTest {
   void loadBackupResources_정상동작() {
     // given
     S3Object s3Object = S3Object.builder()
-        .key("backups/test.json")
+        .key("backups/backup_2015-12-17.json")
         .build();
 
     ListObjectsV2Response response = ListObjectsV2Response.builder()
@@ -59,8 +60,11 @@ class S3ArticleBackupStorageTest {
     when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(response);
     when(resourceLoader.getResource(anyString())).thenReturn(mock(Resource.class));
 
+    LocalDateTime from = LocalDateTime.of(2000, 1, 1, 0, 0);
+    LocalDateTime to = LocalDateTime.of(2100, 12, 31, 23, 59);
+
     // when
-    List<Resource> result = storage.loadBackupResources();
+    List<Resource> result = storage.loadBackupResources(from, to);
 
     // then
     assertThat(result).hasSize(1);

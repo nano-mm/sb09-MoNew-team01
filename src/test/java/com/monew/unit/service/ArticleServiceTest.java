@@ -21,6 +21,7 @@ import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.entity.Article;
+import com.monew.entity.ArticleInterest;
 import com.monew.entity.Interest;
 import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
@@ -30,6 +31,7 @@ import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
 import com.monew.repository.article.ArticleRepository;
+import com.monew.repository.article.ArticleRepositoryCustom;
 import com.monew.service.ArticleService;
 import com.monew.service.NotificationService;
 import java.time.Instant;
@@ -61,11 +63,15 @@ class ArticleServiceTest {
   @Mock private ArticleFetcher mockFetcher;
   @Mock private NotificationService notificationService;
   @Mock private SubscriptionRepository subscriptionRepository;
+  @Mock private ArticleRepositoryCustom articleRepositoryCustom;
 
   private ArticleService articleService;
 
   @Captor
-  private ArgumentCaptor<List<Article>> articleListCaptor;
+  private ArgumentCaptor<List<Article>> articleBulkInsertCaptor;
+
+  @Captor
+  private ArgumentCaptor<List<ArticleInterest>> mappingBulkInsertCaptor;
 
   private final UUID ARTICLE_ID = UUID.randomUUID();
 
@@ -75,9 +81,9 @@ class ArticleServiceTest {
         articleRepository,
         articleQueryRepository,
         interestRepository,
+        articleRepositoryCustom,
         articleMapper,
         List.of(mockFetcher),
-        articleInterestRepository,
         notificationService,
         subscriptionRepository
     );
@@ -94,14 +100,16 @@ class ArticleServiceTest {
     ReflectionTestUtils.setField(mockInterest, "id", UUID.randomUUID());
 
     given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
-    given(mockFetcher.fetch(anySet())).willReturn(List.of(mockDto, mockDto));
+    given(mockFetcher.fetch(anySet())).willReturn(List.of(mockDto, mockDto)); // 중복 DTO
     given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of());
     given(articleMapper.toEntity(any(ArticleDto.class))).willReturn(mockEntity);
 
     articleService.collect();
 
-    verify(articleRepository).saveAll(articleListCaptor.capture());
-    List<Article> savedArticles = articleListCaptor.getValue();
+    verify(articleRepositoryCustom).bulkInsertArticle(articleBulkInsertCaptor.capture());
+
+    List<Article> savedArticles = articleBulkInsertCaptor.getValue();
+
     assertThat(savedArticles).hasSize(1);
   }
 
@@ -115,7 +123,7 @@ class ArticleServiceTest {
 
     articleService.collect();
 
-    verify(articleRepository, never()).saveAll(anyList());
+    verify(articleRepositoryCustom, never()).bulkInsertArticle(articleBulkInsertCaptor.capture());
   }
 
   @Test
@@ -132,7 +140,8 @@ class ArticleServiceTest {
 
     articleService.collect();
 
-    verify(articleRepository, never()).saveAll(anyList());
+    verify(articleRepositoryCustom, never()).bulkInsertArticle(anyList());
+    verify(articleRepositoryCustom, never()).bulkInsertArticleInterest(anyList());
     verify(notificationService, never()).createNotification(any(), anyString(), any(), any());
   }
 
@@ -158,7 +167,8 @@ class ArticleServiceTest {
 
     articleService.collect();
 
-    verify(articleRepository).saveAll(anyList());
+    verify(articleRepositoryCustom).bulkInsertArticle(anyList());
+    verify(articleRepositoryCustom).bulkInsertArticleInterest(anyList());
     verify(notificationService, times(1)).createNotification(
         eq(subscriberId),
         contains("IT"),

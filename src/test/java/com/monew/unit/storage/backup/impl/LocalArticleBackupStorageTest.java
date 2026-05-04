@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import com.monew.storage.backup.impl.LocalArticleBackupStorage;
 import java.io.File;
 import java.io.OutputStream;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ class LocalArticleBackupStorageTest {
   @Test
   void saveBackup_정상동작() throws Exception {
     // given
-    String fileName = "test.json";
+    String fileName = "backup_2015-12-17.json";
     String data = "{}";
 
     File mockFile = mock(File.class);
@@ -63,14 +64,19 @@ class LocalArticleBackupStorageTest {
 
   @Test
   void loadBackupResources_정상동작() throws Exception {
-    // given
+    Resource resource = mock(Resource.class);
+
+    when(resource.getFilename()).thenReturn("backup_2026-01-02.json");
+
     Resource[] resources = new Resource[]{resource};
     when(resolver.getResources(anyString())).thenReturn(resources);
 
-    // when
-    List<Resource> result = storage.loadBackupResources();
+    LocalDateTime from = LocalDateTime.of(2000, 1, 1, 0, 0);
+    LocalDateTime to = LocalDateTime.of(2100, 12, 31, 23, 59);
 
-    // then
+    List<Resource> result = storage.loadBackupResources(from, to);
+
     assertThat(result).hasSize(1);
+    assertThat(result.get(0).getFilename()).isEqualTo("backup_2026-01-02.json");
   }
 }
