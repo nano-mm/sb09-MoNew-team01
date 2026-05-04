@@ -1,25 +1,22 @@
 package com.monew.dto.request;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record InterestSearchRequest(
     String keyword,
-    String orderBy,
-    String direction,
-    String cursor,
-    Instant after,
-    Integer size,
+    CursorRequest cursorRequest,
     UUID userId
 ) {
 
+
   public String getOrderByOrDefault() {
-    return orderBy == null ? "name" : orderBy;
+    return cursorRequest.orderBy() == null ? "name" : cursorRequest.orderBy();
   }
 
-  public String getDirectionOrDefault() { return direction == null ? "ASC" : direction;}
+  public String getDirectionOrDefault() { return cursorRequest.direction() == null ? "ASC" : cursorRequest.direction();}
 
   public int getSizeOrDefault() {
-    return size == null ? 10 : size;
+    return cursorRequest.limit() == null ? 10 : cursorRequest.limit();
   }
 }

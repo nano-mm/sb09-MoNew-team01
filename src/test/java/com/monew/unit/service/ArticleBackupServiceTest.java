@@ -62,12 +62,19 @@ class ArticleBackupServiceTest {
   @Captor
   private ArgumentCaptor<List<Article>> articleListCaptor;
 
+  private final LocalDateTime exportFrom = LocalDateTime.of(2026, 4, 1, 0, 0);
+  private final LocalDateTime exportTo = LocalDateTime.of(2026, 4, 30, 23, 59);
+
   @Test
-  @DisplayName("뉴스 기사 백업")
+  @DisplayName("뉴스 기사 백업 - 지정된 기간 내 성공")
   void export_success() throws Exception {
-    Article mockArticle = Article.builder().id(java.util.UUID.randomUUID()).build();
-    given(articleRepository.findAll()).willReturn(List.of(mockArticle));
-    given(articleInterestRepository.findAllWithInterest()).willReturn(List.of());
+    Article mockArticle = Article.builder().id(UUID.randomUUID()).build();
+
+    given(articleRepository.findByPublishDateBetween(any(Instant.class), any(Instant.class)))
+        .willReturn(List.of(mockArticle));
+
+    given(articleInterestRepository.findAllByArticleInWithInterest(anyList()))
+        .willReturn(List.of());
 
     ArticleBackupDto mockDto = ArticleBackupDto.builder()
         .publishDate(Instant.now())
@@ -77,31 +84,34 @@ class ArticleBackupServiceTest {
     String dummyJson = "[{\"title\":\"test\"}]";
     given(objectMapper.writeValueAsString(any())).willReturn(dummyJson);
 
-    backupService.export();
+    backupService.export(exportFrom, exportTo);
 
     verify(articleBackupStorage).saveBackup(anyString(), anyString());
   }
 
   @Test
-  @DisplayName("뉴스 기사 백업 - 저장된 기사가 없는 경우")
+  @DisplayName("뉴스 기사 백업 - 저장된 기사가 없는 경우 조기 종료")
   void export_EmptyArticles_ShouldReturnEarly() throws Exception {
-    given(articleRepository.findAll()).willReturn(Collections.emptyList());
+    given(articleRepository.findByPublishDateBetween(any(Instant.class), any(Instant.class)))
+        .willReturn(Collections.emptyList());
 
-    backupService.export();
+    backupService.export(exportFrom, exportTo);
 
     verify(articleBackupStorage, never()).saveBackup(anyString(), anyString());
   }
 
   @Test
-  @DisplayName("뉴스 기사 백업 - 발행일이 다른 기사 백업")
+  @DisplayName("뉴스 기사 백업 - 발행일이 다른 기사는 각각 분리되어 여러 파일로 저장됨")
   void export_GroupByDate_CreatesMultipleFiles() throws Exception {
     UUID id1 = UUID.randomUUID();
     UUID id2 = UUID.randomUUID();
     Article article1 = Article.builder().id(id1).build();
     Article article2 = Article.builder().id(id2).build();
 
-    given(articleRepository.findAll()).willReturn(List.of(article1, article2));
-    given(articleInterestRepository.findAllWithInterest()).willReturn(Collections.emptyList());
+    given(articleRepository.findByPublishDateBetween(any(Instant.class), any(Instant.class)))
+        .willReturn(List.of(article1, article2));
+    given(articleInterestRepository.findAllByArticleInWithInterest(anyList()))
+        .willReturn(Collections.emptyList());
 
     ArticleBackupDto dto1 = ArticleBackupDto.builder()
         .publishDate(LocalDateTime.of(2026, 4, 1, 0, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant())
@@ -114,7 +124,7 @@ class ArticleBackupServiceTest {
     given(articleBackupMapper.toDto(eq(article2), any())).willReturn(dto2);
     given(objectMapper.writeValueAsString(any())).willReturn("[]");
 
-    backupService.export();
+    backupService.export(exportFrom, exportTo);
 
     verify(articleBackupStorage, times(2)).saveBackup(anyString(), anyString());
   }

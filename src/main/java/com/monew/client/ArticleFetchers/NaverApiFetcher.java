@@ -6,6 +6,7 @@ import com.monew.dto.news.NaverNewsItem;
 import com.monew.dto.news.NaverNewsResponse;
 import com.monew.dto.response.ArticleDto;
 import com.monew.entity.enums.ArticleSource;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,8 @@ public class NaverApiFetcher implements ArticleFetcher {
 
   private final RestTemplate restTemplate;
 
+  private static final int CHUNK_SIZE = 5;
+
   @Value("${naver.client.id}")
   private String clientId;
 
@@ -43,41 +46,52 @@ public class NaverApiFetcher implements ArticleFetcher {
       DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.KOREA);
 
   @Override
-  public List<ArticleDto> fetch(String keyword) {
-    List<ArticleDto> articles = new ArrayList<>();
-
-    URI uri = UriComponentsBuilder.fromHttpUrl("https://openapi.naver.com/v1/search/news.json")
-        .queryParam("query", keyword)
-        .queryParam("display", 50)
-        .queryParam("sort", "date")
-        .build()
-        .encode()
-        .toUri();
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("X-Naver-Client-Id", clientId);
-    headers.set("X-Naver-Client-Secret", clientSecret);
-    HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-    try {
-      ResponseEntity<NaverNewsResponse> response = restTemplate.exchange(
-          uri,
-          HttpMethod.GET,
-          entity,
-          NaverNewsResponse.class
-      );
-
-      NaverNewsResponse body = response.getBody();
-      if (body != null && body.items() != null) {
-        for (NaverNewsItem item : body.items()) {
-          articles.add(convertToDto(item));
-        }
-      }
-    } catch (Exception e) {
-      log.error("네이버 API 뉴스 수집 중 오류 발생 - 키워드: {}", keyword, e);
+  public List<ArticleDto> fetch(Set<String> keywords) {
+    if (keywords == null || keywords.isEmpty()) {
+      return new ArrayList<>();
     }
 
-    return articles;
+    List<ArticleDto> articles = new ArrayList<>();
+
+    List<String> keywordList = new ArrayList<>(keywords);
+
+    for (int i = 0; i < keywordList.size(); i += CHUNK_SIZE) {
+      int end = Math.min(keywordList.size(), i + CHUNK_SIZE);
+      List<String> chunk = keywordList.subList(i, end);
+
+      String combinedQuery = String.join("|", chunk);
+
+      try {
+        URI uri = UriComponentsBuilder.fromHttpUrl("https://openapi.naver.com/v1/search/news.json")
+            .queryParam("query", combinedQuery)
+            .queryParam("display", 50) // 청크당 50개씩 수집
+            .queryParam("sort", "date")
+            .build()
+            .encode()
+            .toUri();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Naver-Client-Id", clientId);
+        headers.set("X-Naver-Client-Secret", clientSecret);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<NaverNewsResponse> response = restTemplate.exchange(
+            uri, HttpMethod.GET, entity, NaverNewsResponse.class
+        );
+
+        NaverNewsResponse body = response.getBody();
+        if (body != null && body.items() != null) {
+          for (NaverNewsItem item : body.items()) {
+            articles.add(convertToDto(item));
+          }
+        }
+
+      } catch (Exception e) {
+        log.error("네이버 API 뉴스 수집 중 오류 발생 - 쿼리: {}", combinedQuery, e);
+      }
+    }
+
+    return articles ;
   }
 
   private ArticleDto convertToDto(NaverNewsItem item) {

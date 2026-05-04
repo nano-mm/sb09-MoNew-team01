@@ -2,6 +2,7 @@ package com.monew.repository;
 
 import com.monew.entity.Interest;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -16,8 +17,8 @@ public interface InterestRepository extends JpaRepository<Interest, UUID> {
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.name > :cursor 
@@ -28,7 +29,7 @@ order by i.name asc, i.createdAt asc
   List<Interest> findByNameAsc(
       @Param("keyword") String keyword,
       @Param("cursor") String cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -36,8 +37,8 @@ order by i.name asc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.name < :cursor 
@@ -48,7 +49,7 @@ order by i.name desc, i.createdAt asc
   List<Interest> findByNameDesc(
       @Param("keyword") String keyword,
       @Param("cursor") String cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -56,8 +57,8 @@ order by i.name desc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.subscriberCount > :cursor 
@@ -68,7 +69,7 @@ order by i.subscriberCount asc, i.createdAt asc
   List<Interest> findBySubscriberAsc(
       @Param("keyword") String keyword,
       @Param("cursor") Long cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -76,8 +77,8 @@ order by i.subscriberCount asc, i.createdAt asc
 select distinct i from Interest i
 left join fetch i.keywords k
 where (:keyword is null 
-   or i.name like concat('%', :keyword, '%')
-   or k like concat('%', :keyword, '%')
+   or lower(i.name) like lower(concat('%', :keyword, '%'))
+   or lower(k) like lower(concat('%', :keyword, '%'))
 )
 and (:cursor is null 
    or (i.subscriberCount < :cursor 
@@ -88,7 +89,7 @@ order by i.subscriberCount desc, i.createdAt asc
   List<Interest> findBySubscriberDesc(
       @Param("keyword") String keyword,
       @Param("cursor") Long cursor,
-      @Param("after") Instant after,
+      @Param("after") LocalDateTime after,
       Pageable pageable
   );
 
@@ -100,4 +101,13 @@ order by i.subscriberCount desc, i.createdAt asc
   @Modifying
   @Query(value = "UPDATE interests SET subscriber_count = (SELECT COUNT(*) FROM subscriptions WHERE interest_id = :id) WHERE id = :id", nativeQuery = true)
   int updateSubscriberCount(@Param("id") UUID id, @Param("count") long count);
+
+
+  @Modifying
+  @Query(value = "UPDATE interests SET subscriber_count = subscriber_count + :delta WHERE id = :id", nativeQuery = true)
+  int incrementSubscriberCount(@Param("id") UUID id, @Param("delta") long delta);
+
+  @Modifying
+  @Query(value = "UPDATE interests SET subscriber_count = GREATEST(subscriber_count - :delta, 0) WHERE id = :id", nativeQuery = true)
+  int decrementSubscriberCount(@Param("id") UUID id, @Param("delta") long delta);
 }

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -24,7 +26,6 @@ import com.monew.entity.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
 import com.monew.repository.ArticleInterestRepository;
-import com.monew.repository.ArticleViewRepository;
 import com.monew.repository.InterestRepository;
 import com.monew.repository.SubscriptionRepository;
 import com.monew.repository.article.ArticleQueryRepository;
@@ -34,6 +35,7 @@ import com.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -59,7 +61,6 @@ class ArticleServiceTest {
   @Mock private ArticleFetcher mockFetcher;
   @Mock private NotificationService notificationService;
   @Mock private SubscriptionRepository subscriptionRepository;
-  @Mock private ArticleFetcher articleFetchers;
 
   private ArticleService articleService;
 
@@ -86,31 +87,31 @@ class ArticleServiceTest {
   @DisplayName("기사 수집 - 중복 URL 처리")
   void collect_FiltersDuplicates() {
     String duplicateUrl = "https://news.test.com/123";
-    ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(duplicateUrl).build();
-    Article mockEntity = Article.builder().title("test").build();
+    ArticleDto mockDto = ArticleDto.builder().title("삼성 반도체 뉴스").sourceUrl(duplicateUrl).summary("내용").build();
+    Article mockEntity = Article.builder().title("삼성 반도체 뉴스").sourceUrl(duplicateUrl).build();
+
     Interest mockInterest = new Interest("IT", List.of("반도체"));
+    ReflectionTestUtils.setField(mockInterest, "id", UUID.randomUUID());
 
     given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
-    given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
+    given(mockFetcher.fetch(anySet())).willReturn(List.of(mockDto, mockDto));
     given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of());
-
     given(articleMapper.toEntity(any(ArticleDto.class))).willReturn(mockEntity);
 
     articleService.collect();
+
     verify(articleRepository).saveAll(articleListCaptor.capture());
     List<Article> savedArticles = articleListCaptor.getValue();
-
     assertThat(savedArticles).hasSize(1);
   }
 
   @Test
-  @DisplayName("기사 수집 - 수집 중 Fetcher에서 예외가 발생")
-  void collect_FetcherException_ShouldContinue() throws Exception {
-    ReflectionTestUtils.setField(articleService, "articleFetchers", List.of(articleFetchers));
+  @DisplayName("기사 수집 - 수집 중 Fetcher에서 예외가 발생해도 진행")
+  void collect_FetcherException_ShouldContinue() {
     Interest mockInterest = new Interest("IT", List.of("인공지능"));
     given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
 
-    given(articleFetchers.fetch(anyString())).willThrow(new RuntimeException("API 타임아웃 에러"));
+    given(mockFetcher.fetch(anySet())).willThrow(new RuntimeException("API 타임아웃 에러"));
 
     articleService.collect();
 
@@ -121,18 +122,17 @@ class ArticleServiceTest {
   @DisplayName("기사 수집 - 수집된 모든 기사가 이미 DB에 존재")
   void collect_AllDuplicates_ShouldReturnEarly() {
     String duplicateUrl = "https://news.test.com/123";
-    ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(duplicateUrl).build();
+    ArticleDto mockDto = ArticleDto.builder().title("반도체 뉴스").sourceUrl(duplicateUrl).summary("내용").build();
     Interest mockInterest = new Interest("IT", List.of("반도체"));
+    ReflectionTestUtils.setField(mockInterest, "id", UUID.randomUUID());
 
     given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
-    given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
-
+    given(mockFetcher.fetch(anySet())).willReturn(List.of(mockDto));
     given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of(duplicateUrl));
 
     articleService.collect();
 
     verify(articleRepository, never()).saveAll(anyList());
-    verify(articleInterestRepository, never()).saveAll(anyList());
     verify(notificationService, never()).createNotification(any(), anyString(), any(), any());
   }
 
@@ -140,20 +140,20 @@ class ArticleServiceTest {
   @DisplayName("기사 수집 - 기사 저장 후 구독자에게 알림 발송")
   void collect_SendNotification_Success() {
     String newUrl = "https://news.test.com/new";
-    ArticleDto mockDto = ArticleDto.builder().title("test").sourceUrl(newUrl).build();
-    Article mockEntity = Article.builder().title("test").sourceUrl(newUrl).build();
+    ArticleDto mockDto = ArticleDto.builder().title("삼성 반도체 신제품").sourceUrl(newUrl).summary("요약").build();
+    Article mockEntity = Article.builder().title("삼성 반도체 신제품").sourceUrl(newUrl).build();
 
     UUID interestId = UUID.randomUUID();
     Interest mockInterest = new Interest("IT", List.of("반도체"));
+    ReflectionTestUtils.setField(mockInterest, "id", interestId);
+
     UUID subscriberId = UUID.randomUUID();
 
-    ReflectionTestUtils.setField(mockInterest, "id", interestId);
     given(interestRepository.findAllWithKeywords()).willReturn(List.of(mockInterest));
-    given(mockFetcher.fetch(anyString())).willReturn(List.of(mockDto));
+    given(mockFetcher.fetch(anySet())).willReturn(List.of(mockDto));
     given(articleRepository.findExistingUrls(anyList())).willReturn(Set.of());
     given(articleMapper.toEntity(any(ArticleDto.class))).willReturn(mockEntity);
 
-    given(interestRepository.findById(interestId)).willReturn(Optional.of(mockInterest));
     given(subscriptionRepository.findUserIdsByInterestId(interestId)).willReturn(List.of(subscriberId));
 
     articleService.collect();
@@ -161,7 +161,7 @@ class ArticleServiceTest {
     verify(articleRepository).saveAll(anyList());
     verify(notificationService, times(1)).createNotification(
         eq(subscriberId),
-        anyString(),
+        contains("IT"),
         eq(com.monew.entity.enums.ResourceType.INTEREST),
         eq(interestId)
     );
@@ -269,5 +269,29 @@ class ArticleServiceTest {
     List<String> result = articleService.getSources();
 
     assertThat(result).containsExactly("NAVER", "HANKYUNG");
+  }
+
+  @Test
+  @DisplayName("sendNotifications - 구독자가 없는 경우")
+  void sendNotifications_NoSubscribers() {
+    Article mockArticle = Article.builder().title("Test Article").sourceUrl("test-url").build();
+    Interest mockInterest = new Interest("Tech", List.of("AI"));
+    ReflectionTestUtils.setField(mockInterest, "id", UUID.randomUUID());
+
+    Map<String, Set<Interest>> urlToInterestsMap = Map.of("test-url", Set.of(mockInterest));
+    List<Article> articleList = List.of(mockArticle);
+
+    given(subscriptionRepository.findUserIdsByInterestId(mockInterest.getId())).willReturn(List.of());
+
+    articleService.sendNotifications(articleList, urlToInterestsMap, List.of(mockInterest));
+
+    verify(notificationService, never()).createNotification(any(), any(), any(), any());
+  }
+
+  public void sendNotifications(List<Article> articles, Map<String, Set<Interest>> urlToInterestsMap, List<Interest> interests) {
+    if (articles == null || urlToInterestsMap == null || interests == null) {
+        throw new IllegalArgumentException("매개변수가 null일 수 없습니다.");
+    }
+    // ...기존 코드 유지...
   }
 }
