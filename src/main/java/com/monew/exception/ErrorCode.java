@@ -23,6 +23,7 @@ public enum ErrorCode {
   // 관심사
   INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "INTEREST_404", "관심사를 찾을 수 없습니다"),
   INTEREST_DUPLICATED(HttpStatus.CONFLICT, "INTEREST_409", "유사한 관심사가 존재합니다"),
+  SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "INTEREST_404", "구독 정보를 찾을 수 없습니다"),
 
   // 기사
   ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "ARTICLE_404", "뉴스 기사를 찾을 수 없습니다"),

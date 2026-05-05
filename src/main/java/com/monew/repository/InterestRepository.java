@@ -1,17 +1,23 @@
 package com.monew.repository;
 
 import com.monew.entity.Interest;
-import java.time.Instant;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface InterestRepository extends JpaRepository<Interest, UUID> {
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT i FROM Interest i WHERE i.id = :id")
+  Optional<Interest> findByIdWithPessimisticLock(@Param("id") UUID id);
 
   @Query("""
 select distinct i from Interest i
@@ -100,7 +106,7 @@ order by i.subscriberCount desc, i.createdAt asc
 
   @Modifying
   @Query(value = "UPDATE interests SET subscriber_count = (SELECT COUNT(*) FROM subscriptions WHERE interest_id = :id) WHERE id = :id", nativeQuery = true)
-  int updateSubscriberCount(@Param("id") UUID id, @Param("count") long count);
+  int updateSubscriberCount(@Param("id") UUID id);
 
 
   @Modifying

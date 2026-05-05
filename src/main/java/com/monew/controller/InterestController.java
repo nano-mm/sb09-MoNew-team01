@@ -5,17 +5,15 @@ import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
 import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
-import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
+import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import com.monew.mapper.InterestMapper;
 import com.monew.service.InterestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,20 +105,21 @@ public class InterestController {
 
   @Operation(summary = "관심사 구독", description = "관심사를 구독합니다.")
   @PostMapping("/{interestId}/subscriptions")
-  public void subscribe(
+  public ResponseEntity<SubscriptionDto> subscribe(
       @PathVariable UUID interestId,
       @LoginUser UUID userId
   ) {
     log.info("[관심사] 구독 요청 수신: userId={}, interestId={}", userId, interestId);
-    interestService.subscribe(userId, interestId);
+    SubscriptionDto subscriptionDto = interestService.subscribe(userId, interestId);
 
     log.debug("[관심사] 구독 완료: userId={}, interestId={}", userId, interestId);
+    return ResponseEntity.status(HttpStatus.CREATED).body(subscriptionDto);
   }
 
   // 구독 취소
   @Operation(summary = "관심사 구독 취소", description = "관심사를 구독을 취소합니다.")
   @DeleteMapping("/{interestId}/subscriptions")
-  public void unsubscribe(
+  public ResponseEntity<Void> unsubscribe(
       @PathVariable UUID interestId,
       @LoginUser UUID userId
   ) {
@@ -128,5 +127,6 @@ public class InterestController {
     interestService.unsubscribe(userId, interestId);
 
     log.debug("[관심사] 구독 취소 완료: userId={}, interestId={}", userId, interestId);
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }

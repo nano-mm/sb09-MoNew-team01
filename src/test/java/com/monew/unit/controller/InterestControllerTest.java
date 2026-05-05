@@ -194,7 +194,7 @@ class InterestControllerTest {
 
     mockMvc.perform(post("/api/interests/{id}/subscriptions", interestId)
             .header(headUserId, userId.toString()))
-        .andExpect(status().isOk());
+        .andExpect(status().isCreated());
 
     verify(interestService).subscribe(userId, interestId);
   }
@@ -206,7 +206,7 @@ class InterestControllerTest {
 
     mockMvc.perform(delete("/api/interests/{id}/subscriptions", interestId)
             .header(headUserId, userId.toString()))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     verify(interestService).unsubscribe(userId, interestId);
   }

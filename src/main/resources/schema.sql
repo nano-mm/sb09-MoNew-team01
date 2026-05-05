@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     interest_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_sub_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE
+    CONSTRAINT fk_sub_interest FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
+    CONSTRAINT uk_sub_user_interest UNIQUE (user_id, interest_id)
 );
 
 -- 5. COMMENT 테이블

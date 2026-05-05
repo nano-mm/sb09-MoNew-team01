@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.*;
 
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.request.InterestRegisterRequest;
-import com.monew.dto.request.InterestSearchRequest;
 import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
@@ -13,6 +12,7 @@ import com.monew.dto.response.SubscriptionDto;
 import com.monew.entity.Interest;
 import com.monew.entity.Subscription;
 import com.monew.entity.User;
+import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.SubscriptionMapper;
 import com.monew.repository.InterestRepository;
@@ -21,6 +21,8 @@ import com.monew.repository.UserRepository;
 
 import com.monew.service.InterestService;
 import com.monew.service.UserActivityReadModelService;
+import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +40,7 @@ class InterestServiceTest {
   @Mock private UserRepository userRepository;
   @Mock private UserActivityReadModelService userActivityReadModelService;
   @Mock private SubscriptionMapper subscriptionMapper;
+  @Mock private EntityManager entityManager;
 
   @InjectMocks
   private InterestService interestService;
@@ -55,7 +58,8 @@ class InterestServiceTest {
         subscriptionRepository,
         userRepository,
         userActivityReadModelService,
-        subscriptionMapper
+        subscriptionMapper,
+        entityManager
     );
   }
 
@@ -86,7 +90,7 @@ class InterestServiceTest {
     given(interestRepository.findAll()).willReturn(List.of(existing));
 
     assertThatThrownBy(() -> interestService.create(request))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(BaseException.class)
         .hasMessageContaining(ErrorCode.INTEREST_DUPLICATED.getMessage());
 
   }
@@ -152,25 +156,40 @@ class InterestServiceTest {
   @DisplayName("구독 성공")
   void subscribe_Success() {
     User user = mock(User.class);
+    Instant now = Instant.now();
+    Subscription subscription = mock(Subscription.class);
     Interest interest = new Interest("스포츠", List.of("축구"));
+
+    SubscriptionDto responseDto = new SubscriptionDto(
+        subscription.getId(),
+        interest.getId(),
+        interest.getName(),
+        interest.getKeywords(),
+        interest.getSubscriberCount(),
+        now
+    );
 
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
-    given(interestRepository.findById(interestId))
+    given(interestRepository.findByIdWithPessimisticLock(interestId))
         .willReturn(Optional.of(interest));
 
     given(subscriptionRepository.existsByUserAndInterest(user, interest))
         .willReturn(false);
 
-    Subscription subscription = new Subscription(user, interest);
+    given(subscriptionRepository.saveAndFlush(any()))
+        .willReturn(subscription);
 
-    given(subscriptionRepository.save(any())).willReturn(subscription);
-    given(subscriptionRepository.countByInterest(interest)).willReturn(1L);
+    given(subscriptionMapper.toDto(any(Subscription.class)))
+        .willReturn(responseDto);
 
     SubscriptionDto result = interestService.subscribe(userId, interestId);
 
+    assertThat(result).isNotNull();
     assertThat(result.interestName()).isEqualTo("스포츠");
+    verify(interestRepository).updateSubscriberCount(interestId);
+    verify(entityManager).refresh(interest);
   }
 
   //구독 실패
@@ -183,7 +202,7 @@ class InterestServiceTest {
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
-    given(interestRepository.findById(interestId))
+    given(interestRepository.findByIdWithPessimisticLock(interestId))
         .willReturn(Optional.of(interest));
 
     given(subscriptionRepository.existsByUserAndInterest(user, interest))
@@ -191,7 +210,8 @@ class InterestServiceTest {
 
     assertThatThrownBy(() ->
         interestService.subscribe(userId, interestId))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(BaseException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DUPLICATE_RESOURCE);
   }
 
   // 구독 취소 성공
@@ -205,84 +225,55 @@ class InterestServiceTest {
     given(userRepository.findById(userId))
         .willReturn(Optional.of(user));
 
-    given(interestRepository.findById(interestId))
+    given(interestRepository.findByIdWithPessimisticLock(interestId))
         .willReturn(Optional.of(interest));
 
     given(subscriptionRepository.findAllByUserAndInterest(any(), any()))
         .willReturn(List.of(subscription));
 
-    given(subscriptionRepository.countByInterest(interest))
-        .willReturn(0L);
-
     interestService.unsubscribe(userId, interestId);
 
     verify(subscriptionRepository).delete(subscription);
+    verify(interestRepository).updateSubscriberCount(interestId);
+    verify(entityManager).refresh(interest);
   }
 
   //구독 취소 실패
   @Test
-  @DisplayName("구독 실패가 아니라 기존 구독 반환")
-  void subscribe_AlreadySubscribed_ReturnExisting() {
+  @DisplayName("구독 취소 실패 - 구독 정보 없음")
+  void unsubscribe_Fail_NotFound() {
     User user = mock(User.class);
-    Interest interest = new Interest("스포츠", List.of("축구"));
-    Subscription subscription = new Subscription(user, interest);
-    SubscriptionDto dto = new SubscriptionDto(
-        UUID.randomUUID(),
-        interestId,
-        "스포츠",
-        List.of("축구"),
-        1L,
-        subscription.getCreatedAt()
-    );
+    Interest interest = mock(Interest.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(userRepository.findById(userId))
+        .willReturn(Optional.of(user));
 
-    given(subscriptionRepository.existsByUserAndInterest(user, interest))
-        .willReturn(true);
+    given(interestRepository.findByIdWithPessimisticLock(interestId))
+        .willReturn(Optional.of(interest));
 
-    given(subscriptionRepository.findByUserAndInterest(user, interest))
-        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.findAllByUserAndInterest(user, interest))
+        .willReturn(List.of());
 
-    given(subscriptionMapper.toDto(subscription)).willReturn(dto);
-
-    // when
-    SubscriptionDto result = interestService.subscribe(userId, interestId);
-
-    // then
-    assertThat(result).isEqualTo(dto);
+    assertThatThrownBy(() -> interestService.unsubscribe(userId, interestId))
+        .isInstanceOf(BaseException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SUBSCRIPTION_NOT_FOUND);
   }
 
   @Test
-  void subscribe_FlushFail_Fallback() {
+  @DisplayName("구독 시 DB 제약조건 위반 시 에러 발생")
+  void subscribe_DataIntegrityViolation_ThrowsException() {
     User user = mock(User.class);
     Interest interest = new Interest("스포츠", List.of());
-    Subscription subscription = new Subscription(user, interest);
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(interestRepository.findByIdWithPessimisticLock(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserAndInterest(user, interest)).willReturn(false);
 
-    given(subscriptionRepository.save(any())).willReturn(subscription);
+    given(subscriptionRepository.saveAndFlush(any()))
+        .willThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
 
-    doThrow(new org.springframework.dao.DataAccessException("fail") {})
-        .when(subscriptionRepository).flush();
-
-    given(subscriptionRepository.findByUserAndInterest(user, interest))
-        .willReturn(Optional.of(subscription));
-
-    given(subscriptionMapper.toDto(subscription))
-        .willReturn(new SubscriptionDto(
-            UUID.randomUUID(),
-            interestId,
-            "스포츠",
-            List.of(),
-            0L,
-            subscription.getCreatedAt()
-        ));
-
-    SubscriptionDto result = interestService.subscribe(userId, interestId);
-
-    assertThat(result).isNotNull();
+    assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
+        .isInstanceOf(BaseException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DUPLICATE_RESOURCE);
   }
 }
