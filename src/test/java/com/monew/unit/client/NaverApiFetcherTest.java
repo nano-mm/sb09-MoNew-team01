@@ -1,9 +1,11 @@
 package com.monew.unit.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
 import com.monew.client.ArticleFetchers.NaverApiFetcher;
 import com.monew.dto.news.NaverNewsItem;
@@ -11,6 +13,8 @@ import com.monew.dto.news.NaverNewsResponse;
 import com.monew.dto.response.ArticleDto;
 import com.monew.entity.enums.ArticleSource;
 import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
@@ -159,6 +164,36 @@ class NaverApiFetcherTest {
 
     assertThat(results.get(0).title()).isEmpty();
     assertThat(results.get(0).summary()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("API 수집 중 Thread.sleep 대기 시 InterruptedException이 발생하면 인터럽트 상태를 복구한다")
+  void fetch_InterruptedException_RestoresInterruptFlag() throws InterruptedException {
+    Set<String> keywords = Set.of("test");
+
+    when(restTemplate.exchange(
+        any(URI.class),
+        eq(HttpMethod.GET),
+        any(HttpEntity.class),
+        eq(NaverNewsResponse.class)
+    )).thenReturn(new ResponseEntity<>(HttpStatus.OK));
+
+    AtomicBoolean isInterruptedFlagRestored = new AtomicBoolean(false);
+
+    Thread targetThread = new Thread(() -> {
+
+      Thread.currentThread().interrupt();
+
+      naverApiFetcher.fetch(keywords);
+
+      isInterruptedFlagRestored.set(Thread.currentThread().isInterrupted());
+    });
+
+    targetThread.start();
+    targetThread.join();
+    
+    assertTrue(isInterruptedFlagRestored.get(),
+        "InterruptedException catch 블록에서 인터럽트 상태(flag)가 복구되어야 합니다.");
   }
 
   @Test

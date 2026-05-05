@@ -40,7 +40,7 @@ public class HankyungRssFetcher extends BaseRssFetcher {
   private String fetchSummaryFromUrl(String articleUrl) {
     try {
       Document doc = Jsoup.connect(articleUrl)
-          .timeout(1000)
+          .timeout(3000)
           .userAgent("Mozilla/5.0")
           .get();
       Element articleBody = doc.selectFirst(".article-body");
