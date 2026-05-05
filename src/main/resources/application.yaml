@@ -60,3 +60,6 @@ management:
   metrics:
     tags:
       application: monew-batch-server
+
+server:
+  forward-headers-strategy: native
