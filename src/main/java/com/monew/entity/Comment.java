@@ -32,13 +32,21 @@ import lombok.NoArgsConstructor;
 public class Comment extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "article_id")
+  @JoinColumn(name = "article_id", insertable = false, updatable = false)
   private Article article;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "user_id", insertable = false, updatable = false)
   private User user;
 
+  // ✅ FK를 직접 컬럼으로 보유 → 세션 없이 안전하게 접근 가능
+  @Column(name = "article_id", nullable = false)
+  private UUID articleId;
+
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
+
+  // article title은 별도 저장 (비정규화) 또는 article fetch 시점에만 사용
   @Column(name = "content", nullable = false, length = 1000)
   private String content;
 
@@ -53,7 +61,9 @@ public class Comment extends BaseEntity {
 
   private Comment(Article article, User user, String content) {
     this.article = article;
+    this.articleId = article.getId();
     this.user = user;
+    this.userId = user.getId();
     this.content = content;
   }
 
@@ -62,40 +72,30 @@ public class Comment extends BaseEntity {
   }
 
   public boolean isOwnedBy(UUID requestUserId) {
-    return this.user.getId().equals(requestUserId);
-  }
-
-  public void updateContent(String newContent) {
-    this.content = newContent;
-  }
-
-  public void softDelete(Instant time) {
-    this.deletedAt = time;
-  }
-
-  public void increaseLikeCount() {
-    this.likeCount++;
-  }
-
-  public void decreaseLikeCount() {
-    if (this.likeCount > 0) {
-      this.likeCount--;
-    }
+    return this.userId.equals(requestUserId);
   }
 
   public UUID getArticleId() {
-    return article.getId();
+    return this.articleId;
   }
 
   public String getArticleTitle() {
+    // article proxy 접근은 필요할 때 명시적으로 (서비스 레이어에서 트랜잭션 내)
     return article.getTitle();
   }
 
   public UUID getUserId() {
-    return user.getId();
+    return this.userId;
   }
 
   public String getUserNickname() {
-    return user.getNickname();
+    return user.getNickname();  // 필요하면 nickname도 컬럼 추가 고려
+  }
+
+  public void updateContent(String newContent) { this.content = newContent; }
+  public void softDelete(Instant time) { this.deletedAt = time; }
+  public void increaseLikeCount() { this.likeCount++; }
+  public void decreaseLikeCount() {
+    if (this.likeCount > 0) this.likeCount--;
   }
 }

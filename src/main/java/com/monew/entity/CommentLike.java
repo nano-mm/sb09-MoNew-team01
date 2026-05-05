@@ -1,6 +1,7 @@
 package com.monew.entity;
 
 import com.monew.entity.base.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -20,18 +21,26 @@ import lombok.NoArgsConstructor;
 public class CommentLike extends BaseEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "comment_id", nullable = false)
+  @JoinColumn(name = "comment_id", insertable = false, updatable = false)
   private Comment comment;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false)
+  @JoinColumn(name = "user_id", insertable = false, updatable = false)
   private User user;
+
+  @Column(name = "comment_id", nullable = false)
+  private UUID commentId;
+
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
   public CommentLike(Comment comment, User user) {
     this.comment = comment;
+    this.commentId = comment.getId();
     this.user = user;
+    this.userId = user.getId();
   }
 
-  public UUID getCommentId() { return comment.getId(); }
-  public UUID getUserId() { return user.getId(); }
+  public UUID getCommentId() { return this.commentId; }
+  public UUID getUserId()    { return this.userId; }
 }
