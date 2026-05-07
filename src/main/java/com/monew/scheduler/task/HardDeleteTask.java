@@ -1,10 +1,7 @@
 package com.monew.scheduler.task;
 
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.in.UserCleanupUseCase;
 import com.monew.scheduler.BatchTask;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -22,7 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @RequiredArgsConstructor
 public class HardDeleteTask implements BatchTask {
 
-  private final UserRepository userRepository;
+  private final UserCleanupUseCase userCleanupUseCase;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
 
@@ -52,10 +49,8 @@ public class HardDeleteTask implements BatchTask {
         .tasklet((contribution, chunkContext) -> {
 
           log.info("논리 삭제된 데이터의 물리 삭제 작업을 시작합니다.");
-          Instant oneDayAgo = Instant.now().minus(1, ChronoUnit.DAYS);
-
           try {
-            int rows = userRepository.deleteSoftDeletedUsersOlderThan(oneDayAgo);
+            int rows = userCleanupUseCase.hardDeleteSoftDeletedUsersOlderThanOneDay();
             log.info("물리 삭제 완료. 삭제된 행 수: {}", rows);
           } catch (Exception e) {
             log.error("물리 삭제 중 오류 발생: {}", e.getMessage());

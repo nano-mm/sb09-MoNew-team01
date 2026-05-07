@@ -10,7 +10,7 @@ import com.monew.domain.model.ArticleView;
 import com.monew.domain.model.User;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.application.service.ArticleBackupService;
 import com.monew.application.service.ArticleService;
 import com.monew.application.service.ArticleViewService;

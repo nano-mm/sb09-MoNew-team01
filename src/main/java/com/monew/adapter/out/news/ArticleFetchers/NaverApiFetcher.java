@@ -1,6 +1,6 @@
-package com.monew.adapter.out.news.ArticleFetchers;
+package com.monew.application.port.out.news.ArticleFetchers;
 
-import com.monew.adapter.out.news.ArticleFetcher;
+import com.monew.application.port.out.news.ArticleFetcher;
 
 import com.monew.dto.news.NaverNewsItem;
 import com.monew.dto.news.NaverNewsResponse;

@@ -2,7 +2,7 @@ package com.monew.unit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.scheduler.task.HardDeleteTask;
 import com.monew.domain.model.User;
 import java.time.Instant;

@@ -10,7 +10,7 @@ import com.monew.config.WebConfig;
 import com.monew.adapter.in.web.UserActivityController;
 import com.monew.dto.response.UserActivityDto;
 import com.monew.exception.GlobalExceptionHandler;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.application.service.UserService;
 import java.time.Instant;
 import java.util.Collections;

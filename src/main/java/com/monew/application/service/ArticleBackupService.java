@@ -2,17 +2,18 @@ package com.monew.application.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.monew.application.port.in.ArticleBackupUseCase;
 import com.monew.dto.backup.ArticleBackupDto;
 import com.monew.dto.response.ArticleRestoreResultDto;
 import com.monew.domain.model.Article;
 import com.monew.domain.model.ArticleInterest;
 import com.monew.domain.model.Interest;
 import com.monew.mapper.ArticleBackupMapper;
-import com.monew.adapter.out.persistence.ArticleInterestRepository;
-import com.monew.adapter.out.persistence.InterestRepository;
-import com.monew.adapter.out.persistence.article.ArticleRepository;
-import com.monew.adapter.out.persistence.article.ArticleRepositoryCustom;
-import com.monew.adapter.out.storage.backup.ArticleBackupStorage;
+import com.monew.application.port.out.persistence.ArticleInterestRepository;
+import com.monew.application.port.out.persistence.InterestRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepositoryCustom;
+import com.monew.application.port.out.storage.backup.ArticleBackupStorage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.PreparedStatement;
@@ -39,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ArticleBackupService {
+public class ArticleBackupService implements ArticleBackupUseCase {
 
   private final ArticleRepository articleRepository;
   private final InterestRepository interestRepository;

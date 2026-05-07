@@ -14,10 +14,10 @@ import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.InterestMapper;
 import com.monew.mapper.SubscriptionMapper;
-import com.monew.adapter.out.persistence.InterestRepository;
-import com.monew.adapter.out.persistence.SubscriptionRepository;
-import com.monew.adapter.out.persistence.UserRepository;
-import com.monew.application.service.UserActivityReadModelService;
+import com.monew.application.port.out.persistence.InterestRepository;
+import com.monew.application.port.out.persistence.SubscriptionRepository;
+import com.monew.application.port.out.persistence.UserRepository;
+import com.monew.application.port.out.UserActivityReadModelPort;
 import com.monew.util.SimilarityUtils;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
@@ -45,7 +45,7 @@ public class InterestService {
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserRepository userRepository;
-  private final UserActivityReadModelService userActivityReadModelService;
+  private final UserActivityReadModelPort userActivityReadModelService;
   private final SubscriptionMapper subscriptionMapper;
   private final EntityManager entityManager;
 

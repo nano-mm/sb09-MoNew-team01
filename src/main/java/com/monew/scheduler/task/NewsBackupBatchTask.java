@@ -1,7 +1,7 @@
 package com.monew.scheduler.task;
 
 import com.monew.scheduler.BatchTask;
-import com.monew.application.service.ArticleBackupService;
+import com.monew.application.port.in.ArticleBackupUseCase;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,7 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Component
 @RequiredArgsConstructor
 public class NewsBackupBatchTask implements BatchTask {
-  private final ArticleBackupService articleBackupService;
+  private final ArticleBackupUseCase articleBackupService;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
 

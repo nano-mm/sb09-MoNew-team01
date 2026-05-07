@@ -14,7 +14,7 @@ import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.application.service.NotificationService;
 import java.time.Instant;
 import java.util.List;

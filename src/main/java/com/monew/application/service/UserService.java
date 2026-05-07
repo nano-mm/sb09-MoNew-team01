@@ -1,5 +1,9 @@
 package com.monew.application.service;
 
+import com.monew.application.port.in.UserActivityQueryUseCase;
+import com.monew.application.port.in.UserCleanupUseCase;
+import com.monew.application.port.in.UserUseCase;
+import com.monew.application.port.out.UserActivityReadModelPort;
 import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
@@ -9,9 +13,10 @@ import com.monew.domain.model.User;
 import com.monew.exception.user.AlreadyExistEmailException;
 import com.monew.exception.user.PasswordPatternException;
 import com.monew.mapper.UserMapper;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +29,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserUseCase, UserActivityQueryUseCase, UserCleanupUseCase {
   private final PasswordEncoder passwordEncoder;
   private final EntityManager entityManager;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
   private final UserActivityDtoBuilder userActivityDtoBuilder;
-  private final UserActivityReadModelService userActivityReadModelService;
+  private final UserActivityReadModelPort userActivityReadModelService;
 
   public UserDto create(UserRegisterRequest request){
     if(userRepository.existsByEmail(request.email())) {
@@ -127,5 +132,10 @@ public class UserService {
     }
 
     return userActivityDtoBuilder.build(userId);
+  }
+
+  public int hardDeleteSoftDeletedUsersOlderThanOneDay() {
+    Instant oneDayAgo = Instant.now().minus(1, ChronoUnit.DAYS);
+    return userRepository.deleteSoftDeletedUsersOlderThan(oneDayAgo);
   }
 }

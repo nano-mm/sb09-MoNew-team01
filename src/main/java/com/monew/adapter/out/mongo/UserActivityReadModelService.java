@@ -1,17 +1,19 @@
-package com.monew.application.service;
+package com.monew.adapter.out.mongo;
 
 import com.monew.dto.response.ArticleViewDto;
 import com.monew.dto.response.CommentActivityDto;
 import com.monew.dto.response.CommentLikeActivityDto;
 import com.monew.dto.response.SubscriptionDto;
 import com.monew.dto.response.UserActivityDto;
+import com.monew.application.port.out.UserActivityReadModelPort;
+import com.monew.application.service.UserActivityDtoBuilder;
 import com.monew.adapter.out.mongo.document.UserActivityDocument;
 import com.monew.adapter.out.mongo.document.UserActivityDocument.ArticleViewEntry;
 import com.monew.adapter.out.mongo.document.UserActivityDocument.CommentActivityEntry;
 import com.monew.adapter.out.mongo.document.UserActivityDocument.CommentLikeActivityEntry;
 import com.monew.adapter.out.mongo.document.UserActivityDocument.SubscriptionEntry;
 import com.monew.adapter.out.mongo.repository.UserActivityDocumentRepository;
-import com.monew.adapter.out.persistence.SubscriptionRepository;
+import com.monew.application.port.out.persistence.SubscriptionRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class UserActivityReadModelService {
+public class UserActivityReadModelService implements UserActivityReadModelPort {
 
   private final ObjectProvider<UserActivityDocumentRepository> documentRepository;
   private final UserActivityDtoBuilder activityDtoBuilder;

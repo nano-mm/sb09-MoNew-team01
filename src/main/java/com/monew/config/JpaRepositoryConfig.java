@@ -4,6 +4,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-@EnableJpaRepositories(basePackages = "com.monew.adapter.out.persistence")
+@EnableJpaRepositories(basePackages = "com.monew.application.port.out.persistence")
 public class JpaRepositoryConfig {
 }

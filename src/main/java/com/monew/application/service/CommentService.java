@@ -1,5 +1,8 @@
 package com.monew.application.service;
 
+import com.monew.application.port.in.CommentUseCase;
+import com.monew.application.port.in.NotificationUseCase;
+import com.monew.application.port.out.UserActivityReadModelPort;
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
 import com.monew.dto.request.CommentResponseDto;
@@ -15,8 +18,8 @@ import com.monew.exception.ForbiddenException;
 import com.monew.exception.LikeNotFoundException;
 import com.monew.exception.TooManyRequestsException;
 import com.monew.mapper.CommentMapper;
-import com.monew.adapter.out.persistence.CommentLikeRepository;
-import com.monew.adapter.out.persistence.CommentRepository;
+import com.monew.application.port.out.persistence.CommentLikeRepository;
+import com.monew.application.port.out.persistence.CommentRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -34,21 +37,21 @@ import org.springframework.transaction.annotation.Transactional;
 import com.monew.domain.model.Article;
 import com.monew.domain.model.User;
 import com.monew.exception.user.UserNotFoundException;
-import com.monew.adapter.out.persistence.article.ArticleRepository;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class CommentService {
+public class CommentService implements CommentUseCase {
 
   private final CommentRepository commentRepository;
   private final CommentLikeRepository commentLikeRepository;
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final CommentMapper commentMapper;
-  private final UserActivityReadModelService userActivityReadModelService;
-  private final NotificationService notificationService;
+  private final UserActivityReadModelPort userActivityReadModelService;
+  private final NotificationUseCase notificationService;
 
   private final Map<UUID, Instant> recentCommentRequests = new ConcurrentHashMap<>();
 

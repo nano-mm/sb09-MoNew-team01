@@ -23,7 +23,7 @@ import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
 import com.monew.exception.user.InvalidPasswordException;
 import com.monew.exception.user.UserNotFoundException;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.application.service.UserService;
 import java.time.Instant;
 import java.util.NoSuchElementException;

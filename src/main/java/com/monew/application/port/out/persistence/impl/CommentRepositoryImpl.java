@@ -1,10 +1,10 @@
-package com.monew.adapter.out.persistence.impl;
+package com.monew.application.port.out.persistence.impl;
 
 import com.monew.domain.model.Comment;
 import com.monew.domain.model.QComment;
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
-import com.monew.adapter.out.persistence.CommentRepositoryCustom;
+import com.monew.application.port.out.persistence.CommentRepositoryCustom;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;

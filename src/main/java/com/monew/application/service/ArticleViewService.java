@@ -1,13 +1,15 @@
 package com.monew.application.service;
 
+import com.monew.application.port.in.ArticleViewUseCase;
+import com.monew.application.port.out.UserActivityReadModelPort;
 import com.monew.dto.response.ArticleViewDto;
 import com.monew.domain.model.Article;
 import com.monew.domain.model.ArticleView;
 import com.monew.domain.model.User;
 import com.monew.mapper.ArticleViewMapper;
-import com.monew.adapter.out.persistence.ArticleViewRepository;
-import com.monew.adapter.out.persistence.UserRepository;
-import com.monew.adapter.out.persistence.article.ArticleRepository;
+import com.monew.application.port.out.persistence.ArticleViewRepository;
+import com.monew.application.port.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,13 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ArticleViewService {
+public class ArticleViewService implements ArticleViewUseCase {
 
   private final ArticleViewRepository articleViewRepository;
   private final ArticleViewMapper articleViewMapper;
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
-  private final UserActivityReadModelService userActivityReadModelService;
+  private final UserActivityReadModelPort userActivityReadModelService;
 
   @Transactional
   public ArticleViewDto create(UUID articleId, UUID requestUserId) {

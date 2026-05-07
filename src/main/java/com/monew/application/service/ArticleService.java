@@ -1,6 +1,7 @@
 package com.monew.application.service;
 
-import com.monew.adapter.out.news.ArticleFetcher;
+import com.monew.application.port.in.ArticleUseCase;
+import com.monew.application.port.out.news.ArticleFetcher;
 import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
@@ -11,12 +12,12 @@ import com.monew.domain.model.Interest;
 import com.monew.domain.model.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
-import com.monew.adapter.out.persistence.ArticleInterestRepository;
-import com.monew.adapter.out.persistence.InterestRepository;
-import com.monew.adapter.out.persistence.SubscriptionRepository;
-import com.monew.adapter.out.persistence.article.ArticleQueryRepository;
-import com.monew.adapter.out.persistence.article.ArticleRepository;
-import com.monew.adapter.out.persistence.article.ArticleRepositoryCustom;
+import com.monew.application.port.out.persistence.ArticleInterestRepository;
+import com.monew.application.port.out.persistence.InterestRepository;
+import com.monew.application.port.out.persistence.SubscriptionRepository;
+import com.monew.application.port.out.persistence.article.ArticleQueryRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepository;
+import com.monew.application.port.out.persistence.article.ArticleRepositoryCustom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ArticleService {
+public class ArticleService implements ArticleUseCase {
 
   private final ArticleRepository articleRepository;
   private final ArticleQueryRepository articleQueryRepository;

@@ -1,4 +1,4 @@
-package com.monew.adapter.out.news;
+package com.monew.application.port.out.news;
 
 import com.monew.dto.response.ArticleDto;
 import java.util.List;

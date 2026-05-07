@@ -15,12 +15,12 @@ import com.monew.domain.model.User;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.SubscriptionMapper;
-import com.monew.adapter.out.persistence.InterestRepository;
-import com.monew.adapter.out.persistence.SubscriptionRepository;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.InterestRepository;
+import com.monew.application.port.out.persistence.SubscriptionRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 
 import com.monew.application.service.InterestService;
-import com.monew.application.service.UserActivityReadModelService;
+import com.monew.adapter.out.mongo.UserActivityReadModelService;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;

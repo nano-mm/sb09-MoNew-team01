@@ -29,10 +29,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 class NotificationRepositoryTest {
 
   @Autowired
-  private com.monew.adapter.out.persistence.NotificationRepository notificationRepository;
+  private com.monew.application.port.out.persistence.NotificationRepository notificationRepository;
 
   @Autowired
-  private com.monew.adapter.out.persistence.UserRepository userRepository;
+  private com.monew.application.port.out.persistence.UserRepository userRepository;
 
   @Autowired
   private TestEntityManager entityManager;

@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
-import com.monew.adapter.out.news.ArticleFetchers.NaverApiFetcher;
+import com.monew.application.port.out.news.ArticleFetchers.NaverApiFetcher;
 import com.monew.dto.news.NaverNewsItem;
 import com.monew.dto.news.NaverNewsResponse;
 import com.monew.dto.response.ArticleDto;

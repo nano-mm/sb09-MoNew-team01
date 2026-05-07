@@ -1,4 +1,4 @@
-package com.monew.adapter.out.persistence;
+package com.monew.application.port.out.persistence;
 
 import com.monew.domain.model.Article;
 import com.monew.domain.model.ArticleInterest;

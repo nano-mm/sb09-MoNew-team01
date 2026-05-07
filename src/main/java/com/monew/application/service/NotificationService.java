@@ -1,6 +1,7 @@
 package com.monew.application.service;
 import java.time.temporal.ChronoUnit;
 
+import com.monew.application.port.in.NotificationUseCase;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
 import com.monew.dto.request.NotificationCreateCommand;
@@ -10,8 +11,8 @@ import com.monew.domain.model.enums.ResourceType;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
 import com.monew.mapper.NotificationMapper;
-import com.monew.adapter.out.persistence.NotificationRepository;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.NotificationRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import java.time.Instant;
 import java.util.HashMap;
@@ -26,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService {
+public class NotificationService implements NotificationUseCase {
 
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;

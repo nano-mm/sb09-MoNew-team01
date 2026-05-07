@@ -1,6 +1,6 @@
 package com.monew.adapter.out.storage.backup.impl;
 
-import com.monew.adapter.out.storage.backup.ArticleBackupStorage;
+import com.monew.application.port.out.storage.backup.ArticleBackupStorage;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

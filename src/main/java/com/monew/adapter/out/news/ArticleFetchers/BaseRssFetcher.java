@@ -1,6 +1,6 @@
-package com.monew.adapter.out.news.ArticleFetchers;
+package com.monew.application.port.out.news.ArticleFetchers;
 
-import com.monew.adapter.out.news.ArticleFetcher;
+import com.monew.application.port.out.news.ArticleFetcher;
 import com.monew.dto.response.ArticleDto;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;

@@ -1,13 +1,11 @@
 package com.monew.unit.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.in.UserCleanupUseCase;
 import com.monew.scheduler.task.HardDeleteTask;
-import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +26,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 class HardDeleteTaskTest {
 
   @Mock
-  private UserRepository userRepository;
+  private UserCleanupUseCase userCleanupUseCase;
 
   @Mock
   private JobRepository jobRepository;
@@ -64,20 +62,20 @@ class HardDeleteTaskTest {
   @Test
   @DisplayName("Tasklet 정상 처리 - 물리 삭제가 완료되고 FINISHED를 반환한다")
   void userHardDeleteStep_ExecutesSuccessfully() throws Exception {
-    given(userRepository.deleteSoftDeletedUsersOlderThan(any(Instant.class))).willReturn(10);
+    given(userCleanupUseCase.hardDeleteSoftDeletedUsersOlderThanOneDay()).willReturn(10);
 
     Tasklet tasklet = extractTasklet("userHardDeleteStep");
 
     RepeatStatus status = tasklet.execute(null, null);
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
-    verify(userRepository).deleteSoftDeletedUsersOlderThan(any(Instant.class));
+    verify(userCleanupUseCase).hardDeleteSoftDeletedUsersOlderThanOneDay();
   }
 
   @Test
   @DisplayName("Tasklet 예외 처리 - 삭제 중 예외가 발생해도 FINISHED를 반환하며 종료된다")
   void userHardDeleteStep_HandlesExceptionSafely() throws Exception {
-    given(userRepository.deleteSoftDeletedUsersOlderThan(any(Instant.class)))
+    given(userCleanupUseCase.hardDeleteSoftDeletedUsersOlderThanOneDay())
         .willThrow(new RuntimeException("DB Connection Timeout"));
 
     Tasklet tasklet = extractTasklet("userHardDeleteStep");
@@ -85,7 +83,7 @@ class HardDeleteTaskTest {
     RepeatStatus status = tasklet.execute(null, null);
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
-    verify(userRepository).deleteSoftDeletedUsersOlderThan(any(Instant.class));
+    verify(userCleanupUseCase).hardDeleteSoftDeletedUsersOlderThanOneDay();
   }
 
   private Tasklet extractTasklet(String methodName) {

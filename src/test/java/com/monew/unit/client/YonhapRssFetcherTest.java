@@ -2,7 +2,7 @@ package com.monew.unit.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.monew.adapter.out.news.ArticleFetchers.YonhapRssFetcher;
+import com.monew.application.port.out.news.ArticleFetchers.YonhapRssFetcher;
 import com.monew.domain.model.enums.ArticleSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

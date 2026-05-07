@@ -1,4 +1,4 @@
-package com.monew.adapter.out.news.ArticleFetchers;
+package com.monew.application.port.out.news.ArticleFetchers;
 
 import com.monew.domain.model.enums.ArticleSource;
 import lombok.RequiredArgsConstructor;

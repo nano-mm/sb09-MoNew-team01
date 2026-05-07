@@ -1,6 +1,6 @@
 package com.monew.adapter.out.storage.log.impl;
 
-import com.monew.adapter.out.storage.log.LogStorage;
+import com.monew.application.port.out.storage.log.LogStorage;
 import java.io.File;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.monew.adapter.out.persistence.article;
+package com.monew.application.port.out.persistence.article;
 
 import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;

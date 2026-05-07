@@ -8,7 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import org.mockito.Mockito;
 
-import com.monew.adapter.out.news.ArticleFetchers.ChosunRssFetcher;
+import com.monew.application.port.out.news.ArticleFetchers.ChosunRssFetcher;
 import com.monew.domain.model.enums.ArticleSource;
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndEntry;

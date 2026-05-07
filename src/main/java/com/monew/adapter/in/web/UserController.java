@@ -4,7 +4,7 @@ import com.monew.dto.request.UserLoginRequest;
 import com.monew.dto.request.UserRegisterRequest;
 import com.monew.dto.request.UserUpdateRequest;
 import com.monew.dto.response.UserDto;
-import com.monew.application.service.UserService;
+import com.monew.application.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-  private final UserService userService;
+  private final UserUseCase userService;
 
   // 회원가입
   @PostMapping

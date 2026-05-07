@@ -22,10 +22,10 @@ class NotificationServiceMultiTest {
   java.util.List<Object> publishedEvents = new java.util.ArrayList<>();
 
   @Mock
-  com.monew.adapter.out.persistence.UserRepository userRepository;
+  com.monew.application.port.out.persistence.UserRepository userRepository;
 
   @Mock
-  com.monew.adapter.out.persistence.NotificationRepository notificationRepository;
+  com.monew.application.port.out.persistence.NotificationRepository notificationRepository;
 
   @Mock
   com.monew.mapper.NotificationMapper notificationMapper;

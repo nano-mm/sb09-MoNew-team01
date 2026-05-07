@@ -10,7 +10,7 @@ import com.monew.dto.request.InterestUpdateRequest;
 import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.InterestDto;
 import com.monew.domain.model.Interest;
-import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.port.out.persistence.UserRepository;
 import com.monew.application.service.InterestService;
 
 import org.junit.jupiter.api.BeforeEach;
