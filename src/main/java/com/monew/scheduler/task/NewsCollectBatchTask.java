@@ -1,7 +1,7 @@
 package com.monew.scheduler.task;
 
 import com.monew.scheduler.BatchTask;
-import com.monew.service.ArticleService;
+import com.monew.application.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

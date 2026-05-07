@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.monew.storage.backup.impl.S3ArticleBackupStorage;
+import com.monew.adapter.out.storage.backup.impl.S3ArticleBackupStorage;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

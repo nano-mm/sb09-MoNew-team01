@@ -1,6 +1,6 @@
 package com.monew.scheduler.task;
 
-import com.monew.repository.UserRepository;
+import com.monew.adapter.out.persistence.UserRepository;
 import com.monew.scheduler.BatchTask;
 import java.time.Instant;
 import java.time.LocalDate;

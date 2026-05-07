@@ -8,8 +8,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import org.mockito.Mockito;
 
-import com.monew.client.ArticleFetchers.ChosunRssFetcher;
-import com.monew.entity.enums.ArticleSource;
+import com.monew.adapter.out.news.ArticleFetchers.ChosunRssFetcher;
+import com.monew.domain.model.enums.ArticleSource;
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndEntry;
 import java.io.IOException;

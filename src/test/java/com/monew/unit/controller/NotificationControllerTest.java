@@ -14,8 +14,8 @@ import com.monew.dto.response.CursorPageResponseDto;
 import com.monew.dto.response.NotificationDto;
 import com.monew.exception.BaseException;
 import com.monew.exception.ErrorCode;
-import com.monew.repository.UserRepository;
-import com.monew.service.NotificationService;
+import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(com.monew.controller.NotificationController.class)
+@WebMvcTest(com.monew.adapter.in.web.NotificationController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class NotificationControllerTest {
 

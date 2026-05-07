@@ -3,9 +3,9 @@ package com.monew.unit.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.monew.dto.response.NotificationDto;
-import com.monew.entity.Notification;
-import com.monew.entity.User;
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.Notification;
+import com.monew.domain.model.User;
+import com.monew.domain.model.enums.ResourceType;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

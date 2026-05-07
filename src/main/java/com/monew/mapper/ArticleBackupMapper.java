@@ -1,7 +1,7 @@
 package com.monew.mapper;
 
 import com.monew.dto.backup.ArticleBackupDto;
-import com.monew.entity.Article;
+import com.monew.domain.model.Article;
 import java.util.List;
 import java.util.Map;
 import org.mapstruct.Mapper;

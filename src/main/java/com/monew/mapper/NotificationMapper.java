@@ -1,8 +1,8 @@
 package com.monew.mapper;
 
 import com.monew.dto.response.NotificationDto;
-import com.monew.entity.Notification;
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.Notification;
+import com.monew.domain.model.enums.ResourceType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;

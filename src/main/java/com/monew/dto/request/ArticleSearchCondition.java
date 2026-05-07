@@ -1,6 +1,6 @@
 package com.monew.dto.request;
 
-import com.monew.entity.enums.ArticleSource;
+import com.monew.domain.model.enums.ArticleSource;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

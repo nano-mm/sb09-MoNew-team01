@@ -1,11 +1,11 @@
 package com.monew.unit.listener;
 
 import com.monew.event.NotificationCreatedEvent;
-import com.monew.entity.User;
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.User;
+import com.monew.domain.model.enums.ResourceType;
 import com.monew.listener.NotificationEventListener;
-import com.monew.repository.NotificationRepository;
-import com.monew.repository.UserRepository;
+import com.monew.adapter.out.persistence.NotificationRepository;
+import com.monew.adapter.out.persistence.UserRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,9 +51,9 @@ class NotificationEventListenerTest {
 
     listener.handleNotificationCreated(evt);
 
-    ArgumentCaptor<com.monew.entity.Notification> captor = ArgumentCaptor.forClass(com.monew.entity.Notification.class);
+    ArgumentCaptor<com.monew.domain.model.Notification> captor = ArgumentCaptor.forClass(com.monew.domain.model.Notification.class);
     verify(notificationRepository).save(captor.capture());
-    com.monew.entity.Notification saved = captor.getValue();
+    com.monew.domain.model.Notification saved = captor.getValue();
     assertThat(saved.getUser().getId()).isEqualTo(userId);
     assertThat(saved.getContent()).isEqualTo("hello");
     assertThat(saved.getResourceType()).isEqualTo(ResourceType.INTEREST);

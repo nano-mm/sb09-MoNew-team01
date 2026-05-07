@@ -1,0 +1,29 @@
+package com.monew.adapter.out.persistence;
+
+import com.monew.domain.model.CommentLike;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
+
+  @EntityGraph(attributePaths = {"comment", "comment.article", "comment.user"})
+  List<CommentLike> findTop10ByUser_IdAndComment_DeletedAtIsNullOrderByCreatedAtDesc(UUID userId);
+
+  boolean existsByComment_IdAndUser_Id(UUID commentId, UUID userId);
+
+  // 특정 사용자의 좋아요 삭제 (좋아요 취소) - 삭제 건수 반환
+  @Modifying
+  @Query("DELETE FROM CommentLike cl WHERE cl.comment.id = :commentId AND cl.user.id = :userId")
+  int deleteByComment_IdAndUser_Id(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+
+  // N+1 방지: 특정 사용자가 좋아요한 댓글 ID 목록 조회
+  @Query("SELECT cl.comment.id FROM CommentLike cl WHERE cl.user.id = :userId AND cl.comment.id IN :commentIds")
+  List<UUID> findCommentIdsByUserIdAndCommentIdIn(@Param("userId") UUID userId, @Param("commentIds") List<UUID> commentIds);
+
+
+}

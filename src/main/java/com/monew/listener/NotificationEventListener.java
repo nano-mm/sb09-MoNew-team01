@@ -1,11 +1,11 @@
 package com.monew.listener;
 
 import com.monew.event.NotificationCreatedEvent;
-import com.monew.entity.Notification;
-import com.monew.entity.User;
-import com.monew.repository.NotificationRepository;
-import com.monew.repository.UserRepository;
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.Notification;
+import com.monew.domain.model.User;
+import com.monew.adapter.out.persistence.NotificationRepository;
+import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.domain.model.enums.ResourceType;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

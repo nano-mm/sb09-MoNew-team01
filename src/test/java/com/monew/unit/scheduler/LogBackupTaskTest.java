@@ -9,7 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.monew.scheduler.task.LogBackupTask;
-import com.monew.storage.log.LogStorage;
+import com.monew.adapter.out.storage.log.LogStorage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

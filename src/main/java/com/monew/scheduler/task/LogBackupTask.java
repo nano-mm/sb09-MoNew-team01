@@ -1,7 +1,7 @@
 package com.monew.scheduler.task;
 
 import com.monew.scheduler.BatchTask;
-import com.monew.storage.log.LogStorage;
+import com.monew.adapter.out.storage.log.LogStorage;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

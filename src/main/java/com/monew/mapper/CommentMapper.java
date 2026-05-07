@@ -3,8 +3,8 @@ package com.monew.mapper;
 import com.monew.dto.response.CommentActivityDto;
 import com.monew.dto.response.CommentLikeActivityDto;
 import com.monew.dto.response.CommentDto;
-import com.monew.entity.Comment;
-import com.monew.entity.CommentLike;
+import com.monew.domain.model.Comment;
+import com.monew.domain.model.CommentLike;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

@@ -7,11 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.monew.config.LoginUserArgumentResolver;
 import com.monew.config.WebConfig;
-import com.monew.controller.UserActivityController;
+import com.monew.adapter.in.web.UserActivityController;
 import com.monew.dto.response.UserActivityDto;
 import com.monew.exception.GlobalExceptionHandler;
-import com.monew.repository.UserRepository;
-import com.monew.service.UserService;
+import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.service.UserService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;

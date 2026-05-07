@@ -15,25 +15,25 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.monew.client.ArticleFetcher;
+import com.monew.adapter.out.news.ArticleFetcher;
 import com.monew.dto.request.ArticleSearchCondition;
 import com.monew.dto.request.CursorRequest;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.CursorPageResponseDto;
-import com.monew.entity.Article;
-import com.monew.entity.ArticleInterest;
-import com.monew.entity.Interest;
-import com.monew.entity.enums.ArticleSource;
+import com.monew.domain.model.Article;
+import com.monew.domain.model.ArticleInterest;
+import com.monew.domain.model.Interest;
+import com.monew.domain.model.enums.ArticleSource;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleMapper;
-import com.monew.repository.ArticleInterestRepository;
-import com.monew.repository.InterestRepository;
-import com.monew.repository.SubscriptionRepository;
-import com.monew.repository.article.ArticleQueryRepository;
-import com.monew.repository.article.ArticleRepository;
-import com.monew.repository.article.ArticleRepositoryCustom;
-import com.monew.service.ArticleService;
-import com.monew.service.NotificationService;
+import com.monew.adapter.out.persistence.ArticleInterestRepository;
+import com.monew.adapter.out.persistence.InterestRepository;
+import com.monew.adapter.out.persistence.SubscriptionRepository;
+import com.monew.adapter.out.persistence.article.ArticleQueryRepository;
+import com.monew.adapter.out.persistence.article.ArticleRepository;
+import com.monew.adapter.out.persistence.article.ArticleRepositoryCustom;
+import com.monew.application.service.ArticleService;
+import com.monew.application.service.NotificationService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -172,7 +172,7 @@ class ArticleServiceTest {
     verify(notificationService, times(1)).createNotification(
         eq(subscriberId),
         contains("IT"),
-        eq(com.monew.entity.enums.ResourceType.INTEREST),
+        eq(com.monew.domain.model.enums.ResourceType.INTEREST),
         eq(interestId)
     );
   }

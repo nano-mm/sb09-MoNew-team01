@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import com.monew.storage.backup.impl.LocalArticleBackupStorage;
+import com.monew.adapter.out.storage.backup.impl.LocalArticleBackupStorage;
 import java.io.File;
 import java.io.OutputStream;
 import java.time.LocalDateTime;

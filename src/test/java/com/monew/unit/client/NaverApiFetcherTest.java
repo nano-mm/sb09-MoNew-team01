@@ -7,11 +7,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
-import com.monew.client.ArticleFetchers.NaverApiFetcher;
+import com.monew.adapter.out.news.ArticleFetchers.NaverApiFetcher;
 import com.monew.dto.news.NaverNewsItem;
 import com.monew.dto.news.NaverNewsResponse;
 import com.monew.dto.response.ArticleDto;
-import com.monew.entity.enums.ArticleSource;
+import com.monew.domain.model.enums.ArticleSource;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;

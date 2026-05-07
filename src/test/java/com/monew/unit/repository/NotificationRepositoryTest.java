@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.monew.config.JpaAuditConfig;
 import com.monew.config.TestQueryDslConfig;
-import com.monew.entity.Notification;
-import com.monew.entity.User;
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.Notification;
+import com.monew.domain.model.User;
+import com.monew.domain.model.enums.ResourceType;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -29,10 +29,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 class NotificationRepositoryTest {
 
   @Autowired
-  private com.monew.repository.NotificationRepository notificationRepository;
+  private com.monew.adapter.out.persistence.NotificationRepository notificationRepository;
 
   @Autowired
-  private com.monew.repository.UserRepository userRepository;
+  private com.monew.adapter.out.persistence.UserRepository userRepository;
 
   @Autowired
   private TestEntityManager entityManager;

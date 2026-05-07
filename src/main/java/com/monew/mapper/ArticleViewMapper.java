@@ -1,8 +1,8 @@
 package com.monew.mapper;
 
 import com.monew.dto.response.ArticleViewDto;
-import com.monew.entity.Article;
-import com.monew.entity.ArticleView;
+import com.monew.domain.model.Article;
+import com.monew.domain.model.ArticleView;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

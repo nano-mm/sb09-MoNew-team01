@@ -7,12 +7,12 @@ import com.monew.config.JpaAuditConfig;
 import com.monew.config.TestQueryDslConfig;
 import com.monew.dto.comment.CommentCursor;
 import com.monew.dto.comment.CommentSortType;
-import com.monew.entity.Article;
-import com.monew.entity.Comment;
-import com.monew.entity.CommentLike;
-import com.monew.entity.User;
-import com.monew.repository.CommentLikeRepository;
-import com.monew.repository.CommentRepository;
+import com.monew.domain.model.Article;
+import com.monew.domain.model.Comment;
+import com.monew.domain.model.CommentLike;
+import com.monew.domain.model.User;
+import com.monew.adapter.out.persistence.CommentLikeRepository;
+import com.monew.adapter.out.persistence.CommentRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -46,7 +46,7 @@ class CommentRepositoryTest {
     em.persist(user);
 
     article = Article.builder()
-        .source(com.monew.entity.enums.ArticleSource.NAVER)
+        .source(com.monew.domain.model.enums.ArticleSource.NAVER)
         .sourceUrl("http://link.com")
         .title("제목")
         .summary("요약")

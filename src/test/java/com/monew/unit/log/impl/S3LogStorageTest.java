@@ -3,7 +3,7 @@ package com.monew.unit.log.impl;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
-import com.monew.storage.log.impl.S3LogStorage;
+import com.monew.adapter.out.storage.log.impl.S3LogStorage;
 import java.io.File;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

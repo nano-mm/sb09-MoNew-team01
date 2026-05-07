@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 import com.monew.dto.response.ArticleDto;
-import com.monew.client.ArticleFetchers.BaseRssFetcher;
+import com.monew.adapter.out.news.ArticleFetchers.BaseRssFetcher;
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -4,9 +4,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.monew.dto.request.NotificationCreateCommand;
-import com.monew.entity.User;
-import com.monew.entity.enums.ResourceType;
-import com.monew.service.NotificationService;
+import com.monew.domain.model.User;
+import com.monew.domain.model.enums.ResourceType;
+import com.monew.application.service.NotificationService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +22,10 @@ class NotificationServiceMultiTest {
   java.util.List<Object> publishedEvents = new java.util.ArrayList<>();
 
   @Mock
-  com.monew.repository.UserRepository userRepository;
+  com.monew.adapter.out.persistence.UserRepository userRepository;
 
   @Mock
-  com.monew.repository.NotificationRepository notificationRepository;
+  com.monew.adapter.out.persistence.NotificationRepository notificationRepository;
 
   @Mock
   com.monew.mapper.NotificationMapper notificationMapper;

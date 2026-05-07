@@ -12,13 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monew.config.LoginUserArgumentResolver;
-import com.monew.controller.CommentController;
+import com.monew.adapter.in.web.CommentController;
 import com.monew.dto.request.CreateCommentRequest;
 import com.monew.dto.request.UpdateCommentRequest;
 import com.monew.dto.response.CommentDto;
 import com.monew.dto.response.CommentLikeResponse;
 import com.monew.dto.response.CursorPageResponseDto;
-import com.monew.service.CommentService;
+import com.monew.application.service.CommentService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

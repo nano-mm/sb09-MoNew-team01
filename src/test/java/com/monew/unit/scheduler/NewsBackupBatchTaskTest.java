@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import java.time.LocalDateTime;
 
 import com.monew.scheduler.task.NewsBackupBatchTask;
-import com.monew.service.ArticleBackupService;
+import com.monew.application.service.ArticleBackupService;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

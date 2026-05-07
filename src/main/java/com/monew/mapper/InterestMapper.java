@@ -1,7 +1,7 @@
 package com.monew.mapper;
 
 import com.monew.dto.response.InterestDto;
-import com.monew.entity.Interest;
+import com.monew.domain.model.Interest;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 

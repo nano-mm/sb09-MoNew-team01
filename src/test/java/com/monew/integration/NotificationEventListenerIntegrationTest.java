@@ -1,10 +1,10 @@
 package com.monew.integration.listener;
 
 import com.monew.event.NotificationCreatedEvent;
-import com.monew.entity.User;
-import com.monew.entity.enums.ResourceType;
-import com.monew.repository.NotificationRepository;
-import com.monew.repository.UserRepository;
+import com.monew.domain.model.User;
+import com.monew.domain.model.enums.ResourceType;
+import com.monew.adapter.out.persistence.NotificationRepository;
+import com.monew.adapter.out.persistence.UserRepository;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class NotificationEventListenerIntegrationTest {
     boolean found = false;
     for (Object o : all) {
       try {
-        com.monew.entity.Notification notif = (com.monew.entity.Notification) o;
+        com.monew.domain.model.Notification notif = (com.monew.domain.model.Notification) o;
         if (notif.getUser().getId().equals(savedUserId) && notif.getResourceId().equals(resourceId)) {
           found = true;
           break;

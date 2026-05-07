@@ -1,6 +1,6 @@
 package com.monew.dto.request;
 
-import com.monew.entity.enums.ResourceType;
+import com.monew.domain.model.enums.ResourceType;
 import java.util.UUID;
 
 public record NotificationCreateCommand(

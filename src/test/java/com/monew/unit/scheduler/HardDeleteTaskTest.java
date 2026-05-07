@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.monew.repository.UserRepository;
+import com.monew.adapter.out.persistence.UserRepository;
 import com.monew.scheduler.task.HardDeleteTask;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;

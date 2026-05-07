@@ -2,8 +2,8 @@ package com.monew.unit.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.monew.entity.User;
-import com.monew.repository.UserRepository;
+import com.monew.domain.model.User;
+import com.monew.adapter.out.persistence.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

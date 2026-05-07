@@ -1,19 +1,19 @@
 package com.monew.unit.controller;
 
 import com.monew.config.SecurityConfig;
-import com.monew.controller.ArticleController;
+import com.monew.adapter.in.web.ArticleController;
 import com.monew.dto.response.ArticleDto;
 import com.monew.dto.response.ArticleViewDto;
 import com.monew.dto.response.CursorPageResponseDto;
-import com.monew.entity.Article;
-import com.monew.entity.ArticleView;
-import com.monew.entity.User;
+import com.monew.domain.model.Article;
+import com.monew.domain.model.ArticleView;
+import com.monew.domain.model.User;
 import com.monew.exception.article.ArticleNotFoundException;
 import com.monew.mapper.ArticleViewMapper;
-import com.monew.repository.UserRepository;
-import com.monew.service.ArticleBackupService;
-import com.monew.service.ArticleService;
-import com.monew.service.ArticleViewService;
+import com.monew.adapter.out.persistence.UserRepository;
+import com.monew.application.service.ArticleBackupService;
+import com.monew.application.service.ArticleService;
+import com.monew.application.service.ArticleViewService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,7 +1,7 @@
 package com.monew.mapper;
 
 import com.monew.dto.response.SubscriptionDto;
-import com.monew.entity.Subscription;
+import com.monew.domain.model.Subscription;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
