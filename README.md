@@ -82,34 +82,27 @@
 
 ##  시스템 아키텍처
 
+본 브랜치는 1차 리팩터링 단계로, 기존 기능을 유지하면서 패키지를 **Hexagonal Architecture 방향의 레이어 구조**로 재배치했습니다.
+
 ```
-┌─────────────┐
-│   Client    │
-│  (Browser)  │
-└──────┬──────┘
-       │ HTTP
-       ▼
-┌─────────────────────────────────────────────┐
-│              Spring Boot Application        │
-│                                             │
-│  ┌──────────────┐     ┌───────────────────┐ │
-│  │  Controller  │───▶ │     Service       │ │
-│  └──────────────┘     └────────┬──────────┘ │
-│                               │             │
-│                      ┌────────▼──────────┐  │
-│                      │    Repository     │  │
-│                      │  (JPA / Mongo)    │  │
-│                      └────────┬──────────┘  │
-└───────────────────────────────┼─────────────┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                     │
-┌─────────▼───────────┐  ┌──────▼──────────────┐  ┌───▼─────────────────┐
-│     PostgreSQL      │  │      MongoDB        │  │      AWS S3         │
-│   (Primary DB)      │  │  (External Storage) │  │ (Articles & Logs    │
-└─────────────────────┘  └─────────────────────┘  │      Backup)        │
-                                                  └─────────────────────┘
+Client
+  │ HTTP
+  ▼
+adapter.in.web
+  │
+  ▼
+application.service
+  │
+  ▼
+adapter.out.persistence / adapter.out.mongo / adapter.out.news / adapter.out.storage
+  │
+  ├─ PostgreSQL
+  ├─ MongoDB
+  ├─ External News API / RSS
+  └─ AWS S3 / Local Storage
 ```
+
+1차 작업은 Port 인터페이스 분리 전 단계이며, controller/service/repository 중심 구조를 hexagonal package layout으로 정리하는 데 초점을 둡니다.
 
 <br>
 
@@ -122,23 +115,24 @@ monew
 ┃ ┣ main
 ┃ ┃ ┣ java
 ┃ ┃ ┃ ┗ com.monew
-┃ ┃ ┃ ┃ ┣ api                // 외부 API 응답 DTO
-┃ ┃ ┃ ┃ ┣ client             // 외부 API 호출 (S3, 다른 서버 등)
-┃ ┃ ┃ ┃ ┣ config             // 설정 (Swagger, S3, JPA 등)
-┃ ┃ ┃ ┃ ┣ controller         // Controller (입출력 담당)
-┃ ┃ ┃ ┃ ┣ dto
-┃ ┃ ┃ ┃ ┃ ┣ request          // 요청 DTO
-┃ ┃ ┃ ┃ ┃ ┗ response         // 응답 DTO
-┃ ┃ ┃ ┃ ┣ entity             // JPA Entity
-┃ ┃ ┃ ┃ ┣ exception          // 커스텀 예외 + 핸들러
-┃ ┃ ┃ ┃ ┣ mapper             // MapStruct
-┃ ┃ ┃ ┃ ┣ repository         // JPA Repository
-┃ ┃ ┃ ┃ ┣ service
-┃ ┃ ┃ ┃ ┃ ┣ command          // 생성/수정
-┃ ┃ ┃ ┃ ┃ ┗ query            // 조회
-┃ ┃ ┃ ┃ ┣ storage            // 파일 저장 (S3, local)
-┃ ┃ ┃ ┃ ┣ scheduler          // 배치/스케줄러
-┃ ┃ ┃ ┃ ┣ mongo              // MongoDB
+┃ ┃ ┃ ┃ ┣ adapter
+┃ ┃ ┃ ┃ ┃ ┣ in
+┃ ┃ ┃ ┃ ┃ ┃ ┗ web             // REST Controller, inbound adapter
+┃ ┃ ┃ ┃ ┃ ┗ out
+┃ ┃ ┃ ┃ ┃ ┃ ┣ persistence     // JPA repository
+┃ ┃ ┃ ┃ ┃ ┃ ┣ mongo           // MongoDB document/repository
+┃ ┃ ┃ ┃ ┃ ┃ ┣ news            // 외부 뉴스 API/RSS client
+┃ ┃ ┃ ┃ ┃ ┃ ┗ storage         // S3/Local storage
+┃ ┃ ┃ ┃ ┣ application
+┃ ┃ ┃ ┃ ┃ ┗ service           // application service
+┃ ┃ ┃ ┃ ┣ domain
+┃ ┃ ┃ ┃ ┃ ┗ model             // 도메인/JPA 모델
+┃ ┃ ┃ ┃ ┣ dto                 // 요청/응답 DTO
+┃ ┃ ┃ ┃ ┣ exception           // 커스텀 예외 + 핸들러
+┃ ┃ ┃ ┃ ┣ mapper              // MapStruct
+┃ ┃ ┃ ┃ ┣ config              // Security, JPA, Mongo, Batch 설정
+┃ ┃ ┃ ┃ ┣ scheduler           // 배치/스케줄러
+┃ ┃ ┃ ┃ ┣ listener            // 이벤트 리스너
 ┃ ┃ ┃ ┃ ┣ util
 ┃ ┃ ┃ ┃ ┗ MonewApplication.java
 ┃ ┃ ┗ resources
