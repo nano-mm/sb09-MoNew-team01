@@ -82,34 +82,39 @@
 
 ##  시스템 아키텍처
 
+본 프로젝트는 2차 리팩터링을 통해 **Hexagonal Architecture(Ports & Adapters)** 구조를 적용했습니다.
+
 ```
-┌─────────────┐
-│   Client    │
-│  (Browser)  │
-└──────┬──────┘
-       │ HTTP
-       ▼
-┌─────────────────────────────────────────────┐
-│              Spring Boot Application        │
-│                                             │
-│  ┌──────────────┐     ┌───────────────────┐ │
-│  │  Controller  │───▶ │     Service       │ │
-│  └──────────────┘     └────────┬──────────┘ │
-│                               │             │
-│                      ┌────────▼──────────┐  │
-│                      │    Repository     │  │
-│                      │  (JPA / Mongo)    │  │
-│                      └────────┬──────────┘  │
-└───────────────────────────────┼─────────────┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                     │
-┌─────────▼───────────┐  ┌──────▼──────────────┐  ┌───▼─────────────────┐
-│     PostgreSQL      │  │      MongoDB        │  │      AWS S3         │
-│   (Primary DB)      │  │  (External Storage) │  │ (Articles & Logs    │
-└─────────────────────┘  └─────────────────────┘  │      Backup)        │
-                                                  └─────────────────────┘
+Client
+  │ HTTP
+  ▼
+adapter.in.web
+  │ depends on
+  ▼
+application.port.in
+  │ implemented by
+  ▼
+application.service
+  │ depends on
+  ▼
+application.port.out
+  ▲ implemented by
+  │
+adapter.out.persistence / adapter.out.mongo / adapter.out.news / adapter.out.storage
+  │
+  ├─ PostgreSQL
+  ├─ MongoDB
+  ├─ External News API / RSS
+  └─ AWS S3 / Local Storage
 ```
+
+### 의존성 방향
+
+```
+adapter.in.web → application.port.in ← application.service → application.port.out ← adapter.out.*
+```
+
+Application 계층은 adapter 구현체에 직접 의존하지 않고, port 인터페이스에만 의존합니다.
 
 <br>
 
@@ -122,23 +127,26 @@ monew
 ┃ ┣ main
 ┃ ┃ ┣ java
 ┃ ┃ ┃ ┗ com.monew
-┃ ┃ ┃ ┃ ┣ api                // 외부 API 응답 DTO
-┃ ┃ ┃ ┃ ┣ client             // 외부 API 호출 (S3, 다른 서버 등)
-┃ ┃ ┃ ┃ ┣ config             // 설정 (Swagger, S3, JPA 등)
-┃ ┃ ┃ ┃ ┣ controller         // Controller (입출력 담당)
-┃ ┃ ┃ ┃ ┣ dto
-┃ ┃ ┃ ┃ ┃ ┣ request          // 요청 DTO
-┃ ┃ ┃ ┃ ┃ ┗ response         // 응답 DTO
-┃ ┃ ┃ ┃ ┣ entity             // JPA Entity
-┃ ┃ ┃ ┃ ┣ exception          // 커스텀 예외 + 핸들러
-┃ ┃ ┃ ┃ ┣ mapper             // MapStruct
-┃ ┃ ┃ ┃ ┣ repository         // JPA Repository
-┃ ┃ ┃ ┃ ┣ service
-┃ ┃ ┃ ┃ ┃ ┣ command          // 생성/수정
-┃ ┃ ┃ ┃ ┃ ┗ query            // 조회
-┃ ┃ ┃ ┃ ┣ storage            // 파일 저장 (S3, local)
-┃ ┃ ┃ ┃ ┣ scheduler          // 배치/스케줄러
-┃ ┃ ┃ ┃ ┣ mongo              // MongoDB
+┃ ┃ ┃ ┃ ┣ adapter
+┃ ┃ ┃ ┃ ┃ ┣ in
+┃ ┃ ┃ ┃ ┃ ┃ ┗ web             // REST Controller, inbound adapter
+┃ ┃ ┃ ┃ ┃ ┗ out
+┃ ┃ ┃ ┃ ┃ ┃ ┣ mongo           // MongoDB read model adapter
+┃ ┃ ┃ ┃ ┃ ┃ ┣ news            // 외부 뉴스 API/RSS adapter
+┃ ┃ ┃ ┃ ┃ ┃ ┗ storage         // S3/Local storage adapter
+┃ ┃ ┃ ┃ ┣ application
+┃ ┃ ┃ ┃ ┃ ┣ port
+┃ ┃ ┃ ┃ ┃ ┃ ┣ in              // inbound use case port
+┃ ┃ ┃ ┃ ┃ ┃ ┗ out             // outbound persistence/news/storage port
+┃ ┃ ┃ ┃ ┃ ┗ service           // use case 구현체
+┃ ┃ ┃ ┃ ┣ domain
+┃ ┃ ┃ ┃ ┃ ┗ model             // 도메인/JPA 모델
+┃ ┃ ┃ ┃ ┣ dto                 // 요청/응답 DTO
+┃ ┃ ┃ ┃ ┣ exception           // 커스텀 예외 + 핸들러
+┃ ┃ ┃ ┃ ┣ mapper              // MapStruct
+┃ ┃ ┃ ┃ ┣ config              // Security, JPA, Mongo, Batch 설정
+┃ ┃ ┃ ┃ ┣ scheduler           // 배치/스케줄러
+┃ ┃ ┃ ┃ ┣ listener            // 이벤트 리스너
 ┃ ┃ ┃ ┃ ┣ util
 ┃ ┃ ┃ ┃ ┗ MonewApplication.java
 ┃ ┃ ┗ resources
